@@ -13,6 +13,7 @@ async function logAttActivity(supabaseClient, action_type, description, user_id,
 
 export default function AttendancePage({ profile, members, services, setServices, attendance, setAttendance }) {
   const isAdmin = profile?.role === "admin";
+  const canCreateService = ["admin","leadership","usher"].includes(profile?.role);
   const [activeId, setActiveId] = useState(null);
   const [loadingAtt, setLoadingAtt] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
@@ -232,7 +233,7 @@ export default function AttendancePage({ profile, members, services, setServices
             ))}
           </select>
           <button className="btn-ghost" onClick={()=>setShowExport(true)}>Export</button>
-          {isAdmin && <button className="btn-primary" onClick={()=>{setShowAdd(true);setError("");}}>+ New Service</button>}
+          {canCreateService && <button className="btn-primary" onClick={()=>{setShowAdd(true);setError("");}}>+ New Service</button>}
         </div>
       </div>
       {(typeFilter !== "All" || yearFilter !== "All" || monthFilter !== "All") && (

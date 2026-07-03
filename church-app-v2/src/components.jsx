@@ -190,7 +190,7 @@ export function SetPasswordScreen({ onDone, onCancel }) {
 }
 
 // Mandatory onboarding for newly invited users: set a password, then enable 2FA.
-export function OnboardingFlow({ onComplete, onCancel, requirePassword = true }) {
+export function OnboardingFlow({ onComplete, onCancel, requirePassword = true, require2fa = true }) {
   const [step, setStep] = useState(requirePassword ? 1 : 2);
   // Step 1 — password
   const [pw, setPw] = useState("");
@@ -204,7 +204,7 @@ export function OnboardingFlow({ onComplete, onCancel, requirePassword = true })
   const [mfaBusy, setMfaBusy] = useState(false);
 
   // When the password step is skipped (2FA-only mode), begin enrollment immediately.
-  useEffect(() => { if (!requirePassword) startEnroll(); /* eslint-disable-next-line */ }, []);
+  useEffect(() => { if (!requirePassword && require2fa) startEnroll(); /* eslint-disable-next-line */ }, []);
 
   async function savePassword() {
     setPwErr("");
@@ -214,8 +214,8 @@ export function OnboardingFlow({ onComplete, onCancel, requirePassword = true })
     try {
       const { error } = await supabase.auth.updateUser({ password: pw });
       if (error) throw error;
-      setStep(2);
-      startEnroll();
+      if (require2fa) { setStep(2); startEnroll(); }
+      else { onComplete(); } // account is exempt from 2FA → finish after password
     } catch (e) { setPwErr(e.message || "Could not set the password."); }
     setPwBusy(false);
   }
@@ -247,7 +247,7 @@ export function OnboardingFlow({ onComplete, onCancel, requirePassword = true })
   return (
     <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#f4f6fa", padding: 20 }}>
       <div style={{ background: "#fff", borderRadius: 14, boxShadow: "0 10px 40px #0000001a", padding: 28, width: "100%", maxWidth: 400 }}>
-        <div style={{ fontSize: 11, fontWeight: 700, color: "#5edcd1", letterSpacing: 0.8, textAlign: "center" }}>{requirePassword ? `STEP ${step} OF 2` : "REQUIRED SETUP"}</div>
+        <div style={{ fontSize: 11, fontWeight: 700, color: "#5edcd1", letterSpacing: 0.8, textAlign: "center" }}>{requirePassword ? (require2fa ? `STEP ${step} OF 2` : "SET YOUR PASSWORD") : "REQUIRED SETUP"}</div>
 
         {step === 1 && (
           <>

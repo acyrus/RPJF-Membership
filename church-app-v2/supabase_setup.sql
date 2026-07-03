@@ -129,7 +129,8 @@ alter table members alter column name drop not null;
 alter table profiles
   add column if not exists last_sign_in timestamptz,
   add column if not exists onboarded boolean not null default false,
-  add column if not exists active_session uuid;
+  add column if not exists active_session uuid,
+  add column if not exists require_2fa boolean not null default true;
 
 
 -- ============================================================
@@ -288,7 +289,7 @@ create policy "member_roles_delete" on member_roles for delete to authenticated 
 drop policy if exists "services_select" on services;
 create policy "services_select" on services for select to authenticated using (true);
 drop policy if exists "services_insert" on services;
-create policy "services_insert" on services for insert to authenticated with check (get_my_role() = 'admin');
+create policy "services_insert" on services for insert to authenticated with check (get_my_role() in ('admin','leadership','usher'));
 drop policy if exists "services_delete" on services;
 create policy "services_delete" on services for delete to authenticated using (get_my_role() = 'admin');
 

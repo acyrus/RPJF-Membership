@@ -159,8 +159,16 @@ export default function App() {
         setLoading(false);
         return;
       }
-      // nextLevel "aal1" means no 2FA factor is enrolled at all → must enroll (mandatory)
-      setNeeds2fa(!!data && data.nextLevel === "aal1");
+      // nextLevel "aal1" means no 2FA factor is enrolled at all.
+      // Force enrollment ONLY if this account still requires 2FA (admin can exempt per user).
+      let force = !!data && data.nextLevel === "aal1";
+      if (force) {
+        try {
+          const { data: prof } = await supabase.from("profiles").select("require_2fa").eq("id", session.user.id).single();
+          if (prof && prof.require_2fa === false) force = false;
+        } catch (e) { /* column missing or query failed → default to requiring 2FA */ }
+      }
+      setNeeds2fa(force);
     } catch (e) { setNeeds2fa(false); /* if the AAL check fails, load normally */ }
     setMfaStatus("ok");
     loadAll(session.user.id);
@@ -266,7 +274,7 @@ export default function App() {
   // New (invited) accounts must set a password + 2FA before using the app.
   // Older accounts have onboarded=true (set in migration v13); if the column is
   // missing entirely (migration not yet run), onboarded is undefined and this is skipped.
-  if (profile.onboarded === false) return <OnboardingFlow onComplete={handleOnboarded} onCancel={logout} />;
+  if (profile.onboarded === false) return <OnboardingFlow require2fa={profile.require_2fa !== false} onComplete={handleOnboarded} onCancel={logout} />;
   // 2FA is mandatory for every account: anyone without a factor must enrol before continuing.
   if (needs2fa) return <OnboardingFlow requirePassword={false} onComplete={()=>setNeeds2fa(false)} onCancel={logout} />;
   const isAdmin = profile.role === "admin";

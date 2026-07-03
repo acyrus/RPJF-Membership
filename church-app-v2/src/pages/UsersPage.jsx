@@ -32,14 +32,26 @@ export default function UsersPage({ currentProfile }) {
 
   async function load() {
     setLoading(true);
-    // Get profiles
     const { data: profiles } = await supabase
       .from("user_profiles_with_login")
       .select("*")
       .order("role")
       .order("name");
-    setUsers(profiles || []);
+    let flagMap = {};
+    try {
+      const { data: flags } = await supabase.from("profiles").select("id, require_2fa");
+      (flags || []).forEach(f => { flagMap[f.id] = f.require_2fa; });
+    } catch (e) { /* column may not exist yet */ }
+    setUsers((profiles || []).map(u => ({ ...u, require_2fa: flagMap[u.id] !== false })));
     setLoading(false);
+  }
+
+  async function toggle2fa(id, current) {
+    const next = !current;
+    await supabase.from("profiles").update({ require_2fa: next }).eq("id", id);
+    setUsers(prev => prev.map(u => u.id === id ? { ...u, require_2fa: next } : u));
+    setSuccess(next ? "Two-step verification now required for this user" : "Two-step verification made optional for this user");
+    setTimeout(() => setSuccess(""), 3000);
   }
 
   async function deleteUser(id, name) {
@@ -131,6 +143,10 @@ export default function UsersPage({ currentProfile }) {
                     </div>
                   </div>
                   <div className="user-controls" style={{display:"flex", alignItems:"center", gap:8, flexShrink:0}}>
+                    <label title="When on, this user is forced to set up two-step verification at login" style={{display:"inline-flex", alignItems:"center", gap:5, fontSize:11, color:"#4a5568", cursor:"pointer"}}>
+                      <input type="checkbox" checked={u.require_2fa} onChange={()=>toggle2fa(u.id, u.require_2fa)} />
+                      Require 2FA
+                    </label>
                     {u.id !== currentProfile.id && (
                       <select
                         value={u.role}
