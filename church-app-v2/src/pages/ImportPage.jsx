@@ -7,25 +7,70 @@ import { CheckCircle2, AlertTriangle } from "lucide-react";
 function convertDate(raw) {
   if (!raw || !raw.trim()) return null;
   const s = raw.trim();
-  // Already YYYY-MM-DD
-  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
-  // DD/MM/YYYY
-  if (/^\d{2}\/\d{2}\/\d{4}$/.test(s)) {
+  let iso = null;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) iso = s;
+  else if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(s)) {
     const [d, m, y] = s.split("/");
-    return `${y}-${m}-${d}`;
+    iso = `${y}-${m.padStart(2,"0")}-${d.padStart(2,"0")}`;
   }
-  // D/M/YYYY or similar
-  if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(s)) {
-    const [d, m, y] = s.split("/");
-    return `${y}-${m.padStart(2,"0")}-${d.padStart(2,"0")}`;
-  }
-  return s; // return as-is, validation will catch bad formats
+  if (!iso) return null; // unrecognized text (e.g. "Not sure") → invalid
+  // Verify it's a REAL calendar date so "45/13/1990" (→1990-13-45) or "31/02/2020"
+  // don't slip through as strings and error at the database.
+  const [y, m, d] = iso.split("-").map(Number);
+  if (m < 1 || m > 12 || d < 1 || d > 31) return null;
+  const dt = new Date(iso + "T00:00:00Z");
+  if (isNaN(dt.getTime()) || dt.getUTCFullYear() !== y || (dt.getUTCMonth() + 1) !== m || dt.getUTCDate() !== d) return null;
+  return iso;
 }
 
-const MEMBER_COLUMNS = ["first_name","last_name","middle_name","email","phone","dob","sex","marital_status","city","address","join_date","anniversary","skill1","skill2","skill3","other_skills","notes","roles"];
+const MEMBER_COLUMNS = ["first_name","last_name","middle_name","email","phone","dob","sex","marital_status","city","address","join_date","anniversary","skill1","skill2","skill3","other_skills","instruments","notes","roles"];
 
 // Accept friendly header aliases so app-exported CSVs (which use "Gender") still auto-map
-const COLUMN_ALIASES = { sex: ["gender"], marital_status: ["marital"] };
+const COLUMN_ALIASES = { sex: ["gender"], marital_status: ["marital"], instruments: ["instrument"] };
+
+// For the non-blocking "suspicious email" warning: common valid TLD endings, plus
+// well-known provider misspellings. Anything else is flagged (not blocked) as a likely typo.
+const COMMON_TLDS = new Set(["com","org","net","edu","gov","mil","co","io","info","biz","me","tt","uk","ca","us","int","app","dev","online","live","email","name","pro","xyz","tv","site"]);
+const DOMAIN_TYPOS = new Set(["gmial.com","gmai.com","gmal.com","gmil.com","gnail.com","gmail.co","gmaill.com","hotmial.com","hotmal.com","hotmai.com","hotmil.com","yahooo.com","yaho.com","yahoo.co","outlok.com","outook.com","iclould.com","icloud.co"]);
+
+// Partial header hints so raw Google-Forms exports (long question headers) auto-map.
+// A header matches a field if it *contains* one of the hint phrases (after normalizing).
+const HEADER_HINTS = {
+  first_name:["first name"], last_name:["last name"], middle_name:["middle name"],
+  email:["email"], phone:["phone"], dob:["date of birth","birth"],
+  sex:["gender","sex"], marital_status:["marital"], city:["city"],
+  address:["home address"], join_date:["church join","join date"], anniversary:["anniversary"],
+  skill1:["primary skill"], skill2:["secondary skill"], skill3:["tertiary skill"],
+  other_skills:["additional skill","other skill"], instruments:["instrument"],
+  notes:["comment","note"], roles:["roles","ministr"],
+};
+// Phrases that DISQUALIFY a header for a field (e.g. the Yes/No "do you play a musical
+// instrument?" gate must not be mistaken for the actual instruments list).
+const HEADER_AVOID = { instruments:["musical instrument"] };
+
+function autoMapHeaders(headers) {
+  const norm = h => String(h).toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
+  const used = new Set();
+  const mapping = {};
+  MEMBER_COLUMNS.forEach(col => {
+    const aliases = COLUMN_ALIASES[col] || [];
+    // 1) exact field name / alias
+    let match = headers.find(h => !used.has(h) && (h === col || norm(h) === col.replace(/_/g," ") || aliases.includes(norm(h))));
+    // 2) partial hint match (skipping any disqualified headers)
+    if (!match) {
+      const hints = HEADER_HINTS[col] || [];
+      const avoid = HEADER_AVOID[col] || [];
+      match = headers.find(h => {
+        if (used.has(h)) return false;
+        const n = norm(h);
+        if (avoid.some(a => n.includes(a))) return false;
+        return hints.some(hint => n.includes(hint));
+      });
+    }
+    if (match) { mapping[col] = match; used.add(match); }
+  });
+  return mapping;
+}
 
 function parseCSV(text) {
   const lines = text.trim().split("\n");
@@ -92,13 +137,7 @@ export default function ImportPage({ profile, onImportComplete }) {
       setMemberRows(rows);
       const headers = Object.keys(rows[0]);
       setMemberHeaders(headers);
-      // Auto-map headers
-      const mapping = {};
-      MEMBER_COLUMNS.forEach(col => {
-        const match = headers.find(h => h === col || h.includes(col.split("_")[0]) || (COLUMN_ALIASES[col]||[]).includes(h));
-        if (match) mapping[col] = match;
-      });
-      setMemberMapping(mapping);
+      setMemberMapping(autoMapHeaders(headers));
     };
     reader.readAsText(file);
   }
@@ -123,80 +162,99 @@ export default function ImportPage({ profile, onImportComplete }) {
       setMemberRows(rows);
       const headers = Object.keys(rows[0]);
       setMemberHeaders(headers);
-      const mapping = {};
-      MEMBER_COLUMNS.forEach(col => {
-        const match = headers.find(h => h === col || h.replace(/ /g,"_").toLowerCase() === col || (COLUMN_ALIASES[col]||[]).includes(h));
-        if (match) mapping[col] = match;
-      });
-      setMemberMapping(mapping);
+      setMemberMapping(autoMapHeaders(headers));
     } catch(e) { setMemberError(e.message); }
     finally { setSheetLoading(false); }
   }
 
-  function validateMemberRows() {
+  // Per-row validation, reused by both the validation summary and the import loop.
+  // Returns { issues:[{field,msg}], warnings:[{field,msg}] } for one row.
+  function memberRowChecks(row) {
     const today = new Date().toISOString().slice(0,10);
-    const issues = [];
-    const warnings = [];
     const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     const phoneRe = /^[0-9\s\+\-\(\)]{7,20}$/;
+    const get = col => memberMapping[col] ? (row[memberMapping[col]] || "").trim() : "";
+    const first = get("first_name"), last = get("last_name");
+    const email = get("email"), phone = get("phone");
+    const dob = convertDate(get("dob"));
+    const anniversary = convertDate(get("anniversary"));
+    const joinDate = convertDate(get("join_date"));
+    const sex = get("sex"), marital = get("marital_status");
+    const issues = [], warnings = [];
 
+    if (!first) issues.push({ field: "first_name", msg: "Missing first name" });
+    if (!last) issues.push({ field: "last_name", msg: "Missing last name" });
+    if (email && !emailRe.test(email)) issues.push({ field: "email", msg: `Invalid email: "${email}"` });
+    if (phone && !phoneRe.test(phone)) issues.push({ field: "phone", msg: `Invalid phone: "${phone}"` });
+    if (get("dob") && (!dob || dob > today)) issues.push({ field: "dob", msg: `Invalid or future date of birth: "${get("dob")}"` });
+    if (get("anniversary") && !anniversary) issues.push({ field: "anniversary", msg: `Invalid anniversary date: "${get("anniversary")}"` });
+    if (get("join_date") && joinDate && joinDate > today) issues.push({ field: "join_date", msg: `Join date cannot be in the future` });
+    if (sex && !["Male","Female"].includes(sex)) issues.push({ field: "sex", msg: `Sex must be "Male" or "Female", got "${sex}"` });
+    if (marital && !["Single","Married"].includes(marital)) issues.push({ field: "marital_status", msg: `Marital status must be "Single" or "Married", got "${marital}"` });
+
+    if (email && emailRe.test(email)) {
+      const domain = email.split("@")[1].toLowerCase();
+      const tld = domain.split(".").pop();
+      if (!COMMON_TLDS.has(tld) || DOMAIN_TYPOS.has(domain)) warnings.push({ field: "email", msg: `Email "${email}" has an unusual domain — check for a typo` });
+    }
+    if (anniversary && marital && marital !== "Married") warnings.push({ field: "anniversary", msg: `Marked "${marital}" but has a wedding anniversary — should this be Married?` });
+    return { issues, warnings };
+  }
+
+  function validateMemberRows() {
+    const issues = [], warnings = [];
+    let emptyRows = 0;
+    const badRowNums = new Set();
     memberRows.forEach((row, i) => {
       const rowNum = i + 2;
       const get = col => memberMapping[col] ? (row[memberMapping[col]] || "").trim() : "";
       const first = get("first_name"), last = get("last_name");
-      const email = get("email"), phone = get("phone");
-      const dob = convertDate(get("dob"));
-      const anniversary = convertDate(get("anniversary"));
-      const joinDate = convertDate(get("join_date"));
-      const sex = get("sex"), marital = get("marital_status");
-
-      if (!first) issues.push({ row: rowNum, field: "first_name", msg: "Missing first name" });
-      if (!last) issues.push({ row: rowNum, field: "last_name", msg: "Missing last name" });
-      if (email && !emailRe.test(email)) issues.push({ row: rowNum, field: "email", msg: `Invalid email: "${email}"` });
-      if (phone && !phoneRe.test(phone)) issues.push({ row: rowNum, field: "phone", msg: `Invalid phone: "${phone}"` });
-      if (get("dob") && (!dob || dob > today)) issues.push({ row: rowNum, field: "dob", msg: `Invalid or future date of birth: "${get("dob")}"` });
-      if (get("anniversary") && !anniversary) issues.push({ row: rowNum, field: "anniversary", msg: `Invalid anniversary date: "${get("anniversary")}"` });
-      if (get("join_date") && joinDate && joinDate > today) issues.push({ row: rowNum, field: "join_date", msg: `Join date cannot be in the future` });
-      if (sex && !["Male","Female"].includes(sex)) issues.push({ row: rowNum, field: "sex", msg: `Sex must be "Male" or "Female", got "${sex}"` });
-      if (marital && !["Single","Married"].includes(marital)) issues.push({ row: rowNum, field: "marital_status", msg: `Marital status must be "Single" or "Married", got "${marital}"` });
-      // Non-blocking: a valid anniversary on someone not marked Married is likely a data-entry slip.
-      if (anniversary && marital && marital !== "Married") warnings.push({ row: rowNum, field: "anniversary", msg: `Marked "${marital}" but has a wedding anniversary — should this be Married?` });
+      if (!first && !last) { emptyRows++; return; } // fully blank row → silently skipped
+      const name = `${first} ${last}`.trim() || "(no name)";
+      const { issues: ri, warnings: rw } = memberRowChecks(row);
+      if (ri.length) badRowNums.add(rowNum);
+      ri.forEach(x => issues.push({ row: rowNum, name, ...x }));
+      rw.forEach(x => warnings.push({ row: rowNum, name, ...x }));
     });
-
-    const emptyRows = memberRows.filter(r => {
-      const get = col => memberMapping[col] ? (r[memberMapping[col]] || "").trim() : "";
-      return !get("first_name") && !get("last_name");
-    }).length;
-
-    setMemberValidation({ issues, warnings, validRows: memberRows.length - emptyRows, emptyRows, total: memberRows.length });
+    const nonEmpty = memberRows.length - emptyRows;
+    const validRows = nonEmpty - badRowNums.size;
+    setMemberValidation({ issues, warnings, validRows, badRows: badRowNums.size, emptyRows, total: memberRows.length });
     return issues.length === 0;
   }
 
   async function importMembers() {
     setMemberImporting(true); setMemberError(""); setMemberResult(null);
-    let added = 0, updated = 0, skipped = 0, duplicates = 0, errors = [];
+    let added = 0, updated = 0, duplicates = 0, errorSkipped = 0, nameSkipped = 0, emptySkipped = 0;
+    const errors = [], addedList = [], updatedList = [], log = [];
 
-    // De-duplicate the sheet on normalized first+last, keeping the LAST occurrence
+    // De-duplicate the sheet on first+middle+last, keeping the LAST occurrence
     // (Google Forms appends newest responses at the bottom, so last = newest).
     const dedupeMap = new Map();
-    memberRows.forEach(row => {
+    memberRows.forEach((row, i) => {
       const get = col => memberMapping[col] ? (row[memberMapping[col]] || "").trim() : "";
-      const first = get("first_name"); const last = get("last_name");
-      if (!first || !last) return;
-      const key = `${first}|${last}`.toLowerCase().replace(/\s+/g, " ").trim();
-      dedupeMap.set(key, row);
+      const first = get("first_name"); const last = get("last_name"); const middle = get("middle_name");
+      const rowNum = i + 2;
+      if (!first && !last) { emptySkipped++; log.push({ row: rowNum, name: "", outcome: "skipped", reason: "empty row" }); return; }
+      if (!first || !last) { nameSkipped++; log.push({ row: rowNum, name: `${first} ${last}`.trim(), outcome: "skipped", reason: "missing first or last name" }); return; }
+      const key = `${first}|${middle}|${last}`.toLowerCase().replace(/\s+/g, " ").trim();
+      if (dedupeMap.has(key)) {
+        const prev = dedupeMap.get(key);
+        log.push({ row: prev.rowNum, name: `${prev.first} ${prev.last}`.trim(), outcome: "collapsed", reason: `duplicate of row ${rowNum} (newer kept)` });
+      }
+      dedupeMap.set(key, { row, rowNum, first, last, middle });
     });
     const importRows = Array.from(dedupeMap.values());
-    const nonEmpty = memberRows.filter(row => {
-      const get = col => memberMapping[col] ? (row[memberMapping[col]] || "").trim() : "";
-      return get("first_name") && get("last_name");
-    }).length;
-    const dedupedAway = nonEmpty - importRows.length;
+    const dedupedAway = log.filter(l => l.outcome === "collapsed").length;
 
-    for (const row of importRows) {
+    for (const { row, rowNum, first, last } of importRows) {
       const get = col => memberMapping[col] ? (row[memberMapping[col]] || "").trim() : "";
-      const first = get("first_name"); const last = get("last_name");
-      if (!first || !last) { skipped++; continue; }
+      const name = `${first} ${last}`.trim();
+      const issues = memberRowChecks(row).issues;
+      if (issues.length > 0) {
+        errorSkipped++;
+        log.push({ row: rowNum, name, outcome: "skipped", reason: issues.map(x => x.msg).join("; ") });
+        continue;
+      }
 
       try {
         const memberData = {
@@ -214,59 +272,60 @@ export default function ImportPage({ profile, onImportComplete }) {
           skill2: get("skill2") || null,
           skill3: get("skill3") || null,
           other_skills: get("other_skills") || null,
+          instruments: get("instruments") || null,
           city: get("city") || null,
           notes: get("notes") || null,
           is_active: true,
         };
 
-        // Check if member already exists by first + last name
-        const { data: existing } = await supabase.from("members")
-          .select("id")
+        // Match existing by first + last + MIDDLE (blank matches blank).
+        const { data: candidates } = await supabase.from("members")
+          .select("id, middle_name")
           .ilike("first_name", first)
-          .ilike("last_name", last)
-          .maybeSingle();
+          .ilike("last_name", last);
+        const midNorm = get("middle_name").toLowerCase();
+        const existing = (candidates || []).find(c => (c.middle_name || "").trim().toLowerCase() === midNorm);
 
         let memberId;
 
         if (existing) {
           if (memberReplaceMode) {
-            // Update existing member
-            const { error: upErr } = await supabase.from("members")
-              .update(memberData).eq("id", existing.id);
+            const { error: upErr } = await supabase.from("members").update(memberData).eq("id", existing.id);
             if (upErr) throw upErr;
             memberId = existing.id;
-            // Replace roles
             await supabase.from("member_roles").delete().eq("member_id", memberId);
             updated++;
+            updatedList.push({ row: rowNum, name });
+            log.push({ row: rowNum, name, outcome: "updated", reason: "matched existing record — replaced" });
           } else {
-            // Skip duplicate
             duplicates++;
+            log.push({ row: rowNum, name, outcome: "skipped", reason: "already in database (Replace mode off)" });
             continue;
           }
         } else {
-          // Insert new member
-          const { data: member, error: mErr } = await supabase.from("members")
-            .insert(memberData).select("id").single();
+          const { data: member, error: mErr } = await supabase.from("members").insert(memberData).select("id").single();
           if (mErr) throw mErr;
           memberId = member.id;
           added++;
+          addedList.push({ row: rowNum, name });
+          log.push({ row: rowNum, name, outcome: "added", reason: "" });
         }
 
-        // Handle roles
         const rolesStr = get("roles");
         if (rolesStr && memberId) {
           const roleList = rolesStr.split(/[,;]/).map(r=>r.trim()).filter(r=>ROLES.includes(r));
           if (roleList.length) {
-            await supabase.from("member_roles")
-              .insert(roleList.map(r=>({ member_id: memberId, role_name: r })));
+            await supabase.from("member_roles").insert(roleList.map(r=>({ member_id: memberId, role_name: r })));
           }
         }
       } catch(e) {
-        errors.push(`${first} ${last}: ${e.message}`);
+        errors.push(`${name}: ${e.message}`);
+        log.push({ row: rowNum, name, outcome: "error", reason: e.message });
       }
     }
 
-    const result = { added, updated, skipped, duplicates, deduped: dedupedAway, errors: errors.slice(0, 10), replaced: memberReplaceMode };
+    log.sort((a,b) => a.row - b.row);
+    const result = { added, updated, duplicates, deduped: dedupedAway, errorSkipped, nameSkipped, emptySkipped, addedList, updatedList, log, errors: errors.slice(0, 10), replaced: memberReplaceMode };
     // Log the import action
     if (added > 0 || updated > 0) {
       const desc = memberReplaceMode
@@ -283,6 +342,20 @@ export default function ImportPage({ profile, onImportComplete }) {
         onImportComplete();
       }, 3000);
     }
+  }
+
+  // Export a per-row log of the last import as a CSV report.
+  function downloadImportReport() {
+    if (!memberResult || !memberResult.log) return;
+    const cell = v => { const s = String(v ?? ""); return /[",\n]/.test(s) ? `"${s.replace(/"/g,'""')}"` : s; };
+    const header = "row,name,outcome,detail";
+    const body = memberResult.log.map(l => [l.row, l.name, l.outcome, l.reason].map(cell).join(",")).join("\n");
+    const stamp = new Date().toISOString().slice(0,19).replace(/[:T]/g,"-");
+    const mode = memberResult.replaced ? "replace" : "import";
+    const csv = `# Church Connect ${mode} report — ${new Date().toLocaleString()}\n# added:${memberResult.added} updated:${memberResult.updated} skipped(issues):${memberResult.errorSkipped} skipped(no name):${memberResult.nameSkipped} empty:${memberResult.emptySkipped} duplicates-in-sheet:${memberResult.deduped} db-errors:${memberResult.errors.length}\n${header}\n${body}\n`;
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url; a.download = `import-report-${stamp}.csv`; a.click();
   }
 
   // --- ATTENDANCE IMPORT ---
@@ -535,7 +608,7 @@ export default function ImportPage({ profile, onImportComplete }) {
               <div style={{fontWeight:700, fontSize:14, color:"#111827", marginBottom:4}}>Map Columns</div>
               <div style={{fontSize:12, color:"#9ca3af", marginBottom:12}}>{memberRows.length} rows found. Match your spreadsheet columns to the app fields.</div>
               <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:10}}>
-                {["first_name","last_name","middle_name","email","phone","dob","sex","marital_status","city","address","join_date","anniversary","skill1","skill2","skill3","other_skills","notes","roles"].map(col => (
+                {MEMBER_COLUMNS.map(col => (
                   <div key={col}>
                     <label className="field-label">{col.replace(/_/g," ")}{["first_name","last_name"].includes(col)?" *":""}</label>
                     <select value={memberMapping[col]||""} onChange={e=>setMemberMapping(prev=>({...prev,[col]:e.target.value}))}>
@@ -555,19 +628,21 @@ export default function ImportPage({ profile, onImportComplete }) {
                 {memberValidation && (
                   <div style={{marginBottom:14, background: memberValidation.issues.length?"#fff8f0":"#f0fff8", border:`1.5px solid ${memberValidation.issues.length?"#f5d088":"#b0e8c8"}`, borderRadius:8, padding:"12px 14px"}}>
                     <div style={{fontWeight:700, fontSize:12, color:"#111827", marginBottom:6}}>
-                      {memberValidation.issues.length === 0 ? "Data looks good!" : `${memberValidation.issues.length} issue${memberValidation.issues.length!==1?"s":""} found`}
+                      {memberValidation.issues.length === 0 ? "Data looks good!" : `${memberValidation.issues.length} issue${memberValidation.issues.length!==1?"s":""} across ${memberValidation.badRows} row${memberValidation.badRows!==1?"s":""}`}
                     </div>
                     <div style={{fontSize:12, color:"#6b7280", marginBottom: memberValidation.issues.length?8:0}}>
-                      {memberValidation.validRows} valid row{memberValidation.validRows!==1?"s":""} ready to import
-                      {memberValidation.emptyRows > 0 && ` · ${memberValidation.emptyRows} empty rows will be skipped`}
+                      {memberValidation.validRows} valid row{memberValidation.validRows!==1?"s":""} will import
+                      {memberValidation.badRows > 0 && ` · ${memberValidation.badRows} row${memberValidation.badRows!==1?"s":""} with issues will be skipped`}
+                      {memberValidation.emptyRows > 0 && ` · ${memberValidation.emptyRows} empty skipped`}
                     </div>
-                    {memberValidation.issues.slice(0,8).map((issue,i)=>(
-                      <div key={i} style={{fontSize:12, color:"#c06010", marginTop:3}}>
-                        Row {issue.row} · {issue.field}: {issue.msg}
+                    {memberValidation.issues.length > 0 && (
+                      <div style={{maxHeight:240, overflowY:"auto", paddingRight:4}}>
+                        {memberValidation.issues.map((issue,i)=>(
+                          <div key={i} style={{fontSize:12, color:"#c06010", marginTop:3}}>
+                            <strong>Row {issue.row}</strong> · {issue.name} · {issue.field}: {issue.msg}
+                          </div>
+                        ))}
                       </div>
-                    ))}
-                    {memberValidation.issues.length > 8 && (
-                      <div style={{fontSize:12, color:"#9ca3af", marginTop:3}}>...and {memberValidation.issues.length - 8} more issues</div>
                     )}
                   </div>
                 )}
@@ -577,12 +652,11 @@ export default function ImportPage({ profile, onImportComplete }) {
                     <div style={{fontWeight:700, fontSize:12, color:"#8a5a10", marginBottom:6}}>
                       {memberValidation.warnings.length} warning{memberValidation.warnings.length!==1?"s":""} — these won't block the import
                     </div>
-                    {memberValidation.warnings.slice(0,8).map((w,i)=>(
-                      <div key={i} style={{fontSize:12, color:"#a06a10", marginTop:3}}>Row {w.row}: {w.msg}</div>
-                    ))}
-                    {memberValidation.warnings.length > 8 && (
-                      <div style={{fontSize:12, color:"#b89050", marginTop:3}}>...and {memberValidation.warnings.length - 8} more</div>
-                    )}
+                    <div style={{maxHeight:200, overflowY:"auto", paddingRight:4}}>
+                      {memberValidation.warnings.map((w,i)=>(
+                        <div key={i} style={{fontSize:12, color:"#a06a10", marginTop:3}}><strong>Row {w.row}</strong> · {w.name} · {w.msg}</div>
+                      ))}
+                    </div>
                   </div>
                 )}
 
@@ -612,8 +686,9 @@ export default function ImportPage({ profile, onImportComplete }) {
 
           {memberResult && (
             <div style={{background: memberResult.errors.length?"#fff8f0":"#f0fff8", border:`1.5px solid ${memberResult.errors.length?"#f5d0a0":"#b0e8c8"}`, borderRadius:10, padding:"14px 16px"}}>
-              <div style={{fontWeight:700, fontSize:14, color:"#111827", marginBottom:8}}>
+              <div style={{fontWeight:700, fontSize:14, color:"#111827", marginBottom:8, display:"flex", alignItems:"center", gap:8, flexWrap:"wrap"}}>
                 {memberResult.replaced ? "Update Complete" : "Import Complete"}
+                {memberResult.replaced && <span style={{fontSize:10, fontWeight:700, background:"#fbe4d0", color:"#b5581a", padding:"2px 9px", borderRadius:20, textTransform:"uppercase", letterSpacing:0.4}}>Replace mode — existing records overwritten</span>}
               </div>
               {memberResult.added > 0 && (
                 <div style={{fontSize:14, color:"#4caf82", marginBottom:4}}>{memberResult.added} new member{memberResult.added!==1?"s":""} added</div>
@@ -621,24 +696,59 @@ export default function ImportPage({ profile, onImportComplete }) {
               {memberResult.updated > 0 && (
                 <div style={{fontSize:14, color:"#e07830", marginBottom:4}}>{memberResult.updated} existing member{memberResult.updated!==1?"s":""} updated</div>
               )}
+              {((memberResult.addedList && memberResult.addedList.length > 0) || (memberResult.updatedList && memberResult.updatedList.length > 0)) && (
+                <div style={{marginTop:8, marginBottom:6, maxHeight:220, overflowY:"auto", border:"1px solid #e4e9f5", borderRadius:8, padding:"8px 10px", background:"#fff"}}>
+                  <div style={{fontSize:11, fontWeight:700, color:"#6b7280", textTransform:"uppercase", letterSpacing:0.4, marginBottom:6}}>
+                    {memberResult.replaced ? "Imported / updated records" : "Imported records"}
+                  </div>
+                  {(memberResult.addedList||[]).map((m,i)=>(
+                    <div key={"a"+i} style={{fontSize:12, color:"#2a3560", marginTop:2}}>
+                      <strong>Row {m.row}</strong> · {m.name} <span style={{color:"#2a8a50", fontWeight:600}}>added</span>
+                    </div>
+                  ))}
+                  {(memberResult.updatedList||[]).map((m,i)=>(
+                    <div key={"u"+i} style={{fontSize:12, color:"#2a3560", marginTop:2}}>
+                      <strong>Row {m.row}</strong> · {m.name} <span style={{color:"#e07830", fontWeight:600}}>updated</span>
+                    </div>
+                  ))}
+                </div>
+              )}
               {memberResult.duplicates > 0 && !memberResult.replaced && (
                 <div style={{fontSize:12, color:"#9ca3af", marginBottom:4}}>ℹ {memberResult.duplicates} duplicate{memberResult.duplicates!==1?"s":""} skipped (already in database) — turn on Replace Mode to update them</div>
+              )}
+              {memberResult.errorSkipped > 0 && (
+                <div style={{fontSize:12, color:"#c06010", marginBottom:4}}>{memberResult.errorSkipped} row{memberResult.errorSkipped!==1?"s":""} skipped due to validation issues (see Validate Data for details)</div>
+              )}
+              {memberResult.nameSkipped > 0 && (
+                <div style={{fontSize:12, color:"#c06010", marginBottom:4}}>{memberResult.nameSkipped} row{memberResult.nameSkipped!==1?"s":""} skipped (missing first or last name)</div>
+              )}
+              {memberResult.emptySkipped > 0 && (
+                <div style={{fontSize:12, color:"#9ca3af", marginBottom:4}}>{memberResult.emptySkipped} empty row{memberResult.emptySkipped!==1?"s":""} skipped</div>
               )}
               {memberResult.deduped > 0 && (
                 <div style={{fontSize:12, color:"#9ca3af", marginBottom:4}}>{memberResult.deduped} duplicate row{memberResult.deduped!==1?"s":""} within the sheet collapsed to the newest entry each</div>
               )}
-              {memberResult.skipped > 0 && (
-                <div style={{fontSize:12, color:"#9ca3af", marginBottom:4}}>{memberResult.skipped} row{memberResult.skipped!==1?"s":""} skipped (missing first/last name)</div>
-              )}
               {memberResult.errors.map((e,i)=><div key={i} style={{fontSize:12,color:"#e05050",marginTop:4}}>{e}</div>)}
+              {memberResult.log && memberResult.log.length > 0 && (
+                <button className="btn-ghost" style={{fontSize:12, marginTop:10}} onClick={downloadImportReport}>Download import report</button>
+              )}
             </div>
           )}
 
           {/* Download template */}
           <div style={{marginTop:16}}>
             <button className="btn-ghost" style={{fontSize:12}} onClick={()=>{
-              const headers = "first_name,last_name,middle_name,email,phone,dob,sex,marital_status,address,join_date,anniversary,skill1,skill2,skill3,notes,roles";
-              const example = "John,Smith,Paul,john@email.com,555-1234,15/06/1990,Male,Married,123 Main St,01/01/2020,,Accounting,Music (Guitar),,Beekeeping,Active member,Usher";
+              const cell = v => /[",\n]/.test(v) ? `"${v.replace(/"/g,'""')}"` : v;
+              const sample = {
+                first_name:"John", last_name:"Smith", middle_name:"Paul",
+                email:"john@email.com", phone:"555-1234", dob:"15/06/1990",
+                sex:"Male", marital_status:"Married", city:"Chaguanas", address:"123 Main St",
+                join_date:"01/01/2020", anniversary:"", skill1:"Accounting", skill2:"Singing",
+                skill3:"", other_skills:"Beekeeping", instruments:"Acoustic Guitar, Drums",
+                notes:"Active member", roles:"Usher",
+              };
+              const headers = MEMBER_COLUMNS.join(",");
+              const example = MEMBER_COLUMNS.map(c => cell(sample[c] || "")).join(",");
               const csv = headers + "\n" + example;
               const blob = new Blob([csv],{type:"text/csv"});
               const url = URL.createObjectURL(blob);

@@ -106,8 +106,14 @@ export default function App() {
   async function claimSession() {
     try {
       setBootedElsewhere(false);
-      const id = (crypto.randomUUID && crypto.randomUUID()) || String(Date.now()) + Math.random();
-      localStorage.setItem(SESSION_KEY, id);
+      // Reuse this browser's existing session id across reloads/re-logins so the
+      // same user on the same device never kicks themselves; only generate one
+      // the first time. A genuinely different device has no stored id → new id → wins.
+      let id = localStorage.getItem(SESSION_KEY);
+      if (!id) {
+        id = (crypto.randomUUID && crypto.randomUUID()) || String(Date.now()) + Math.random();
+        localStorage.setItem(SESSION_KEY, id);
+      }
       await supabase.rpc("claim_session", { p_session: id });
     } catch (e) { /* if the column/function isn't present yet, silently no-op */ }
   }
@@ -230,6 +236,7 @@ export default function App() {
   }
 
   async function logout() {
+    localStorage.removeItem(SESSION_KEY);
     await supabase.auth.signOut();
     setTab("members"); setMembers([]); setServices([]); setAttendance([]);
   }
