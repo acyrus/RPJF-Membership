@@ -152,6 +152,20 @@ export function SetPasswordScreen({ onDone, onCancel }) {
   const [pw2, setPw2] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [checking, setChecking] = useState(true);
+  const [needsMfa, setNeedsMfa] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        // If the account has a verified 2FA factor, this recovery session is only
+        // AAL1 and Supabase blocks the password update until 2FA is verified.
+        const { data } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+        if (data && data.currentLevel === "aal1" && data.nextLevel === "aal2") setNeedsMfa(true);
+      } catch (e) { /* no factor / check failed → go straight to the password step */ }
+      setChecking(false);
+    })();
+  }, []);
 
   async function submit() {
     if (pw.length < 8) { setError("Use at least 8 characters."); return; }
@@ -163,6 +177,15 @@ export function SetPasswordScreen({ onDone, onCancel }) {
       onDone();
     } catch (e) { setError(e.message || "Could not set the password."); setBusy(false); }
   }
+
+  if (checking) return (
+    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#f4f6fa" }}>
+      <Spinner />
+    </div>
+  );
+
+  // 2FA account resetting its password: verify the authenticator code first (reaches AAL2).
+  if (needsMfa) return <MfaChallenge onVerified={() => setNeedsMfa(false)} onCancel={onCancel} />;
 
   return (
     <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#f4f6fa", padding: 20 }}>
