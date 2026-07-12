@@ -395,21 +395,23 @@ h1, h2, h3, h4, .heading {
 
 /* Analytics page mobile fixes */
 @media (max-width: 768px) {
-  /* Stack all 2-column grids */
-  div[style*="gridTemplateColumns: 1fr 1fr"],
-  div[style*="gridTemplateColumns:"1fr 1fr""] {
+  /* Stack all 2-column grids.
+     NOTE: React writes inline styles into the DOM as real CSS, so the attribute
+     reads style="grid-template-columns: 1fr 1fr" — NOT the camelCase JSX key.
+     Selectors must use the kebab-case property name to match anything. */
+  div[style*="grid-template-columns: 1fr 1fr"] {
     grid-template-columns: 1fr !important;
   }
 
   /* Stack 4-column stat pills to 2x2 */
-  div[style*="gridTemplateColumns: repeat(4,1fr)"],
-  div[style*="repeat(4,1fr)"] {
+  div[style*="repeat(4,1fr)"],
+  div[style*="repeat(4, 1fr)"] {
     grid-template-columns: 1fr 1fr !important;
   }
 
   /* Stack 3-column stat pills */
-  div[style*="gridTemplateColumns: repeat(3,1fr)"],
-  div[style*="repeat(3,1fr)"] {
+  div[style*="repeat(3,1fr)"],
+  div[style*="repeat(3, 1fr)"] {
     grid-template-columns: 1fr 1fr !important;
   }
 
