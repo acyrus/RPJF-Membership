@@ -531,6 +531,30 @@ export function PhotoUploader({ value, onChange }) {
 
 
 export const ROLES = ["Usher","Musician","Worship Team","Minister","Elder","Youth Leader","Sunday School Teacher","Social Media","Audio and Media","Board Member","Finances","Dancer","Communion Preparation","After Church Sanitation"];
+// ── Tab access, single source of truth ───────────────────────────────────────
+// App.jsx (nav + routing) and UsersPage.jsx (the "who can see what" cards) both
+// read from these. Add a tab in ONE place and everywhere stays in step — the
+// Roster tab got missed on the Users page precisely because this was duplicated.
+export const TAB_LABELS = {
+  dashboard:"Home", members:"Members", attendance:"Attendance", roster:"Roster",
+  photos:"Photos", roles:"Ministries", households:"Households", celebrations:"Celebrations",
+  skills:"Skills", analytics:"Analytics", users:"Users", changelog:"Log", import:"Import",
+};
+
+export const TAB_ACCESS = {
+  admin:        ["dashboard","members","attendance","roster","roles","households","celebrations","skills","analytics","users","photos","changelog","import"],
+  leadership:   ["dashboard","members","attendance","roster","roles","households","celebrations","skills","analytics"],
+  usher:        ["attendance","roster","households","celebrations"],
+  celebrations: ["celebrations"],
+};
+
+// The tab each role lands on after signing in.
+export const DEFAULT_TAB = { admin:"dashboard", leadership:"dashboard", usher:"attendance", celebrations:"celebrations" };
+
+// Human-readable list of what a role can reach, e.g. "Attendance, Roster, Households, Celebrations".
+export const tabsForRole = role =>
+  (TAB_ACCESS[role] || []).map(k => TAB_LABELS[k] || k).join(", ");
+
 export const MARITAL_OPTIONS = ["Single","Married"];
 export const SEX_OPTIONS = ["Male","Female"];
 
