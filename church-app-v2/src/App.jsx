@@ -15,7 +15,7 @@ import ImportPage from "./pages/ImportPage";
 import HouseholdsPage from "./pages/HouseholdsPage";
 import PhotoRequestsPage from "./pages/PhotoRequestsPage";
 import RosterPage from "./pages/RosterPage";
-import { Spinner, fullName, PhotoLightbox, MfaChallenge, SecurityModal, SetPasswordScreen, OnboardingFlow, ROLES } from "./components";
+import { Spinner, fullName, PhotoLightbox, MfaChallenge, SecurityModal, SetPasswordScreen, OnboardingFlow, ROLES, TAB_ACCESS, TAB_LABELS, DEFAULT_TAB } from "./components";
 import { logoMark } from "./logoData";
 import { AlertTriangle, Home, Users, ClipboardList, Camera, Tag, LayoutDashboard, PartyPopper, Zap, BarChart3, UserCog, ScrollText, Upload, ShieldCheck, LogOut, ListChecks } from "lucide-react";
 
@@ -213,20 +213,12 @@ export default function App() {
     }
     // Only set default tab if no hash is present in URL
     const currentHash = window.location.hash.replace("#","");
-    const access = { admin:["dashboard"], leadership:["dashboard"], usher:["attendance"], celebrations:["celebrations"] };
-    const TAB_ACCESS_CHECK = {
-      admin:        ["dashboard","members","attendance","roster","roles","households","celebrations","skills","analytics","users","photos","changelog","import"],
-      leadership:   ["dashboard","members","attendance","roster","roles","households","celebrations","skills","analytics"],
-      usher:        ["attendance","roster","households","celebrations"],
-      celebrations: ["celebrations"],
-    };
-    const allowed = TAB_ACCESS_CHECK[prof?.role] || ["celebrations"];
+    const allowed = TAB_ACCESS[prof?.role] || ["celebrations"];
     // Use hash tab if it's valid for this role, otherwise use default
     if (currentHash && allowed.includes(currentHash)) {
       setTabState(currentHash);
     } else {
-      const defaultTab = (access[prof?.role] || ["celebrations"])[0];
-      setTab(defaultTab);
+      setTab(DEFAULT_TAB[prof?.role] || "celebrations");
     }
     const roleMap = {};
     (rolesRes.data||[]).forEach(r => { if (!ROLES.includes(r.role_name)) return; if (!roleMap[r.member_id]) roleMap[r.member_id]=[]; roleMap[r.member_id].push(r.role_name); });
@@ -283,30 +275,26 @@ export default function App() {
   const isUsher = profile.role === "usher";
   const isCelebrations = profile.role === "celebrations";
 
-  // Tab access per role
-  const TAB_ACCESS = {
-    admin:        ["dashboard","members","attendance","roster","roles","households","celebrations","skills","analytics","users","photos","changelog","import"],
-    leadership:   ["dashboard","members","attendance","roster","roles","households","celebrations","skills","analytics"],
-    usher:        ["attendance","roster","households","celebrations"],
-    celebrations: ["celebrations"],
-  };
+  // Tab access per role now lives in components.jsx (TAB_ACCESS) so the nav here
+  // and the role cards on the Users page can never disagree.
   const allowedTabs = TAB_ACCESS[profile.role] || ["celebrations"];
 
+  // Labels come from TAB_LABELS; this list only adds the icon and any badge.
   const ALL_TABS = [
-    { key:"dashboard",   label:"Home",         Icon: LayoutDashboard },
-    { key:"members",     label:"Members",      Icon: Users },
-    { key:"attendance",  label:"Attendance",   Icon: ClipboardList },
-    { key:"roster",      label:"Roster",       Icon: ListChecks },
-    { key:"photos",      label:"Photos",       Icon: Camera, badge: pendingPhotos },
-    { key:"roles",       label:"Ministries",   Icon: Tag },
-    { key:"households",  label:"Households",    Icon: Home },
-    { key:"celebrations",label:"Celebrations", Icon: PartyPopper },
-    { key:"skills",      label:"Skills",        Icon: Zap },
-    { key:"analytics",   label:"Analytics",     Icon: BarChart3 },
-    { key:"users",       label:"Users",         Icon: UserCog },
-    { key:"changelog",   label:"Log",           Icon: ScrollText },
-    { key:"import",      label:"Import",        Icon: Upload },
-  ];
+    { key:"dashboard",   Icon: LayoutDashboard },
+    { key:"members",     Icon: Users },
+    { key:"attendance",  Icon: ClipboardList },
+    { key:"roster",      Icon: ListChecks },
+    { key:"photos",      Icon: Camera, badge: pendingPhotos },
+    { key:"roles",       Icon: Tag },
+    { key:"households",  Icon: Home },
+    { key:"celebrations",Icon: PartyPopper },
+    { key:"skills",      Icon: Zap },
+    { key:"analytics",   Icon: BarChart3 },
+    { key:"users",       Icon: UserCog },
+    { key:"changelog",   Icon: ScrollText },
+    { key:"import",      Icon: Upload },
+  ].map(t => ({ ...t, label: TAB_LABELS[t.key] }));
   const TABS = ALL_TABS.filter(t => allowedTabs.includes(t.key));
 
   return (

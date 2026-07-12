@@ -1,9 +1,12 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../supabase";
+import { tabsForRole } from "../components";
 
+// Descriptions are derived from TAB_ACCESS in components.jsx — never hand-written,
+// so adding a tab can't leave this page silently out of date.
 const ROLE_OPTIONS = [
-  { value:"usher", label:"Usher", desc:"Attendance, Households, Celebrations", color:"#4caf82" },
-  { value:"leadership", label:"Leadership", desc:"Home, Members, Attendance, Ministries, Households, Celebrations, Skills, Analytics", color:"#a040c0" },
+  { value:"usher", label:"Usher", desc:tabsForRole("usher"), color:"#4caf82" },
+  { value:"leadership", label:"Leadership", desc:tabsForRole("leadership"), color:"#a040c0" },
   { value:"celebrations", label:"Celebrations", desc:"Celebrations only", color:"#e07830" },
   { value:"admin", label:"Admin", desc:"Full access to everything", color:"#2a5357" },
 ];
