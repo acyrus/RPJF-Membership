@@ -30,6 +30,12 @@ React 18 + Vite 5 + Supabase, deployed on Vercel. Deps: `@supabase/supabase-js`,
   (the "who can see what" role cards) both derive from `TAB_ACCESS`. It used to be duplicated
   in three places, which meant the Users page silently lied about permissions. Add a tab in
   `TAB_ACCESS` only.
+- **Every render gate in `App.jsx` must use `allowedTabs.includes(key)`, never a role check.**
+  Users / Photos / Log / Import were gated on `isAdmin` while the nav was built from
+  `TAB_ACCESS`, so an usher granted Photos saw the tab *and* its pending badge and then a
+  blank page. If the nav can reach it, the gate must let it render; RLS is what stops writes.
+  The role banner above the nav is derived from `allowedTabs` for the same reason — the
+  hand-written usher line went stale the moment Roster and Photos were added.
 - Roles (`member_roles.role_name`) are unconstrained text in the DB — adding a ministry means
   editing `ROLES` + `ROLE_COLORS` in `components.jsx`, no migration needed.
 - Supabase RLS: `get_my_role()` gates writes. Account roles are `admin`, `leadership`,
