@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../supabase";
-import { tabsForRole } from "../components";
+import { tabsForRole, tabsForProfile, hasCustomTabs, TAB_ORDER, TAB_LABELS, TAB_ACCESS } from "../components";
 
 // Descriptions are derived from TAB_ACCESS in components.jsx — never hand-written,
 // so adding a tab can't leave this page silently out of date.
@@ -22,11 +22,90 @@ function RolePill({ role }) {
   );
 }
 
+// Per-user tab editor. Opens with whatever the user can currently see — their
+// override if they have one, otherwise their role's default — so an admin is always
+// editing from the live state rather than an empty box.
+function TabAccessModal({ user, onSave, onReset, onClose, saving }) {
+  const [picked, setPicked] = useState(() => new Set(tabsForProfile(user)));
+  const roleDefault = TAB_ACCESS[user.role] || [];
+  const custom = hasCustomTabs(user);
+  const matchesRole =
+    picked.size === roleDefault.length && roleDefault.every(t => picked.has(t));
+
+  function toggle(key) {
+    setPicked(prev => {
+      const next = new Set(prev);
+      next.has(key) ? next.delete(key) : next.add(key);
+      return next;
+    });
+  }
+
+  return (
+    <div className="modal-bg" onClick={onClose}>
+      <div className="modal fade-in" onClick={e=>e.stopPropagation()}>
+        <h2>TAB ACCESS — {user.name.toUpperCase()}</h2>
+        <div style={{fontSize:12, color:"#6b7280", marginBottom:14, lineHeight:1.7}}>
+          Tick the tabs <strong style={{color:"#111827"}}>{user.name}</strong> should see.
+          Leave them on the role default unless there's a reason not to.
+        </div>
+        <div style={{background:"#fffbf0", border:"1.5px solid #f5d88a", borderRadius:8, padding:"9px 12px", marginBottom:14, fontSize:11, color:"#8a6800", lineHeight:1.6}}>
+          This controls <strong>navigation only</strong>. What a user may create, edit or
+          delete is still governed by their role in the database.
+        </div>
+
+        <div style={{display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(150px,1fr))", gap:6, marginBottom:16}}>
+          {TAB_ORDER.map(key => {
+            const on = picked.has(key);
+            const inRole = roleDefault.includes(key);
+            return (
+              <label key={key} style={{
+                display:"flex", alignItems:"center", gap:7, fontSize:12, cursor:"pointer",
+                background: on ? "#2a535712" : "#f7f9fb",
+                border:`1px solid ${on ? "#2a535744" : "#e4e9f5"}`,
+                borderRadius:8, padding:"7px 10px", color:"#374151",
+              }}>
+                <input type="checkbox" checked={on} onChange={()=>toggle(key)} />
+                <span style={{fontWeight: on ? 600 : 400}}>{TAB_LABELS[key]}</span>
+                {!inRole && on && (
+                  <span title="Not part of this role's default set" style={{fontSize:10, color:"#e07830", fontWeight:700}}>+</span>
+                )}
+              </label>
+            );
+          })}
+        </div>
+
+        <div style={{fontSize:11, color:"#9ca3af", marginBottom:14}}>
+          {picked.size === 0
+            ? "No tabs selected — this user won't be able to see anything."
+            : matchesRole
+              ? `Matches the ${user.role} default.`
+              : `${picked.size} tab${picked.size!==1?"s":""} selected · differs from the ${user.role} default.`}
+        </div>
+
+        <div style={{display:"flex", gap:10, flexWrap:"wrap"}}>
+          <button className="btn-primary" style={{flex:1, minWidth:130}}
+            onClick={()=>onSave([...picked])}
+            disabled={saving || picked.size === 0}>
+            {saving ? "Saving…" : "Save Tab Access"}
+          </button>
+          {custom && (
+            <button className="btn-ghost" onClick={onReset} disabled={saving}>
+              Reset to Role Default
+            </button>
+          )}
+          <button className="btn-ghost" onClick={onClose} disabled={saving}>Cancel</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function UsersPage({ currentProfile }) {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
   const [resetTarget, setResetTarget] = useState(null);
+  const [tabTarget, setTabTarget] = useState(null);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [saving, setSaving] = useState(false);
@@ -41,12 +120,31 @@ export default function UsersPage({ currentProfile }) {
       .order("role")
       .order("name");
     let flagMap = {};
+    let tabMap = {};
     try {
-      const { data: flags } = await supabase.from("profiles").select("id, require_2fa");
-      (flags || []).forEach(f => { flagMap[f.id] = f.require_2fa; });
-    } catch (e) { /* column may not exist yet */ }
-    setUsers((profiles || []).map(u => ({ ...u, require_2fa: flagMap[u.id] !== false })));
+      const { data: flags } = await supabase.from("profiles").select("id, require_2fa, tab_access");
+      (flags || []).forEach(f => { flagMap[f.id] = f.require_2fa; tabMap[f.id] = f.tab_access; });
+    } catch (e) { /* columns may not exist yet */ }
+    setUsers((profiles || []).map(u => ({
+      ...u,
+      require_2fa: flagMap[u.id] !== false,
+      tab_access: tabMap[u.id] || null,
+    })));
     setLoading(false);
+  }
+
+  // Write an explicit tab list for one user. NULL means "inherit the role default",
+  // which is what Reset sends — that way changing a role's defaults later still
+  // reaches everyone who hasn't been customised.
+  async function saveTabAccess(id, tabs) {
+    setSaving(true);
+    const { error: err } = await supabase.from("profiles").update({ tab_access: tabs }).eq("id", id);
+    setSaving(false);
+    if (err) { setError(err.message); return; }
+    setUsers(prev => prev.map(u => u.id === id ? { ...u, tab_access: tabs } : u));
+    setTabTarget(null);
+    setSuccess(tabs ? "Tab access updated" : "Tab access reset to the role default");
+    setTimeout(() => setSuccess(""), 3000);
   }
 
   async function toggle2fa(id, current) {
@@ -111,6 +209,10 @@ export default function UsersPage({ currentProfile }) {
           </div>
         ))}
       </div>
+      <div style={{fontSize:11, color:"#9ca3af", marginTop:-16, marginBottom:22, lineHeight:1.7}}>
+        These are the defaults for each role. Use <strong>Tabs</strong> on any user to give
+        them a different set — anyone customised is flagged in their row.
+      </div>
 
       {/* Users grouped by role */}
       {loading ? (
@@ -144,6 +246,12 @@ export default function UsersPage({ currentProfile }) {
                     <div style={{fontSize:12, color:"#9ca3af", marginTop:2}}>
                       {u.last_sign_in_at ? `Last login: ${new Date(u.last_sign_in_at).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric",hour:"2-digit",minute:"2-digit"})}` : "Never logged in"}
                     </div>
+                    {hasCustomTabs(u) && (
+                      <div title={tabsForProfile(u).map(t=>TAB_LABELS[t]).join(", ")}
+                        style={{fontSize:11, color:"#e07830", marginTop:3, fontWeight:600}}>
+                        Custom tabs: {tabsForProfile(u).map(t=>TAB_LABELS[t]).join(", ")}
+                      </div>
+                    )}
                   </div>
                   <div className="user-controls" style={{display:"flex", alignItems:"center", gap:8, flexShrink:0}}>
                     <label title="When on, this user is forced to set up two-step verification at login" style={{display:"inline-flex", alignItems:"center", gap:5, fontSize:11, color:"#4a5568", cursor:"pointer"}}>
@@ -158,6 +266,7 @@ export default function UsersPage({ currentProfile }) {
                         {ROLE_OPTIONS.map(r=><option key={r.value} value={r.value}>{r.label}</option>)}
                       </select>
                     )}
+                    <button className="btn-ghost" style={{fontSize:11}} onClick={()=>setTabTarget(u)}>Tabs</button>
                     <button className="btn-ghost" style={{fontSize:11}} onClick={()=>setResetTarget(u)}>Reset Password</button>
                     {u.id !== currentProfile.id && (
                       <button className="btn-danger" style={{fontSize:11}} onClick={()=>deleteUser(u.id, u.name)}>Delete</button>
@@ -168,6 +277,17 @@ export default function UsersPage({ currentProfile }) {
             </div>
           </div>
         ))
+      )}
+
+      {/* Per-user tab access */}
+      {tabTarget && (
+        <TabAccessModal
+          user={tabTarget}
+          saving={saving}
+          onSave={tabs => saveTabAccess(tabTarget.id, tabs)}
+          onReset={() => saveTabAccess(tabTarget.id, null)}
+          onClose={() => setTabTarget(null)}
+        />
       )}
 
       {/* Reset password modal */}

@@ -130,7 +130,10 @@ alter table profiles
   add column if not exists last_sign_in timestamptz,
   add column if not exists onboarded boolean not null default false,
   add column if not exists active_session uuid,
-  add column if not exists require_2fa boolean not null default true;
+  add column if not exists require_2fa boolean not null default true,
+  -- Optional per-user tab override; null = inherit the role default from
+  -- TAB_ACCESS in components.jsx. Navigation only, RLS still governs writes.
+  add column if not exists tab_access text[];
 
 
 -- ============================================================

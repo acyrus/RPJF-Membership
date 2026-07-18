@@ -5,11 +5,17 @@ import { Zap } from "lucide-react";
 export default function SkillsPage({ members, onMemberClick }) {
   const [selectedSkill, setSelectedSkill] = useState("All");
 
-  // Build skill → members map
+  // Build skill → members map.
+  // The three skill slots are independent columns, and the Google Form lets someone
+  // pick the same skill in two of them — so a member could land in the same bucket
+  // twice, showing their name twice on the card and inflating the count. The Set
+  // collapses that per member. Entry-side guards exist too (MemberForm disables an
+  // already-chosen skill, the importer drops repeats), but this keeps rows that are
+  // already in the database from displaying wrong.
   const skillMap = useMemo(() => {
     const map = {};
     members.filter(m => m.is_active !== false).forEach(m => {
-      [m.skill1, m.skill2, m.skill3].filter(Boolean).forEach(skill => {
+      [...new Set([m.skill1, m.skill2, m.skill3].filter(Boolean))].forEach(skill => {
         if (!map[skill]) map[skill] = [];
         map[skill].push(m);
       });

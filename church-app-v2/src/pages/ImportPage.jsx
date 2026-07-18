@@ -362,9 +362,13 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
           address: get("address") || null,
           join_date: convertDate(get("join_date")) || null,
           anniversary: convertDate(get("anniversary")) || null,
-          skill1: get("skill1") || null,
-          skill2: get("skill2") || null,
-          skill3: get("skill3") || null,
+          // The Google Form asks for three skills in three independent questions, so
+          // people routinely pick the same one twice. Collapse repeats here and
+          // left-pack them, otherwise the member shows up twice under one skill.
+          ...(() => {
+            const picked = [...new Set([get("skill1"), get("skill2"), get("skill3")].filter(Boolean))];
+            return { skill1: picked[0] || null, skill2: picked[1] || null, skill3: picked[2] || null };
+          })(),
           other_skills: get("other_skills") || null,
           instruments: get("instruments") || null,
           city: get("city") || null,
