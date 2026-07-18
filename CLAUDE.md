@@ -36,7 +36,9 @@ React 18 + Vite 5 + Supabase, deployed on Vercel. Deps: `@supabase/supabase-js`,
   `usher`, `celebrations`. Role **defaults**:
   - **admin** — everything (13 tabs), lands on Home
   - **leadership** — all but Users / Photos / Log / Import, lands on Home
-  - **usher** — Attendance, Roster, Households, Celebrations; lands on Attendance
+  - **usher** — Attendance, Roster, Households, Celebrations; **lands on Roster** (the
+    printed list is what they work from at the door). Falls back to Attendance if an admin
+    removes Roster from a specific usher.
   - **celebrations** — Celebrations only
 - **Per-user tab overrides.** `profiles.tab_access text[]` (`supabase_migration_tab_access.sql`)
   overrides the role default for one account; NULL means inherit, so the migration changes
