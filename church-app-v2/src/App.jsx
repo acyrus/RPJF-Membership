@@ -294,9 +294,13 @@ export default function App() {
           padding:"8px 24px", fontSize:12, fontWeight:600,
           color: isLeadership?"#6020a0":isUsher?"#2a7a50":isCelebrations?"#a05010":"#5a6a8a",
         }}>
-          {isLeadership && "Leadership access — you can view all member information and attendance."}
-          {isUsher && "Usher access — you can take attendance, manage households, and view celebrations."}
-          {isCelebrations && "Celebrations access — you can view birthdays and anniversaries."}
+          {/* Derived from the tabs this account actually has, so it can't drift out of
+              date the way the hand-written usher line did — that still promised only
+              attendance, households and celebrations after Roster and Photos were added. */}
+          {isLeadership && "Leadership access — "}
+          {isUsher && "Usher access — "}
+          {isCelebrations && "Celebrations access — "}
+          {`you can reach ${allowedTabs.map(t => TAB_LABELS[t]).join(", ")}.`}
         </div>
       )}
 
@@ -347,10 +351,15 @@ export default function App() {
         {tab==="analytics" && allowedTabs.includes("analytics") && (
           <AnalyticsPage members={members} services={services} attendance={attendance} households={households} />
         )}
-        {tab==="users" && isAdmin && <UsersPage currentProfile={profile} />}
-        {tab==="photos" && isAdmin && <PhotoRequestsPage profile={profile} members={members} setMembers={setMembers} setPendingPhotos={setPendingPhotos} />}
-        {tab==="changelog" && isAdmin && <ChangelogPage />}
-        {tab==="import" && isAdmin && <ImportPage profile={{...profile, id: session.user.id}} members={members} onImportComplete={loadAll.bind(null, session.user.id)} />}
+        {/* These four were gated on isAdmin while every other tab checks allowedTabs.
+            That made the nav and the page disagree: an usher given Photos saw the tab
+            and the pending badge, then a blank page. Any tab reachable from the nav —
+            role default or per-user override — must render here, so the gate has to be
+            the same list the nav is built from. Writes are still governed by RLS. */}
+        {tab==="users" && allowedTabs.includes("users") && <UsersPage currentProfile={profile} />}
+        {tab==="photos" && allowedTabs.includes("photos") && <PhotoRequestsPage profile={profile} members={members} setMembers={setMembers} setPendingPhotos={setPendingPhotos} />}
+        {tab==="changelog" && allowedTabs.includes("changelog") && <ChangelogPage />}
+        {tab==="import" && allowedTabs.includes("import") && <ImportPage profile={{...profile, id: session.user.id}} members={members} onImportComplete={loadAll.bind(null, session.user.id)} />}
       </div>
       {securityOpen && <SecurityModal onClose={()=>setSecurityOpen(false)} />}
     </div>
