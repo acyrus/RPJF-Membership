@@ -544,7 +544,7 @@ export const TAB_LABELS = {
 export const TAB_ACCESS = {
   admin:        ["dashboard","members","attendance","roster","roles","households","celebrations","skills","analytics","users","photos","changelog","import"],
   leadership:   ["dashboard","members","attendance","roster","roles","households","celebrations","skills","analytics"],
-  usher:        ["attendance","roster","households","celebrations"],
+  usher:        ["attendance","roster","photos","households","celebrations"],
   celebrations: ["celebrations"],
 };
 

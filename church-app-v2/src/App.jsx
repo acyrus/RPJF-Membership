@@ -164,7 +164,9 @@ export default function App() {
     const prof = profileRes.data;
     setProfile(prof);
     setHouseholds(householdsRes.data || []);
-    if (prof?.role === "admin") {
+    // Anyone who can reach the Photos tab gets the pending badge, not just admins —
+    // ushers can review submissions now, and a queue you can't see is a queue nobody clears.
+    if (tabsForProfile(prof).includes("photos")) {
       supabase.from("photo_submissions").select("id", { count: "exact", head: true }).eq("status", "pending")
         .then(({ count }) => setPendingPhotos(count || 0));
     }

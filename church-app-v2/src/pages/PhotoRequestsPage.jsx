@@ -54,12 +54,16 @@ export default function PhotoRequestsPage({ profile, members, setMembers, setPen
     if (!memberId) { setError("Pick which member this photo belongs to first."); return; }
     setBusy(s.id); setError("");
     try {
-      const { error: mErr } = await supabase.from("members").update({ photo_url: s.photo_url }).eq("id", memberId);
-      if (mErr) throw mErr;
-      const { error: sErr } = await supabase.from("photo_submissions")
-        .update({ status: "approved", member_id: memberId, reviewed_by: profile.id, reviewed_at: new Date().toISOString() })
-        .eq("id", s.id);
-      if (sErr) throw sErr;
+      // Both writes happen inside approve_photo_submission (SECURITY DEFINER) rather
+      // than here. members UPDATE is admin-only, and this keeps it that way: the
+      // function sets photo_url on one member and closes the submission, which is the
+      // only path an usher has to the members table. Doing it in one call also means
+      // the photo and the submission status can't end up disagreeing.
+      const { error: rpcErr } = await supabase.rpc("approve_photo_submission", {
+        p_submission: s.id,
+        p_member: memberId,
+      });
+      if (rpcErr) throw rpcErr;
       setMembers(prev => prev.map(m => m.id === memberId ? { ...m, photo_url: s.photo_url } : m));
       const who = members.find(m => m.id === memberId);
       logPhotoActivity("photo_approved", `Approved photo for ${who ? fullName(who) : "a member"}`);
@@ -72,9 +76,7 @@ export default function PhotoRequestsPage({ profile, members, setMembers, setPen
     if (!confirm("Reject this photo? It won't be added to any member.")) return;
     setBusy(s.id); setError("");
     try {
-      const { error: e } = await supabase.from("photo_submissions")
-        .update({ status: "rejected", reviewed_by: profile.id, reviewed_at: new Date().toISOString() })
-        .eq("id", s.id);
+      const { error: e } = await supabase.rpc("reject_photo_submission", { p_submission: s.id });
       if (e) throw e;
       logPhotoActivity("photo_rejected", `Rejected photo submitted for ${(s.first_name||"").trim()} ${(s.last_name||"").trim()}`.trim());
       removeFromQueue(s.id);
