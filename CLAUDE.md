@@ -149,6 +149,11 @@ would tidy the stored data if it ever matters.
 - **`staging` is well ahead of `main`** and not yet PR'd — roster tables + usher Roster tab,
   the mobile CSS fix, the `TAB_ACCESS` consolidation, and the Jul 18 batch below are all
   still off production.
+- **The mobile Members edit modal is guarded twice.** `.modal-bg` outranks `.detail-panel`
+  in the stylesheet *and* `MembersPage` adds `.hide-behind-modal` to the panel whenever a
+  modal is open, which hides it on mobile only. The z-index fix alone was verified live on
+  production and the overlap was still reported, so don't remove the class as redundant
+  without reproducing on a real phone first. Desktop shows both, as before.
 - **Stacking order is now documented at the top of the `.modal-bg` rule in `styles.css`.**
   `.modal-bg` was at `z-index: 100`, *below* `.detail-panel`'s mobile `200`, so on a phone
   the Members edit modal opened behind the member detail slide-up and looked half-clipped.

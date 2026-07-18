@@ -376,6 +376,11 @@ h1, h2, h3, h4, .heading {
 
   .modal { max-width: 100% !important; margin: 0 !important; border-radius: 16px 16px 0 0 !important; position: fixed !important; bottom: 0 !important; left: 0 !important; right: 0 !important; max-height: 90vh !important; padding: 24px 20px !important; }
   .modal-bg { align-items: flex-end !important; padding: 0 !important; }
+  /* The detail panel and the modals are both bottom sheets on mobile, so showing them
+     together is meaningless and the panel was covering the edit form. MembersPage adds
+     this class whenever a modal is open. Belt-and-braces with .modal-bg's z-index: any
+     browser that resolves the stacking contexts differently still can't overlap them. */
+  .detail-panel.hide-behind-modal { display: none !important; }
 
   .breakdown-grid { grid-template-columns: 1fr !important; }
   .att-row { padding: 14px !important; }
