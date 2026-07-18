@@ -77,9 +77,15 @@ files are for the **existing** database and must be run by hand in the Supabase 
 `require_2fa`, `single_session`, `usher_services` (ushers + leadership may create an
 attendance service; **deleting** one stays admin-only), `rosters`, `tab_access`.
 
-⚠️ **`tab_access` has not been run on production yet.** Until it is, the Users → Tabs editor
-saves nothing and every account quietly falls back to its role default (the load query
-tolerates the missing column). Run it before relying on per-user tabs.
+⚠️ **`tab_access` has not been run yet** (staging or production). Until it is, `UsersPage`
+detects the missing column, shows a banner, and disables the Tabs button; everyone falls back
+to their role default.
+
+**`supabase-js` resolves with `{ data, error }` — it does not throw.** A `try`/`catch` around
+a query catches nothing. This bit us once already: `require_2fa` and `tab_access` were
+selected together, so the un-migrated column failed the *whole* select and every account
+silently rendered as "Require 2FA: on" regardless of the real value. `UsersPage.load()` now
+selects them separately and falls back. Check `.error` explicitly; don't wrap and hope.
 
 ## Import page (`src/pages/ImportPage.jsx`)
 
