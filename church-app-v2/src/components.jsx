@@ -530,7 +530,7 @@ export function PhotoUploader({ value, onChange }) {
 }
 
 
-export const ROLES = ["Usher","Musician","Worship Team","Minister","Elder","Youth Leader","Sunday School Teacher","Social Media","Audio and Media","Board Member","Finances","Dancer","Communion Preparation","After Church Sanitation"];
+export const ROLES = ["Usher","Musician","Worship Team","Youth Worship Team","Minister","Elder","Youth Leader","Sunday School Teacher","Social Media","Audio and Media","Board Member","Finances","Dancer","Communion Preparation","After Church Sanitation"];
 // ── Tab access, single source of truth ───────────────────────────────────────
 // App.jsx (nav + routing) and UsersPage.jsx (the "who can see what" cards) both
 // read from these. Add a tab in ONE place and everywhere stays in step — the
@@ -555,6 +555,37 @@ export const DEFAULT_TAB = { admin:"dashboard", leadership:"dashboard", usher:"a
 export const tabsForRole = role =>
   (TAB_ACCESS[role] || []).map(k => TAB_LABELS[k] || k).join(", ");
 
+// The order tabs appear in the nav. TAB_ACCESS lists and per-user overrides are
+// both sorted through this, so a customised user's tabs don't come out shuffled.
+export const TAB_ORDER = Object.keys(TAB_LABELS);
+
+// Resolve the tabs a profile may see.
+// profiles.tab_access is an optional admin-set override; NULL/empty falls back to
+// the role default, which is what every account does until an admin customises it.
+// Unknown keys are dropped so a renamed tab can't strand someone on a dead nav item.
+export function tabsForProfile(profile) {
+  const custom = profile?.tab_access;
+  const base = Array.isArray(custom) && custom.length
+    ? custom
+    : (TAB_ACCESS[profile?.role] || ["celebrations"]);
+  const allowed = base.filter(t => TAB_ORDER.includes(t));
+  const ordered = TAB_ORDER.filter(t => allowed.includes(t));
+  return ordered.length ? ordered : ["celebrations"];
+}
+
+// Where this profile lands after signing in: the role's usual landing tab when they
+// still have it, otherwise the first tab they do have. Without this fallback an admin
+// could untick someone's default tab and drop them onto a page they can't open.
+export function defaultTabForProfile(profile) {
+  const allowed = tabsForProfile(profile);
+  const preferred = DEFAULT_TAB[profile?.role];
+  return preferred && allowed.includes(preferred) ? preferred : allowed[0];
+}
+
+// True when this user has been given something other than their role's default set.
+export const hasCustomTabs = profile =>
+  Array.isArray(profile?.tab_access) && profile.tab_access.length > 0;
+
 export const MARITAL_OPTIONS = ["Single","Married"];
 export const SEX_OPTIONS = ["Male","Female"];
 
@@ -569,7 +600,7 @@ export const TRINIDAD_CITIES = [
 ];
 
 export const ROLE_COLORS = {
-  "Usher":"#e8a020","Musician":"#3a8fd0","Worship Team":"#a040c0","Minister":"#2a5357",
+  "Usher":"#e8a020","Musician":"#3a8fd0","Worship Team":"#a040c0","Youth Worship Team":"#7048b8","Minister":"#2a5357",
   "Elder":"#c06030","Youth Leader":"#20a070","Sunday School Teacher":"#8060c0",
   "Social Media":"#3a7ab8","Audio and Media":"#7c5cd0","Board Member":"#c04060","Finances":"#2a8a50","Dancer":"#e05090",
   "Communion Preparation":"#9a3a6a","After Church Sanitation":"#0f8a8a",
@@ -876,12 +907,24 @@ export function MemberForm({ value, onChange, onSubmit, onCancel, submitLabel="S
         <label className="field-label">Skills (up to 3)</label>
         <div style={{display:"flex",flexDirection:"column",gap:6,marginTop:4}}>
           {errors.skills&&<div style={{color:'#e05050',fontSize:12,marginBottom:6}}>{errors.skills}</div>}
-        {[["skill1","Primary Skill"],["skill2","Secondary Skill"],["skill3","Additional Skill"]].map(([key,placeholder])=>(
-            <select key={key} value={value[key]||""} onChange={e=>onChange({...value,[key]:e.target.value})}>
-              <option value="">{placeholder} (optional)</option>
-              {SKILLS_LIST.map(s=><option key={s} value={s}>{s}</option>)}
-            </select>
-          ))}
+        {[["skill1","Primary Skill"],["skill2","Secondary Skill"],["skill3","Additional Skill"]].map(([key,placeholder])=>{
+            // A skill picked in another slot is disabled here, so the same person can't
+            // be recorded with one skill twice (which duplicated their name on the
+            // Skills page). The current slot's own value stays selectable.
+            const takenElsewhere = new Set(
+              ["skill1","skill2","skill3"].filter(k=>k!==key).map(k=>value[k]).filter(Boolean)
+            );
+            return (
+              <select key={key} value={value[key]||""} onChange={e=>onChange({...value,[key]:e.target.value})}>
+                <option value="">{placeholder} (optional)</option>
+                {SKILLS_LIST.map(s=>(
+                  <option key={s} value={s} disabled={takenElsewhere.has(s)}>
+                    {s}{takenElsewhere.has(s) ? " (already selected)" : ""}
+                  </option>
+                ))}
+              </select>
+            );
+          })}
         </div>
       </div>
 

@@ -156,12 +156,22 @@ h1, h2, h3, h4, .heading {
 .tab-nav { display: flex; flex-wrap: wrap; }
 
 /* ── Modals ──────────────────────────────────────────────── */
+/* Stacking order, highest last. Keep these in step — the Members edit modal used
+   to sit at 100, BELOW .detail-panel's mobile z-index of 200, so on a phone the
+   edit form opened behind the member detail slide-up and looked half-clipped.
+   Desktop was fine only because .detail-panel is unpositioned there.
+     199  .mobile-backdrop
+     200  .detail-panel (mobile slide-up)
+     300  .modal-bg        ← modals must clear the detail panel
+     900  SecurityModal overlay (components.jsx)
+     999  toast (MembersPage)
+    1000  PhotoLightbox (components.jsx)                                        */
 .modal-bg {
   position: fixed; inset: 0;
   background: rgba(0,0,0,0.35);
   backdrop-filter: blur(2px);
   display: flex; align-items: center; justify-content: center;
-  z-index: 100; padding: 20px;
+  z-index: 300; padding: 20px;
 }
 .modal {
   background: #fff;

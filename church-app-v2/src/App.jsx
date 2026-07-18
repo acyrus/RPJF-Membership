@@ -15,7 +15,7 @@ import ImportPage from "./pages/ImportPage";
 import HouseholdsPage from "./pages/HouseholdsPage";
 import PhotoRequestsPage from "./pages/PhotoRequestsPage";
 import RosterPage from "./pages/RosterPage";
-import { Spinner, fullName, PhotoLightbox, MfaChallenge, SecurityModal, SetPasswordScreen, OnboardingFlow, ROLES, TAB_ACCESS, TAB_LABELS, DEFAULT_TAB } from "./components";
+import { Spinner, fullName, PhotoLightbox, MfaChallenge, SecurityModal, SetPasswordScreen, OnboardingFlow, ROLES, TAB_LABELS, tabsForProfile, defaultTabForProfile } from "./components";
 import { logoMark } from "./logoData";
 import { AlertTriangle, Home, Users, ClipboardList, Camera, Tag, LayoutDashboard, PartyPopper, Zap, BarChart3, UserCog, ScrollText, Upload, ShieldCheck, LogOut, ListChecks } from "lucide-react";
 
@@ -28,7 +28,6 @@ export default function App() {
   const [securityOpen, setSecurityOpen] = useState(false);
   const [recovery, setRecovery] = useState(false); // arrived via password-reset link
   const [needs2fa, setNeeds2fa] = useState(false); // logged in but no 2FA factor enrolled
-  const [bootedElsewhere, setBootedElsewhere] = useState(false); // signed out because account used on another device
   const [warningVisible, setWarningVisible] = useState(false);
   const inactivityTimer = useRef(null);
   const warningTimer = useRef(null);
@@ -92,7 +91,6 @@ export default function App() {
     });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session);
-      if (event === "SIGNED_IN") claimSession();
       if (event === "PASSWORD_RECOVERY") { setRecovery(true); setLoading(false); return; }
       if (session) proceedAfterAuth(session);
       else { setProfile(null); setMembers([]); setServices([]); setAttendance({}); setMfaStatus("ok"); setLoading(false); }
@@ -100,53 +98,12 @@ export default function App() {
     return () => subscription.unsubscribe();
   }, []);
 
-  // ---- Single active session ("last login wins") ----
-  const SESSION_KEY = "rpjf_active_session";
-
-  // Claim this device as the one active session for the account.
-  async function claimSession() {
-    try {
-      setBootedElsewhere(false);
-      // Reuse this browser's existing session id across reloads/re-logins so the
-      // same user on the same device never kicks themselves; only generate one
-      // the first time. A genuinely different device has no stored id → new id → wins.
-      let id = localStorage.getItem(SESSION_KEY);
-      if (!id) {
-        id = (crypto.randomUUID && crypto.randomUUID()) || String(Date.now()) + Math.random();
-        localStorage.setItem(SESSION_KEY, id);
-      }
-      await supabase.rpc("claim_session", { p_session: id });
-    } catch (e) { /* if the column/function isn't present yet, silently no-op */ }
-  }
-
-  // Compare this device's stored session id against the one recorded in the DB.
-  // If another device has since claimed the account, sign this one out.
-  async function checkActiveSession() {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-      const localId = localStorage.getItem(SESSION_KEY);
-      if (!localId) return; // nothing to compare against yet
-      const { data, error } = await supabase.from("profiles").select("active_session").eq("id", session.user.id).single();
-      if (error || !data) return;
-      if (data.active_session && data.active_session !== localId) {
-        localStorage.removeItem(SESSION_KEY);
-        setBootedElsewhere(true);
-        await supabase.auth.signOut();
-      }
-    } catch (e) { /* best effort */ }
-  }
-
-  // Watcher: check on mount, when the tab regains focus, and every ~45s.
-  useEffect(() => {
-    if (!profile) return;
-    checkActiveSession();
-    const onVis = () => { if (document.visibilityState === "visible") checkActiveSession(); };
-    document.addEventListener("visibilitychange", onVis);
-    const iv = setInterval(checkActiveSession, 45000);
-    return () => { document.removeEventListener("visibilitychange", onVis); clearInterval(iv); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [profile]);
+  // ---- Concurrent logins ----
+  // Single-session enforcement ("last login wins") was removed deliberately: the same
+  // account may now be signed in on several devices at once. The DB side is still
+  // there but unused — profiles.active_session and the claim_session() function from
+  // supabase_migration_single_session.sql were left in place, so switching this back
+  // on is a code change only, no SQL. Auto-logout on 15 minutes idle still applies.
 
   // After a session exists, check whether the account still owes a 2FA step.
   // currentLevel aal1 + nextLevel aal2 means: has 2FA enabled but hasn't verified yet.
@@ -211,14 +168,16 @@ export default function App() {
       supabase.from("photo_submissions").select("id", { count: "exact", head: true }).eq("status", "pending")
         .then(({ count }) => setPendingPhotos(count || 0));
     }
-    // Only set default tab if no hash is present in URL
+    // Only set default tab if no hash is present in URL.
+    // Tabs come from the profile, not the role directly: an admin may have set a
+    // per-user override in profiles.tab_access, which falls back to the role default.
     const currentHash = window.location.hash.replace("#","");
-    const allowed = TAB_ACCESS[prof?.role] || ["celebrations"];
-    // Use hash tab if it's valid for this role, otherwise use default
+    const allowed = tabsForProfile(prof);
+    // Use hash tab if this user may see it, otherwise use their landing tab
     if (currentHash && allowed.includes(currentHash)) {
       setTabState(currentHash);
     } else {
-      setTab(DEFAULT_TAB[prof?.role] || "celebrations");
+      setTab(defaultTabForProfile(prof));
     }
     const roleMap = {};
     (rolesRes.data||[]).forEach(r => { if (!ROLES.includes(r.role_name)) return; if (!roleMap[r.member_id]) roleMap[r.member_id]=[]; roleMap[r.member_id].push(r.role_name); });
@@ -237,23 +196,13 @@ export default function App() {
   }
 
   async function logout() {
-    localStorage.removeItem(SESSION_KEY);
     await supabase.auth.signOut();
     setTab("members"); setMembers([]); setServices([]); setAttendance([]);
   }
 
   if (loading) return <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"#f4f6fa"}}><Spinner /></div>;
   if (recovery) return <SetPasswordScreen onDone={handlePasswordSet} onCancel={logout} />;
-  if (!session) return (
-    <>
-      {bootedElsewhere && (
-        <div style={{position:"fixed",top:0,left:0,right:0,zIndex:100,background:"#fbeaea",color:"#a12b2b",borderBottom:"1.5px solid #eecccc",padding:"10px 16px",fontSize:13,textAlign:"center",fontWeight:600}}>
-          You were signed out because this account was used to sign in on another device.
-        </div>
-      )}
-      <LoginPage />
-    </>
-  );
+  if (!session) return <LoginPage />;
   if (mfaStatus === "required") return <MfaChallenge onVerified={handleMfaVerified} onCancel={logout} />;
   if (!profile) return (
     <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:12,color:"#6b7280",padding:20,textAlign:"center",background:"#f4f6fa"}}>
@@ -275,9 +224,10 @@ export default function App() {
   const isUsher = profile.role === "usher";
   const isCelebrations = profile.role === "celebrations";
 
-  // Tab access per role now lives in components.jsx (TAB_ACCESS) so the nav here
-  // and the role cards on the Users page can never disagree.
-  const allowedTabs = TAB_ACCESS[profile.role] || ["celebrations"];
+  // Tab access lives in components.jsx so the nav here and the Users page can never
+  // disagree. tabsForProfile applies the admin's per-user override when one is set,
+  // and otherwise returns the role default from TAB_ACCESS.
+  const allowedTabs = tabsForProfile(profile);
 
   // Labels come from TAB_LABELS; this list only adds the icon and any badge.
   const ALL_TABS = [
