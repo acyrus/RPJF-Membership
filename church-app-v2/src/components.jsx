@@ -549,7 +549,9 @@ export const TAB_ACCESS = {
 };
 
 // The tab each role lands on after signing in.
-export const DEFAULT_TAB = { admin:"dashboard", leadership:"dashboard", usher:"attendance", celebrations:"celebrations" };
+// Ushers land on Roster: the printed attendance list is what they actually work from
+// at the door, so it's the first thing they need rather than Attendance.
+export const DEFAULT_TAB = { admin:"dashboard", leadership:"dashboard", usher:"roster", celebrations:"celebrations" };
 
 // Human-readable list of what a role can reach, e.g. "Attendance, Roster, Households, Celebrations".
 export const tabsForRole = role =>

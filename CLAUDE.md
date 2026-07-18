@@ -36,7 +36,9 @@ React 18 + Vite 5 + Supabase, deployed on Vercel. Deps: `@supabase/supabase-js`,
   `usher`, `celebrations`. Role **defaults**:
   - **admin** — everything (13 tabs), lands on Home
   - **leadership** — all but Users / Photos / Log / Import, lands on Home
-  - **usher** — Attendance, Roster, Households, Celebrations; lands on Attendance
+  - **usher** — Attendance, Roster, Households, Celebrations; **lands on Roster** (the
+    printed list is what they work from at the door). Falls back to Attendance if an admin
+    removes Roster from a specific usher.
   - **celebrations** — Celebrations only
 - **Per-user tab overrides.** `profiles.tab_access text[]` (`supabase_migration_tab_access.sql`)
   overrides the role default for one account; NULL means inherit, so the migration changes
@@ -147,6 +149,11 @@ would tidy the stored data if it ever matters.
 - **`staging` is well ahead of `main`** and not yet PR'd — roster tables + usher Roster tab,
   the mobile CSS fix, the `TAB_ACCESS` consolidation, and the Jul 18 batch below are all
   still off production.
+- **The mobile Members edit modal is guarded twice.** `.modal-bg` outranks `.detail-panel`
+  in the stylesheet *and* `MembersPage` adds `.hide-behind-modal` to the panel whenever a
+  modal is open, which hides it on mobile only. The z-index fix alone was verified live on
+  production and the overlap was still reported, so don't remove the class as redundant
+  without reproducing on a real phone first. Desktop shows both, as before.
 - **Stacking order is now documented at the top of the `.modal-bg` rule in `styles.css`.**
   `.modal-bg` was at `z-index: 100`, *below* `.detail-panel`'s mobile `200`, so on a phone
   the Members edit modal opened behind the member detail slide-up and looked half-clipped.

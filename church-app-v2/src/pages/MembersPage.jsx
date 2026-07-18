@@ -330,9 +330,15 @@ export default function MembersPage({ profile, members, setMembers, households =
 
       {/* Mobile backdrop */}
       {selected && <div className="mobile-backdrop" style={{display:"none"}} onClick={()=>setSelected(null)} />}
-      {/* Right: Detail Panel */}
+      {/* Right: Detail Panel.
+          On mobile the panel and the modals are both full-width bottom sheets, so if a
+          modal is open the panel behind it is pure interference — it was rendering over
+          the edit form. Raising .modal-bg above .detail-panel in the stylesheet fixes the
+          stacking, but this makes the overlap impossible regardless of how the two
+          stacking contexts resolve on a given browser. Desktop is untouched: there the
+          panel sits beside the list and the modal is centred, so both are still shown. */}
       {selected && (
-        <div className="card detail-panel fade-in" style={{padding:22}}>
+        <div className={`card detail-panel fade-in${(editData || showAdd) ? " hide-behind-modal" : ""}`} style={{padding:22}}>
           {/* Close button */}
           <button className="close-btn" onClick={()=>setSelected(null)}><X size={13} /></button>
 
