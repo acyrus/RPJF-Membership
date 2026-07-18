@@ -36,9 +36,9 @@ React 18 + Vite 5 + Supabase, deployed on Vercel. Deps: `@supabase/supabase-js`,
   `usher`, `celebrations`. Role **defaults**:
   - **admin** — everything (13 tabs), lands on Home
   - **leadership** — all but Users / Photos / Log / Import, lands on Home
-  - **usher** — Attendance, Roster, Households, Celebrations; **lands on Roster** (the
-    printed list is what they work from at the door). Falls back to Attendance if an admin
-    removes Roster from a specific usher.
+  - **usher** — Attendance, Roster, Photos, Households, Celebrations; **lands on Roster**
+    (the printed list is what they work from at the door). Falls back to Attendance if an
+    admin removes Roster from a specific usher.
   - **celebrations** — Celebrations only
 - **Per-user tab overrides.** `profiles.tab_access text[]` (`supabase_migration_tab_access.sql`)
   overrides the role default for one account; NULL means inherit, so the migration changes
@@ -77,7 +77,16 @@ plus Login and SubmitPhoto (the public photo-submission page, outside the tab sh
 `supabase_setup.sql` is the superset for a **fresh** project. The `supabase_migration_*.sql`
 files are for the **existing** database and must be run by hand in the Supabase SQL editor:
 `require_2fa`, `single_session`, `usher_services` (ushers + leadership may create an
-attendance service; **deleting** one stays admin-only), `rosters`, `tab_access`.
+attendance service; **deleting** one stays admin-only), `rosters`, `tab_access`, `usher_photos`.
+
+**Photo review is function-gated, not policy-gated.** Ushers can reach the Photos tab, but
+`photo_submissions` UPDATE and `members` UPDATE are both still admin-only. Approving calls
+`approve_photo_submission(submission, member)` and rejecting calls
+`reject_photo_submission(submission)` — `SECURITY DEFINER` functions that re-check the
+caller's role. That deliberately avoids granting ushers write access to `members`, which is
+what a naive policy widening would have done (photo approval writes `members.photo_url`).
+If you add a reviewer role, edit the role check inside those functions, not the table policy.
+Deleting submissions stays admin-only.
 
 ⚠️ **`tab_access` has not been run yet** (staging or production). Until it is, `UsersPage`
 detects the missing column, shows a banner, and disables the Tabs button; everyone falls back

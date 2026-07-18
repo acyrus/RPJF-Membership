@@ -338,9 +338,13 @@ create policy "households_delete" on households for delete to authenticated
 drop policy if exists "photo_submissions_insert_public" on photo_submissions;
 create policy "photo_submissions_insert_public" on photo_submissions
   for insert to anon, authenticated with check (status = 'pending');
+-- Admins and ushers review the queue. UPDATE stays admin-only: ushers act through
+-- approve_photo_submission / reject_photo_submission (see supabase_migration_usher_photos.sql),
+-- so they can't rewrite arbitrary columns or gain write access to members.
 drop policy if exists "photo_submissions_select_admin" on photo_submissions;
-create policy "photo_submissions_select_admin" on photo_submissions
-  for select to authenticated using (exists (select 1 from profiles where id = auth.uid() and role = 'admin'));
+drop policy if exists "photo_submissions_select_reviewer" on photo_submissions;
+create policy "photo_submissions_select_reviewer" on photo_submissions
+  for select to authenticated using (get_my_role() in ('admin','usher'));
 drop policy if exists "photo_submissions_update_admin" on photo_submissions;
 create policy "photo_submissions_update_admin" on photo_submissions
   for update to authenticated using (exists (select 1 from profiles where id = auth.uid() and role = 'admin'));
