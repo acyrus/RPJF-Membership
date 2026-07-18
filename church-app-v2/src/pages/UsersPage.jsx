@@ -106,6 +106,7 @@ export default function UsersPage({ currentProfile }) {
   const [showAdd, setShowAdd] = useState(false);
   const [resetTarget, setResetTarget] = useState(null);
   const [tabTarget, setTabTarget] = useState(null);
+  const [tabColumnMissing, setTabColumnMissing] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [saving, setSaving] = useState(false);
@@ -121,10 +122,21 @@ export default function UsersPage({ currentProfile }) {
       .order("name");
     let flagMap = {};
     let tabMap = {};
-    try {
-      const { data: flags } = await supabase.from("profiles").select("id, require_2fa, tab_access");
-      (flags || []).forEach(f => { flagMap[f.id] = f.require_2fa; tabMap[f.id] = f.tab_access; });
-    } catch (e) { /* columns may not exist yet */ }
+    let missingTabColumn = false;
+    // supabase-js RESOLVES with { data, error } instead of throwing, so a try/catch
+    // around this catches nothing. If tab_access hasn't been migrated yet the whole
+    // select fails — including require_2fa — so ask for it separately on failure.
+    // Bundling them meant one missing column silently showed every account as
+    // "Require 2FA: on", whatever the database actually said.
+    const withTabs = await supabase.from("profiles").select("id, require_2fa, tab_access");
+    if (withTabs.error) {
+      missingTabColumn = true;
+      const { data: flags } = await supabase.from("profiles").select("id, require_2fa");
+      (flags || []).forEach(f => { flagMap[f.id] = f.require_2fa; });
+    } else {
+      (withTabs.data || []).forEach(f => { flagMap[f.id] = f.require_2fa; tabMap[f.id] = f.tab_access; });
+    }
+    setTabColumnMissing(missingTabColumn);
     setUsers((profiles || []).map(u => ({
       ...u,
       require_2fa: flagMap[u.id] !== false,
@@ -140,7 +152,17 @@ export default function UsersPage({ currentProfile }) {
     setSaving(true);
     const { error: err } = await supabase.from("profiles").update({ tab_access: tabs }).eq("id", id);
     setSaving(false);
-    if (err) { setError(err.message); return; }
+    if (err) {
+      // The most likely cause by far is that the migration hasn't been run, and
+      // Postgres's raw wording ("schema cache") doesn't hint at the fix.
+      setError(
+        /tab_access/.test(err.message)
+          ? "Per-user tabs aren't set up on this database yet. Run supabase_migration_tab_access.sql in the Supabase SQL editor, then reload this page."
+          : err.message
+      );
+      setTabTarget(null);
+      return;
+    }
     setUsers(prev => prev.map(u => u.id === id ? { ...u, tab_access: tabs } : u));
     setTabTarget(null);
     setSuccess(tabs ? "Tab access updated" : "Tab access reset to the role default");
@@ -193,6 +215,17 @@ export default function UsersPage({ currentProfile }) {
 
       {success && <div className="success-msg" style={{marginBottom:14, fontSize:14, padding:"10px 14px", background:"#f0fff8", border:"1.5px solid #b0e8c8", borderRadius:8}}>{success}</div>}
       {error && <div className="error-msg" style={{marginBottom:14}}>{error}</div>}
+
+      {/* Without the migration the Tabs editor looks usable but can't save, so say so
+          up front rather than letting an admin find out by losing their work. */}
+      {tabColumnMissing && (
+        <div style={{background:"#fffbf0", border:"1.5px solid #f5d88a", borderRadius:10, padding:"12px 16px", marginBottom:20, fontSize:12, color:"#8a6800", lineHeight:1.7}}>
+          <strong>Per-user tabs aren't enabled on this database yet.</strong> Run{" "}
+          <code style={{background:"#0001",padding:"1px 5px",borderRadius:4}}>supabase_migration_tab_access.sql</code>{" "}
+          in the Supabase SQL editor, then reload. Until then everyone uses their role's
+          default tabs and the <strong>Tabs</strong> button can't save.
+        </div>
+      )}
 
       {/* How to add users */}
       <div style={{background:"#fffbf0", border:"1.5px solid #f5d88a", borderRadius:10, padding:"12px 16px", marginBottom:20, fontSize:12, color:"#8a6800", lineHeight:1.7}}>
@@ -266,7 +299,10 @@ export default function UsersPage({ currentProfile }) {
                         {ROLE_OPTIONS.map(r=><option key={r.value} value={r.value}>{r.label}</option>)}
                       </select>
                     )}
-                    <button className="btn-ghost" style={{fontSize:11}} onClick={()=>setTabTarget(u)}>Tabs</button>
+                    <button className="btn-ghost" style={{fontSize:11}}
+                      disabled={tabColumnMissing}
+                      title={tabColumnMissing ? "Needs supabase_migration_tab_access.sql" : "Choose which tabs this user sees"}
+                      onClick={()=>setTabTarget(u)}>Tabs</button>
                     <button className="btn-ghost" style={{fontSize:11}} onClick={()=>setResetTarget(u)}>Reset Password</button>
                     {u.id !== currentProfile.id && (
                       <button className="btn-danger" style={{fontSize:11}} onClick={()=>deleteUser(u.id, u.name)}>Delete</button>
