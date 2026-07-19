@@ -302,6 +302,14 @@ h1, h2, h3, h4, .heading {
   font-size: 14px; color: #92400e; font-weight: 500; line-height: 1.5;
 }
 
+/* ── Roster list: table on desktop, cards on mobile (toggled in the mobile @media) ── */
+.roster-desktop { display: block; }
+.roster-mobile  { display: none; }
+/* The scrollable card is the sticky header's containing block, so the header pins to
+   the top of the list — not the viewport — and never fights the sticky app nav. */
+.roster-scroll { max-height: 65vh; overflow-y: auto; }
+.roster-head { position: sticky; top: 0; z-index: 1; }
+
 /* ── Detail panel ────────────────────────────────────────── */
 .detail-panel { position: relative; width: 330px; flex-shrink: 0; align-self: flex-start; }
 .close-btn {
@@ -386,6 +394,12 @@ h1, h2, h3, h4, .heading {
   .att-row { padding: 14px !important; }
   .check-circle { width: 34px !important; height: 34px !important; }
   .member-row { padding: 13px !important; }
+
+  /* Roster: the 7-column table can't fit a phone (names collapse to one letter), so
+     below 768px the desktop table is hidden and a stacked card per name is shown
+     instead. See RosterPage.jsx — both are rendered, CSS picks which. */
+  .roster-desktop { display: none !important; }
+  .roster-mobile  { display: block !important; }
 
   @media (max-width: 380px) {
     .stat-num { font-size: 22px !important; }
