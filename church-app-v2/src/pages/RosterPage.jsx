@@ -389,9 +389,9 @@ export default function RosterPage({ members = [] }) {
 
                 <div style={{display:"flex", flexWrap:"wrap", gap:8, alignItems:"center", marginTop:10, paddingLeft:30}}>
                   <Chip label="In app"><YesNo yes={n.inApp} /></Chip>
-                  {/* Picture status shows for everyone in the app — the "No" cases are exactly
-                      the members an usher still needs to chase for a photo. */}
-                  {n.inApp && <Chip label="Pic"><YesNo yes={n.hasPic} /></Chip>}
+                  {/* Picture status always shows on mobile so "In app: No / Pic: No" read
+                      together. Someone not in the app has no photo either, so this is No. */}
+                  <Chip label="Pic"><YesNo yes={n.hasPic} /></Chip>
                   <Chip label="Usher">
                     <span style={{fontSize:12, fontWeight:600, color: n.assigned_usher_id ? "#2a5357" : "#c0c8d8"}}>
                       {n.assigned_usher_id ? (usherLabel(n.assigned_usher_id) || "unknown") : "—"}
@@ -450,7 +450,9 @@ export default function RosterPage({ members = [] }) {
                 </span>
                 <span style={{fontSize:13, fontWeight:600, color:"#2a3560", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", textDecoration:n.is_inactive?"line-through":"none"}}>{n.last_name}</span>
                 <span><YesNo yes={n.inApp} /></span>
-                <span>{n.inApp ? <YesNo yes={n.hasPic} /> : <span style={{fontSize:11, color:"#c0c8d8"}}>—</span>}</span>
+                {/* Pic always shows (matches the mobile cards): someone not in the app has
+                    no photo either, so it reads No rather than a blank dash. */}
+                <span><YesNo yes={n.hasPic} /></span>
                 <span style={{fontSize:12, color: n.assigned_usher_id ? "#2a5357" : "#c0c8d8", fontWeight:600, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap"}}>
                   {n.assigned_usher_id
                     ? (usherLabel(n.assigned_usher_id) || <span style={{color:"#c06010"}}>unknown</span>)
