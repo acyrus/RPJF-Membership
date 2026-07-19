@@ -302,9 +302,12 @@ h1, h2, h3, h4, .heading {
   font-size: 14px; color: #92400e; font-weight: 500; line-height: 1.5;
 }
 
-/* ── Roster list: table on desktop, cards on mobile (toggled in the mobile @media) ── */
+/* ── Roster list: table on desktop, cards on mobile (toggled in the mobile @media) ──
+   The show/hide MUST live here, not as an inline style on the element — an inline
+   display:flex would beat this plain selector and the hidden view would leak through
+   (desktop showed the table AND the cards). So the flex layout is baked into the class. */
 .roster-desktop { display: block; }
-.roster-mobile  { display: none; }
+.roster-mobile  { display: none; flex-direction: column; gap: 8px; }
 /* The scrollable card is the sticky header's containing block, so the header pins to
    the top of the list — not the viewport — and never fights the sticky app nav. */
 .roster-scroll { max-height: 65vh; overflow-y: auto; }
@@ -399,7 +402,7 @@ h1, h2, h3, h4, .heading {
      below 768px the desktop table is hidden and a stacked card per name is shown
      instead. See RosterPage.jsx — both are rendered, CSS picks which. */
   .roster-desktop { display: none !important; }
-  .roster-mobile  { display: block !important; }
+  .roster-mobile  { display: flex !important; }
 
   @media (max-width: 380px) {
     .stat-num { font-size: 22px !important; }

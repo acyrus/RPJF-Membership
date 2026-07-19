@@ -399,7 +399,10 @@ export default function RosterPage({ members = [] }) {
 
           {/* Mobile: one card per name. Full name never truncates; everything else is a
               labelled chip underneath, so nothing gets squeezed to a single letter. */}
-          <div className="roster-mobile" style={{display:"flex", flexDirection:"column", gap:8}}>
+          {/* Layout (flex column + gap) lives in the .roster-mobile CSS class, NOT inline —
+              an inline display here would override the class's display:none and leak this
+              view onto desktop. */}
+          <div className="roster-mobile">
             {rows.map(n => (
               <div key={n.id} className="card" onClick={()=>setEditing(n)} style={{
                 padding:"12px 14px", cursor:"pointer",
