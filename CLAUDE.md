@@ -134,12 +134,13 @@ in the app.
 - Admin publishes from Import → Roster Check. Ushers get a **Roster** tab
   (`src/pages/RosterPage.jsx`) with summary stats and combinable filters.
 - **The list is responsive: full table on desktop, stacked cards on mobile.** A 7-column
-  table collapsed first names to one letter on a phone, so `RosterPage` renders *both* a
-  `.roster-desktop` table and a `.roster-mobile` card list; the mobile `@media` block in
-  `styles.css` shows one and hides the other. Don't add roster columns assuming the table is
-  the only view — update the cards too. Desktop table header is frozen via `.roster-scroll`
-  (bounded-height card) + `.roster-head` (`position:sticky`); the sticky is scoped to the
-  card so it doesn't fight the sticky app nav.
+  table collapsed first names to one letter on a phone. **Which layout renders is decided in
+  JS** (`useIsMobile` / `matchMedia` in `RosterPage.jsx`) and only that one is put in the
+  DOM — a CSS `display:none` toggle was defeated first by an inline style, then by caching,
+  so don't reintroduce one. Two renderings of a row now exist; add a roster column to *both*.
+  Desktop table header is frozen via `.roster-scroll` (bounded-height card) + `.roster-head`
+  (`position:sticky`); the sticky is scoped to the card so it doesn't fight the sticky app nav.
+  Mobile card flags "Needs a photo" for in-app members without a `photo_url`.
 - Name matching (`normName`) is case-, space-, hyphen- and accent-insensitive, so
   `Ali-Mohammed` === `Ali Mohammed`. Matching is name-only — two people with the same first
   and last name collapse to one. Live with it or add a disambiguator.

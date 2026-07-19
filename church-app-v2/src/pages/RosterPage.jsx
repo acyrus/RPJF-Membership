@@ -14,6 +14,23 @@ function normName(s) {
 }
 const nameKey = (first, last) => `${normName(first)}|${normName(last)}`;
 
+// Render the table OR the cards, never both. A CSS display:none toggle was defeated
+// once by an inline style and again (apparently) by caching, so decide in JS and put
+// only one layout in the DOM — it then can't physically show both.
+function useIsMobile(breakpoint = 768) {
+  const query = `(max-width: ${breakpoint}px)`;
+  const [isMobile, setIsMobile] = useState(
+    () => typeof window !== "undefined" && window.matchMedia(query).matches
+  );
+  useEffect(() => {
+    const mq = window.matchMedia(query);
+    const on = e => setIsMobile(e.matches);
+    mq.addEventListener ? mq.addEventListener("change", on) : mq.addListener(on);
+    return () => { mq.removeEventListener ? mq.removeEventListener("change", on) : mq.removeListener(on); };
+  }, [query]);
+  return isMobile;
+}
+
 // Small yes/no pill used in the table cells.
 function YesNo({ yes, yesLabel = "Yes", noLabel = "No" }) {
   const c = yes ? { bg: "#e8f6ee", fg: "#1e7a4a", bd: "#b0e8c8" }
@@ -108,6 +125,7 @@ function AssignmentEditor({ row, ushers, saving, onSave, onClose }) {
 // The Roster tab. The published list stays read-only (admins own it); the per-name
 // working data — assigned usher, note, inactive flag — is what ushers edit here.
 export default function RosterPage({ members = [] }) {
+  const isMobile = useIsMobile();
   const [roster, setRoster] = useState(null);
   const [names, setNames] = useState([]);
   const [assignments, setAssignments] = useState({});   // name_key -> row
@@ -346,10 +364,60 @@ export default function RosterPage({ members = [] }) {
         <div className="card" style={{padding:24, textAlign:"center", fontSize:13, color:"#9ca3af"}}>
           {q ? <>No one on the roster matches “{q}”.</> : "Nothing matches these filters."}
         </div>
+      ) : isMobile ? (
+          /* Mobile: one card per name. Full name never truncates; everything else is a
+             labelled chip underneath, so nothing gets squeezed to a single letter. */
+          <div className="roster-mobile" style={{display:"flex", flexDirection:"column", gap:8}}>
+            {rows.map(n => (
+              <div key={n.id} className="card" onClick={()=>setEditing(n)} style={{
+                padding:"12px 14px", cursor:"pointer",
+                background: n.is_inactive ? "#f7f8fa" : "#fff",
+                opacity: n.is_inactive ? 0.7 : 1,
+              }}>
+                <div style={{display:"flex", alignItems:"center", gap:10}}>
+                  <span style={{fontSize:11, color:"#c0c8d8", minWidth:20}}>{n.position + 1}</span>
+                  {n.member
+                    ? <Avatar member={n.member} size={30} />
+                    : <div style={{width:30, height:30, borderRadius:"50%", background:"#eef1f6", flexShrink:0}} />}
+                  <span style={{fontSize:15, fontWeight:700, color:"#2a3560", textDecoration:n.is_inactive?"line-through":"none", lineHeight:1.2}}>
+                    {n.first_name} {n.last_name}
+                  </span>
+                  {n.is_inactive && (
+                    <span style={{marginLeft:"auto", fontSize:10, fontWeight:700, color:"#8a94a6", background:"#eef1f6", borderRadius:20, padding:"2px 9px", textTransform:"uppercase", letterSpacing:0.4}}>Inactive</span>
+                  )}
+                </div>
+
+                <div style={{display:"flex", flexWrap:"wrap", gap:8, alignItems:"center", marginTop:10, paddingLeft:30}}>
+                  <Chip label="In app"><YesNo yes={n.inApp} /></Chip>
+                  {/* Picture status shows for everyone in the app — the "No" cases are exactly
+                      the members an usher still needs to chase for a photo. */}
+                  {n.inApp && <Chip label="Pic"><YesNo yes={n.hasPic} /></Chip>}
+                  <Chip label="Usher">
+                    <span style={{fontSize:12, fontWeight:600, color: n.assigned_usher_id ? "#2a5357" : "#c0c8d8"}}>
+                      {n.assigned_usher_id ? (usherLabel(n.assigned_usher_id) || "unknown") : "—"}
+                    </span>
+                  </Chip>
+                </div>
+
+                {/* Call out a missing photo explicitly so it's easy to spot at a glance. */}
+                {n.inApp && !n.hasPic && (
+                  <div style={{marginTop:8, paddingLeft:30, fontSize:12, fontWeight:600, color:"#b06a10"}}>
+                    Needs a photo
+                  </div>
+                )}
+
+                {n.note && (
+                  <div style={{display:"flex", gap:6, marginTop:9, paddingLeft:30, fontSize:12, color:"#5a6a7a", lineHeight:1.5}}>
+                    <StickyNote size={13} color="#c9a227" style={{flexShrink:0, marginTop:1}} />
+                    <span>{n.note}</span>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
       ) : (
-        <>
-          {/* Desktop: full table. The card scrolls internally so the header can pin to
-              the top of the list (see .roster-scroll / .roster-head in styles.css). */}
+          /* Desktop: full table. The card scrolls internally so the header can pin to
+             the top of the list (see .roster-scroll / .roster-head in styles.css). */
           <div className="roster-desktop card roster-scroll" style={{padding:0}}>
             <div className="roster-head" style={{
               display:"grid", gridTemplateColumns:GRID,
@@ -396,52 +464,6 @@ export default function RosterPage({ members = [] }) {
               </div>
             ))}
           </div>
-
-          {/* Mobile: one card per name. Full name never truncates; everything else is a
-              labelled chip underneath, so nothing gets squeezed to a single letter. */}
-          {/* Layout (flex column + gap) lives in the .roster-mobile CSS class, NOT inline —
-              an inline display here would override the class's display:none and leak this
-              view onto desktop. */}
-          <div className="roster-mobile">
-            {rows.map(n => (
-              <div key={n.id} className="card" onClick={()=>setEditing(n)} style={{
-                padding:"12px 14px", cursor:"pointer",
-                background: n.is_inactive ? "#f7f8fa" : "#fff",
-                opacity: n.is_inactive ? 0.7 : 1,
-              }}>
-                <div style={{display:"flex", alignItems:"center", gap:10}}>
-                  <span style={{fontSize:11, color:"#c0c8d8", minWidth:20}}>{n.position + 1}</span>
-                  {n.member
-                    ? <Avatar member={n.member} size={30} />
-                    : <div style={{width:30, height:30, borderRadius:"50%", background:"#eef1f6", flexShrink:0}} />}
-                  <span style={{fontSize:15, fontWeight:700, color:"#2a3560", textDecoration:n.is_inactive?"line-through":"none", lineHeight:1.2}}>
-                    {n.first_name} {n.last_name}
-                  </span>
-                  {n.is_inactive && (
-                    <span style={{marginLeft:"auto", fontSize:10, fontWeight:700, color:"#8a94a6", background:"#eef1f6", borderRadius:20, padding:"2px 9px", textTransform:"uppercase", letterSpacing:0.4}}>Inactive</span>
-                  )}
-                </div>
-
-                <div style={{display:"flex", flexWrap:"wrap", gap:8, alignItems:"center", marginTop:10, paddingLeft:30}}>
-                  <Chip label="In app"><YesNo yes={n.inApp} /></Chip>
-                  {n.inApp && <Chip label="Pic"><YesNo yes={n.hasPic} /></Chip>}
-                  <Chip label="Usher">
-                    <span style={{fontSize:12, fontWeight:600, color: n.assigned_usher_id ? "#2a5357" : "#c0c8d8"}}>
-                      {n.assigned_usher_id ? (usherLabel(n.assigned_usher_id) || "unknown") : "—"}
-                    </span>
-                  </Chip>
-                </div>
-
-                {n.note && (
-                  <div style={{display:"flex", gap:6, marginTop:9, paddingLeft:30, fontSize:12, color:"#5a6a7a", lineHeight:1.5}}>
-                    <StickyNote size={13} color="#c9a227" style={{flexShrink:0, marginTop:1}} />
-                    <span>{n.note}</span>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </>
       )}
 
       <div style={{fontSize:11, color:"#9ca3af", marginTop:12, lineHeight:1.7}}>
