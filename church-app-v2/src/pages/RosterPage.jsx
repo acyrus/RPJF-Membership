@@ -37,7 +37,9 @@ function Stat({ label, value, sub, color = "#2a3560" }) {
   );
 }
 
-const GRID = "34px 1fr 1fr 90px 150px 96px";
+// Columns: #, First, Last, In App?, Pic?, Assigned, Note. Names are deliberately
+// narrow (they're short) so Assigned and Note get the room they actually need.
+const GRID = "28px 0.85fr 0.85fr 74px 60px 1fr 1.4fr";
 
 // Editor for one roster name's working data. Uses the shared .modal styles so it's a
 // centred dialog on desktop and a bottom sheet on mobile (same as the member forms).
@@ -338,11 +340,12 @@ export default function RosterPage({ members = [] }) {
           fontSize:10, fontWeight:700, color:"#6b7280", textTransform:"uppercase", letterSpacing:0.5,
         }}>
           <span>#</span>
-          <span style={{display:"flex", alignItems:"center", gap:4, cursor:"pointer"}} onClick={()=>setSort("first")}>First Name <ArrowUpDown size={11} color="#c0c8d8" /></span>
-          <span style={{display:"flex", alignItems:"center", gap:4, cursor:"pointer"}} onClick={()=>setSort("last")}>Last Name <ArrowUpDown size={11} color="#c0c8d8" /></span>
+          <span style={{display:"flex", alignItems:"center", gap:4, cursor:"pointer"}} onClick={()=>setSort("first")}>First <ArrowUpDown size={11} color="#c0c8d8" /></span>
+          <span style={{display:"flex", alignItems:"center", gap:4, cursor:"pointer"}} onClick={()=>setSort("last")}>Last <ArrowUpDown size={11} color="#c0c8d8" /></span>
           <span>In App?</span>
-          <span>Assigned</span>
           <span>Pic?</span>
+          <span>Assigned</span>
+          <span>Note</span>
         </div>
 
         {rows.length === 0 ? (
@@ -358,23 +361,26 @@ export default function RosterPage({ members = [] }) {
             opacity: n.is_inactive ? 0.6 : 1,
           }}>
             <span style={{fontSize:11, color:"#c0c8d8"}}>{n.position + 1}</span>
-            <span style={{display:"flex", alignItems:"center", gap:9, minWidth:0}}>
+            <span style={{display:"flex", alignItems:"center", gap:8, minWidth:0}}>
               {n.member
-                ? <Avatar member={n.member} size={26} />
-                : <div style={{width:26, height:26, borderRadius:"50%", background:"#eef1f6", flexShrink:0}} />}
-              <span style={{display:"flex", alignItems:"center", gap:5, minWidth:0}}>
-                <span style={{fontSize:13, fontWeight:600, color:"#2a3560", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", textDecoration:n.is_inactive?"line-through":"none"}}>{n.first_name}</span>
-                {n.note && <StickyNote size={12} color="#c9a227" title={n.note} />}
-              </span>
+                ? <Avatar member={n.member} size={24} />
+                : <div style={{width:24, height:24, borderRadius:"50%", background:"#eef1f6", flexShrink:0}} />}
+              <span style={{fontSize:13, fontWeight:600, color:"#2a3560", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", textDecoration:n.is_inactive?"line-through":"none"}}>{n.first_name}</span>
             </span>
             <span style={{fontSize:13, fontWeight:600, color:"#2a3560", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", textDecoration:n.is_inactive?"line-through":"none"}}>{n.last_name}</span>
             <span><YesNo yes={n.inApp} /></span>
+            <span>{n.inApp ? <YesNo yes={n.hasPic} /> : <span style={{fontSize:11, color:"#c0c8d8"}}>—</span>}</span>
             <span style={{fontSize:12, color: n.assigned_usher_id ? "#2a5357" : "#c0c8d8", fontWeight:600, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap"}}>
               {n.assigned_usher_id
                 ? (usherLabel(n.assigned_usher_id) || <span style={{color:"#c06010"}}>unknown</span>)
                 : "—"}
             </span>
-            <span>{n.inApp ? <YesNo yes={n.hasPic} /> : <span style={{fontSize:11, color:"#c0c8d8"}}>—</span>}</span>
+            {/* Full note on hover via title; the cell itself truncates so rows stay aligned. */}
+            <span title={n.note || ""} style={{display:"flex", alignItems:"center", gap:5, minWidth:0, fontSize:12, color: n.note ? "#5a6a7a" : "#c0c8d8"}}>
+              {n.note
+                ? <><StickyNote size={12} color="#c9a227" style={{flexShrink:0}} /><span style={{overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap"}}>{n.note}</span></>
+                : "—"}
+            </span>
           </div>
         ))}
       </div>
