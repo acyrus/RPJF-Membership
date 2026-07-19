@@ -617,7 +617,9 @@ export const SKILLS_LIST = [
   "Human Resources","IT/Tech Support","Journalism/Writing","Language Translation",
   "Law/Legal","Leadership","Marketing","Media Production","Singing","Music (Acoustic Guitar)",
   "Music (Electric Guitar)","Music (Keyboard/Piano)","Music (Drums)","Music (Bass Guitar)",
-  "Music (Violin)","Music (Other)","Painting/Art","Personal Care/Beauty","Photography","Plumbing","Project Management",
+  "Music (Violin)","Music (Other)","Painting/Art",
+  "Hairstyling","Barbering","Nail Technician","Makeup Artistry","Massage Therapy","Skincare/Esthetics","Personal Care/Beauty",
+  "Photography","Plumbing","Project Management",
   "Public Speaking","Sanitary Services","Security","Social Media Management","Software Development",
   "Sound Mixing","Translation","Videography","Web Design","Welding/Fabrication"
 ];
