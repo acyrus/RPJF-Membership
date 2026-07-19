@@ -27,6 +27,16 @@ function YesNo({ yes, yesLabel = "Yes", noLabel = "No" }) {
   );
 }
 
+// Labelled chip used in the mobile card rows: a small uppercase label beside its value.
+function Chip({ label, children }) {
+  return (
+    <span style={{display:"inline-flex", alignItems:"center", gap:6}}>
+      <span style={{fontSize:10, fontWeight:700, color:"#9ca3af", textTransform:"uppercase", letterSpacing:0.4}}>{label}</span>
+      {children}
+    </span>
+  );
+}
+
 function Stat({ label, value, sub, color = "#2a3560" }) {
   return (
     <div className="card" style={{padding:"14px 16px"}}>
@@ -332,58 +342,104 @@ export default function RosterPage({ members = [] }) {
         </div>
       </div>
 
-      {/* Table */}
-      <div className="card" style={{padding:0, overflow:"hidden"}}>
-        <div style={{
-          display:"grid", gridTemplateColumns:GRID,
-          padding:"10px 14px", background:"#f7f9fc", borderBottom:"1.5px solid #e4e9f5",
-          fontSize:10, fontWeight:700, color:"#6b7280", textTransform:"uppercase", letterSpacing:0.5,
-        }}>
-          <span>#</span>
-          <span style={{display:"flex", alignItems:"center", gap:4, cursor:"pointer"}} onClick={()=>setSort("first")}>First <ArrowUpDown size={11} color="#c0c8d8" /></span>
-          <span style={{display:"flex", alignItems:"center", gap:4, cursor:"pointer"}} onClick={()=>setSort("last")}>Last <ArrowUpDown size={11} color="#c0c8d8" /></span>
-          <span>In App?</span>
-          <span>Pic?</span>
-          <span>Assigned</span>
-          <span>Note</span>
+      {rows.length === 0 ? (
+        <div className="card" style={{padding:24, textAlign:"center", fontSize:13, color:"#9ca3af"}}>
+          {q ? <>No one on the roster matches “{q}”.</> : "Nothing matches these filters."}
         </div>
+      ) : (
+        <>
+          {/* Desktop: full table. The card scrolls internally so the header can pin to
+              the top of the list (see .roster-scroll / .roster-head in styles.css). */}
+          <div className="roster-desktop card roster-scroll" style={{padding:0}}>
+            <div className="roster-head" style={{
+              display:"grid", gridTemplateColumns:GRID,
+              padding:"10px 14px", background:"#f7f9fc", borderBottom:"1.5px solid #e4e9f5",
+              fontSize:10, fontWeight:700, color:"#6b7280", textTransform:"uppercase", letterSpacing:0.5,
+            }}>
+              <span>#</span>
+              <span style={{display:"flex", alignItems:"center", gap:4, cursor:"pointer"}} onClick={()=>setSort("first")}>First <ArrowUpDown size={11} color="#c0c8d8" /></span>
+              <span style={{display:"flex", alignItems:"center", gap:4, cursor:"pointer"}} onClick={()=>setSort("last")}>Last <ArrowUpDown size={11} color="#c0c8d8" /></span>
+              <span>In App?</span>
+              <span>Pic?</span>
+              <span>Assigned</span>
+              <span>Note</span>
+            </div>
 
-        {rows.length === 0 ? (
-          <div style={{padding:24, textAlign:"center", fontSize:13, color:"#9ca3af"}}>
-            {q ? <>No one on the roster matches “{q}”.</> : "Nothing matches these filters."}
+            {rows.map((n, i) => (
+              <div key={n.id} onClick={()=>setEditing(n)} title="Click to assign an usher, add a note, or flag inactive" style={{
+                display:"grid", gridTemplateColumns:GRID,
+                alignItems:"center", padding:"9px 14px", cursor:"pointer",
+                borderTop: i ? "1px solid #f0f2f8" : "none",
+                background: n.is_inactive ? "#f7f8fa" : (i % 2 ? "#fcfdff" : "#fff"),
+                opacity: n.is_inactive ? 0.6 : 1,
+              }}>
+                <span style={{fontSize:11, color:"#c0c8d8"}}>{n.position + 1}</span>
+                <span style={{display:"flex", alignItems:"center", gap:8, minWidth:0}}>
+                  {n.member
+                    ? <Avatar member={n.member} size={24} />
+                    : <div style={{width:24, height:24, borderRadius:"50%", background:"#eef1f6", flexShrink:0}} />}
+                  <span style={{fontSize:13, fontWeight:600, color:"#2a3560", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", textDecoration:n.is_inactive?"line-through":"none"}}>{n.first_name}</span>
+                </span>
+                <span style={{fontSize:13, fontWeight:600, color:"#2a3560", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", textDecoration:n.is_inactive?"line-through":"none"}}>{n.last_name}</span>
+                <span><YesNo yes={n.inApp} /></span>
+                <span>{n.inApp ? <YesNo yes={n.hasPic} /> : <span style={{fontSize:11, color:"#c0c8d8"}}>—</span>}</span>
+                <span style={{fontSize:12, color: n.assigned_usher_id ? "#2a5357" : "#c0c8d8", fontWeight:600, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap"}}>
+                  {n.assigned_usher_id
+                    ? (usherLabel(n.assigned_usher_id) || <span style={{color:"#c06010"}}>unknown</span>)
+                    : "—"}
+                </span>
+                <span title={n.note || ""} style={{display:"flex", alignItems:"center", gap:5, minWidth:0, fontSize:12, color: n.note ? "#5a6a7a" : "#c0c8d8"}}>
+                  {n.note
+                    ? <><StickyNote size={12} color="#c9a227" style={{flexShrink:0}} /><span style={{overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap"}}>{n.note}</span></>
+                    : "—"}
+                </span>
+              </div>
+            ))}
           </div>
-        ) : rows.map((n, i) => (
-          <div key={n.id} onClick={()=>setEditing(n)} title="Tap to assign an usher, add a note, or flag inactive" style={{
-            display:"grid", gridTemplateColumns:GRID,
-            alignItems:"center", padding:"9px 14px", cursor:"pointer",
-            borderTop: i ? "1px solid #f0f2f8" : "none",
-            background: n.is_inactive ? "#f7f8fa" : (i % 2 ? "#fcfdff" : "#fff"),
-            opacity: n.is_inactive ? 0.6 : 1,
-          }}>
-            <span style={{fontSize:11, color:"#c0c8d8"}}>{n.position + 1}</span>
-            <span style={{display:"flex", alignItems:"center", gap:8, minWidth:0}}>
-              {n.member
-                ? <Avatar member={n.member} size={24} />
-                : <div style={{width:24, height:24, borderRadius:"50%", background:"#eef1f6", flexShrink:0}} />}
-              <span style={{fontSize:13, fontWeight:600, color:"#2a3560", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", textDecoration:n.is_inactive?"line-through":"none"}}>{n.first_name}</span>
-            </span>
-            <span style={{fontSize:13, fontWeight:600, color:"#2a3560", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", textDecoration:n.is_inactive?"line-through":"none"}}>{n.last_name}</span>
-            <span><YesNo yes={n.inApp} /></span>
-            <span>{n.inApp ? <YesNo yes={n.hasPic} /> : <span style={{fontSize:11, color:"#c0c8d8"}}>—</span>}</span>
-            <span style={{fontSize:12, color: n.assigned_usher_id ? "#2a5357" : "#c0c8d8", fontWeight:600, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap"}}>
-              {n.assigned_usher_id
-                ? (usherLabel(n.assigned_usher_id) || <span style={{color:"#c06010"}}>unknown</span>)
-                : "—"}
-            </span>
-            {/* Full note on hover via title; the cell itself truncates so rows stay aligned. */}
-            <span title={n.note || ""} style={{display:"flex", alignItems:"center", gap:5, minWidth:0, fontSize:12, color: n.note ? "#5a6a7a" : "#c0c8d8"}}>
-              {n.note
-                ? <><StickyNote size={12} color="#c9a227" style={{flexShrink:0}} /><span style={{overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap"}}>{n.note}</span></>
-                : "—"}
-            </span>
+
+          {/* Mobile: one card per name. Full name never truncates; everything else is a
+              labelled chip underneath, so nothing gets squeezed to a single letter. */}
+          <div className="roster-mobile" style={{display:"flex", flexDirection:"column", gap:8}}>
+            {rows.map(n => (
+              <div key={n.id} className="card" onClick={()=>setEditing(n)} style={{
+                padding:"12px 14px", cursor:"pointer",
+                background: n.is_inactive ? "#f7f8fa" : "#fff",
+                opacity: n.is_inactive ? 0.7 : 1,
+              }}>
+                <div style={{display:"flex", alignItems:"center", gap:10}}>
+                  <span style={{fontSize:11, color:"#c0c8d8", minWidth:20}}>{n.position + 1}</span>
+                  {n.member
+                    ? <Avatar member={n.member} size={30} />
+                    : <div style={{width:30, height:30, borderRadius:"50%", background:"#eef1f6", flexShrink:0}} />}
+                  <span style={{fontSize:15, fontWeight:700, color:"#2a3560", textDecoration:n.is_inactive?"line-through":"none", lineHeight:1.2}}>
+                    {n.first_name} {n.last_name}
+                  </span>
+                  {n.is_inactive && (
+                    <span style={{marginLeft:"auto", fontSize:10, fontWeight:700, color:"#8a94a6", background:"#eef1f6", borderRadius:20, padding:"2px 9px", textTransform:"uppercase", letterSpacing:0.4}}>Inactive</span>
+                  )}
+                </div>
+
+                <div style={{display:"flex", flexWrap:"wrap", gap:8, alignItems:"center", marginTop:10, paddingLeft:30}}>
+                  <Chip label="In app"><YesNo yes={n.inApp} /></Chip>
+                  {n.inApp && <Chip label="Pic"><YesNo yes={n.hasPic} /></Chip>}
+                  <Chip label="Usher">
+                    <span style={{fontSize:12, fontWeight:600, color: n.assigned_usher_id ? "#2a5357" : "#c0c8d8"}}>
+                      {n.assigned_usher_id ? (usherLabel(n.assigned_usher_id) || "unknown") : "—"}
+                    </span>
+                  </Chip>
+                </div>
+
+                {n.note && (
+                  <div style={{display:"flex", gap:6, marginTop:9, paddingLeft:30, fontSize:12, color:"#5a6a7a", lineHeight:1.5}}>
+                    <StickyNote size={13} color="#c9a227" style={{flexShrink:0, marginTop:1}} />
+                    <span>{n.note}</span>
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
+        </>
+      )}
 
       <div style={{fontSize:11, color:"#9ca3af", marginTop:12, lineHeight:1.7}}>
         Showing {rows.length} of {linked.length} names. Tap any name to assign an usher, add a note, or flag it inactive.

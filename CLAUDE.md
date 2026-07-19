@@ -131,9 +131,15 @@ in the app.
 - Tables: `rosters` (one row per published list, `is_current` flag, history retained) and
   `roster_names`. See `supabase_migration_rosters.sql`. Partial unique index enforces exactly
   one current roster.
-- Admin publishes from Import → Roster Check. Ushers get a read-only **Roster** tab
-  (`src/pages/RosterPage.jsx`): a table of First Name / Last Name / In App? / Has a Picture?,
-  with summary stats and combinable filters.
+- Admin publishes from Import → Roster Check. Ushers get a **Roster** tab
+  (`src/pages/RosterPage.jsx`) with summary stats and combinable filters.
+- **The list is responsive: full table on desktop, stacked cards on mobile.** A 7-column
+  table collapsed first names to one letter on a phone, so `RosterPage` renders *both* a
+  `.roster-desktop` table and a `.roster-mobile` card list; the mobile `@media` block in
+  `styles.css` shows one and hides the other. Don't add roster columns assuming the table is
+  the only view — update the cards too. Desktop table header is frozen via `.roster-scroll`
+  (bounded-height card) + `.roster-head` (`position:sticky`); the sticky is scoped to the
+  card so it doesn't fight the sticky app nav.
 - Name matching (`normName`) is case-, space-, hyphen- and accent-insensitive, so
   `Ali-Mohammed` === `Ali Mohammed`. Matching is name-only — two people with the same first
   and last name collapse to one. Live with it or add a disambiguator.
