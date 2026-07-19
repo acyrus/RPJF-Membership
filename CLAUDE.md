@@ -83,7 +83,8 @@ plus Login and SubmitPhoto (the public photo-submission page, outside the tab sh
 `supabase_setup.sql` is the superset for a **fresh** project. The `supabase_migration_*.sql`
 files are for the **existing** database and must be run by hand in the Supabase SQL editor:
 `require_2fa`, `single_session`, `usher_services` (ushers + leadership may create an
-attendance service; **deleting** one stays admin-only), `rosters`, `tab_access`, `usher_photos`.
+attendance service; **deleting** one stays admin-only), `rosters`, `tab_access`, `usher_photos`,
+`roster_assignments` (usher-editable assign / note / inactive data, keyed by name).
 
 **Photo review is function-gated, not policy-gated.** Ushers can reach the Photos tab, but
 `photo_submissions` UPDATE and `members` UPDATE are both still admin-only. Approving calls
@@ -136,6 +137,20 @@ in the app.
 - Name matching (`normName`) is case-, space-, hyphen- and accent-insensitive, so
   `Ali-Mohammed` === `Ali Mohammed`. Matching is name-only — two people with the same first
   and last name collapse to one. Live with it or add a disambiguator.
+- **Usher working data lives in `roster_assignments`, not on `roster_names`.** Ushers can
+  assign an usher, add a note, and flag a name inactive from the Roster tab
+  (`supabase_migration_roster_assignments.sql`). It's keyed on `name_key` (=`nameKey()`,
+  the same normalisation as matching) **on purpose**: a republish deletes and recreates every
+  `roster_names` row, so anything stored there would be wiped monthly. Keying by name means a
+  month of assignments follows the person onto the new list. Same-name collapse applies here
+  too. `name_key` must be built identically in SQL and in `RosterPage.jsx` — NFD-strip accents,
+  lowercase, a-z only, `first|last`. Writes are upserts on `name_key`.
+- **This is the only roster table ushers may write to.** `rosters`/`roster_names` stay
+  admin-only; `roster_assignments` select/insert/update is admin + usher, delete admin-only.
+  Assignable ushers are members carrying the **Usher** ministry (`m.roles.includes("Usher")`),
+  not usher login accounts. `assigned_usher_id` → `members(id)`, nulled if that member is
+  deleted. The Roster stats and default view show **active names only** — inactive is the
+  "ignore this one" flag, so folding it into the "still owing" counts would mislead.
 
 ## Skills
 
