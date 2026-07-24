@@ -105,9 +105,11 @@ function AssignmentEditor({ row, ushers, saving, onSave, onClose }) {
             style={{resize:"vertical"}} />
         </div>
 
-        <label style={{display:"flex", alignItems:"center", gap:9, cursor:"pointer", padding:"4px 0 2px", fontSize:13, color:"#374151"}}>
-          <input type="checkbox" checked={inactive} onChange={e=>setInactive(e.target.checked)} />
-          <span><strong>Flag as inactive</strong> — hide from the list of names still to chase</span>
+        <label style={{display:"flex", alignItems:"flex-start", gap:9, cursor:"pointer", padding:"4px 0 2px", fontSize:13, color:"#374151", lineHeight:1.5}}>
+          <input type="checkbox" checked={inactive} onChange={e=>setInactive(e.target.checked)} style={{marginTop:3}} />
+          <span><strong>Remove from the list</strong> — for names you don't need to capture
+            (visitors, moved away, duplicates). It drops out of the “to capture” target and the
+            completion count. You can restore it anytime with the <em>Inactive</em> status filter.</span>
         </label>
 
         <div style={{display:"flex", gap:10, marginTop:20}}>
@@ -190,23 +192,54 @@ export default function RosterPage({ members = [] }) {
     });
   }, [names, members, assignments]);
 
-  // Stats describe the ACTIVE working set — inactive names are ones the ushers have
-  // chosen to ignore, so folding them into "still owing" counts would be misleading.
+  // The real target is TOTAL minus INACTIVE: inactive names are ones the ushers have
+  // removed from the list (visitors, moved away, duplicates), so completion is measured
+  // against what's actually left to capture, not the raw roster count.
   const stats = useMemo(() => {
-    const active = linked.filter(n => !n.is_inactive);
-    const total = active.length;
-    const matched = active.filter(n => n.inApp).length;
-    const withPic = active.filter(n => n.hasPic).length;
-    const assigned = active.filter(n => n.assigned_usher_id).length;
+    const totalAll = linked.length;
+    const inactive = linked.filter(n => n.is_inactive).length;
+    const active   = linked.filter(n => !n.is_inactive);
+    const toCapture = active.length;                        // total − inactive = the goal
+    const captured  = active.filter(n => n.inApp).length;   // already in the app
+    const assigned  = active.filter(n => n.assigned_usher_id).length;
     return {
-      total, matched, assigned,
-      unassigned: total - assigned,
-      notMatched: total - matched,
-      withPic,
-      inactive: linked.length - total,
-      pct: total ? Math.round((matched / total) * 100) : 0,
+      totalAll, inactive, toCapture, captured,
+      remaining: toCapture - captured,
+      assigned,
+      unassigned: toCapture - assigned,
+      withPic: active.filter(n => n.hasPic).length,
+      pct: toCapture ? Math.round((captured / toCapture) * 100) : 0,
     };
   }, [linked]);
+
+  // Progress grouped by the assigned usher. A name only counts as COMPLETE when the
+  // person is in the app AND has a photo — a record without a picture is still work to do.
+  // Inactive names are excluded; unassigned active names roll up into their own row so
+  // the totals still reconcile with the summary above.
+  const byUsher = useMemo(() => {
+    const active = linked.filter(n => !n.is_inactive);
+    const map = new Map();
+    const unassigned = { assigned: 0, complete: 0 };
+    active.forEach(n => {
+      const done = n.inApp && n.hasPic;
+      if (n.assigned_usher_id) {
+        const cur = map.get(n.assigned_usher_id) || { assigned: 0, complete: 0 };
+        cur.assigned++; if (done) cur.complete++;
+        map.set(n.assigned_usher_id, cur);
+      } else {
+        unassigned.assigned++; if (done) unassigned.complete++;
+      }
+    });
+    const rows = [...map.entries()].map(([id, v]) => ({
+      id,
+      name: usherById.get(id) ? fullName(usherById.get(id)) : "Unknown usher",
+      assigned: v.assigned,
+      complete: v.complete,
+      remaining: v.assigned - v.complete,
+      pct: v.assigned ? Math.round((v.complete / v.assigned) * 100) : 0,
+    })).sort((a, b) => b.assigned - a.assigned || a.name.localeCompare(b.name));
+    return { rows, unassigned };
+  }, [linked, usherById]);
 
   const rows = useMemo(() => {
     const needle = normName(q);
@@ -317,11 +350,74 @@ export default function RosterPage({ members = [] }) {
 
       {/* Summary statistics */}
       <div style={{display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(130px,1fr))", gap:12, marginBottom:16}}>
-        <Stat label="Active names" value={stats.total} sub={stats.inactive ? `${stats.inactive} inactive hidden` : undefined} />
-        <Stat label="Matched in app" value={stats.matched} sub={`${stats.pct}% of active`} color="#2a8a50" />
-        <Stat label="Not in app"     value={stats.notMatched} color="#c06010" />
-        <Stat label="Assigned"       value={stats.assigned} color="#3a8fd0" />
-        <Stat label="Unassigned"     value={stats.unassigned} color="#8a5a10" />
+        <Stat label="Total names"  value={stats.totalAll} />
+        <Stat label="Inactive"     value={stats.inactive} color="#8a94a6" />
+        <Stat label="To capture"   value={stats.toCapture} sub="total minus inactive" color="#2a5357" />
+        <Stat label="Captured"     value={stats.captured} sub={`${stats.pct}% complete`} color="#2a8a50" />
+        <Stat label="Remaining"    value={stats.remaining} color="#c06010" />
+        <Stat label="Assigned"     value={stats.assigned} color="#3a8fd0" />
+        <Stat label="Unassigned"   value={stats.unassigned} color="#8a5a10" />
+      </div>
+
+      {/* Completion toward the real target (names left after inactive are removed). */}
+      <div className="card" style={{padding:"14px 16px", marginBottom:16}}>
+        <div style={{display:"flex", justifyContent:"space-between", alignItems:"baseline", marginBottom:8, flexWrap:"wrap", gap:6}}>
+          <span style={{fontSize:12, fontWeight:700, color:"#2a3560"}}>Onboarding progress</span>
+          <span style={{fontSize:12, color:"#6b7280"}}>
+            <strong style={{color:"#2a8a50", fontSize:14}}>{stats.captured}</strong> of {stats.toCapture} captured
+            <strong style={{color:"#2a8a50", marginLeft:8}}>{stats.pct}%</strong>
+          </span>
+        </div>
+        <div className="progress-bar-track">
+          <div className="progress-bar-fill" style={{width:`${stats.pct}%`, background:"#2a8a50"}} />
+        </div>
+      </div>
+
+      {/* Progress by usher. "Done" = in the app AND has a photo. */}
+      <div className="card" style={{padding:"14px 16px", marginBottom:16}}>
+        <div style={{display:"flex", justifyContent:"space-between", alignItems:"baseline", marginBottom:10, flexWrap:"wrap", gap:6}}>
+          <span style={{fontSize:12, fontWeight:700, color:"#2a3560"}}>Progress by usher</span>
+          <span style={{fontSize:11, color:"#9ca3af"}}>Done = in the app and has a photo</span>
+        </div>
+
+        {byUsher.rows.length === 0 && byUsher.unassigned.assigned === 0 ? (
+          <div style={{fontSize:12, color:"#9ca3af", padding:"6px 0"}}>
+            No names assigned yet. Tap a name and choose an usher to start tracking who's on what.
+          </div>
+        ) : (
+          <div>
+            <div style={{
+              display:"grid", gridTemplateColumns:"1fr 74px 66px 74px", gap:8,
+              padding:"6px 6px", fontSize:10, fontWeight:700, color:"#9ca3af",
+              textTransform:"uppercase", letterSpacing:0.4, borderBottom:"1.5px solid #eef1f6",
+            }}>
+              <span>Usher</span>
+              <span style={{textAlign:"right"}}>Assigned</span>
+              <span style={{textAlign:"right"}}>Done</span>
+              <span style={{textAlign:"right"}}>Remaining</span>
+            </div>
+
+            {byUsher.rows.map(u => (
+              <div key={u.id} onClick={()=>setUsherFilter(u.id)} title="Filter the list to this usher's names"
+                style={{display:"grid", gridTemplateColumns:"1fr 74px 66px 74px", gap:8, alignItems:"center", padding:"8px 6px", cursor:"pointer", borderBottom:"1px solid #f4f6fa"}}>
+                <span style={{fontSize:13, fontWeight:600, color:"#2a3560", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap"}}>{u.name}</span>
+                <span style={{textAlign:"right", fontSize:13, fontWeight:700, color:"#2a3560"}}>{u.assigned}</span>
+                <span style={{textAlign:"right", fontSize:13, fontWeight:700, color:"#2a8a50"}}>{u.complete}<span style={{fontSize:10, color:"#9ca3af", fontWeight:600}}> · {u.pct}%</span></span>
+                <span style={{textAlign:"right", fontSize:13, fontWeight:700, color: u.remaining ? "#c06010" : "#c0c8d8"}}>{u.remaining}</span>
+              </div>
+            ))}
+
+            {byUsher.unassigned.assigned > 0 && (
+              <div onClick={()=>setUsherFilter("unassigned")} title="Filter to names with no usher yet"
+                style={{display:"grid", gridTemplateColumns:"1fr 74px 66px 74px", gap:8, alignItems:"center", padding:"8px 6px", cursor:"pointer", background:"#fbfcfe"}}>
+                <span style={{fontSize:13, fontWeight:600, color:"#8a94a6", fontStyle:"italic"}}>Unassigned</span>
+                <span style={{textAlign:"right", fontSize:13, fontWeight:700, color:"#8a94a6"}}>{byUsher.unassigned.assigned}</span>
+                <span style={{textAlign:"right", fontSize:13, fontWeight:700, color:"#8a94a6"}}>{byUsher.unassigned.complete}</span>
+                <span style={{textAlign:"right", fontSize:13, fontWeight:700, color:"#8a94a6"}}>{byUsher.unassigned.assigned - byUsher.unassigned.complete}</span>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {error && <div className="error-msg" style={{marginBottom:12}}>{error}</div>}

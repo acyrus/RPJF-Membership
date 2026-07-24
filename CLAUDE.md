@@ -156,8 +156,15 @@ in the app.
   admin-only; `roster_assignments` select/insert/update is admin + usher, delete admin-only.
   Assignable ushers are members carrying the **Usher** ministry (`m.roles.includes("Usher")`),
   not usher login accounts. `assigned_usher_id` → `members(id)`, nulled if that member is
-  deleted. The Roster stats and default view show **active names only** — inactive is the
-  "ignore this one" flag, so folding it into the "still owing" counts would mislead.
+  deleted. Inactive is the "remove this one" flag (visitor / moved / duplicate); the default
+  view hides inactive names. **Roster stats: Total names (all), Inactive, To capture
+  (= total − inactive, the real goal), Captured (in app), Remaining, plus an Onboarding
+  progress bar = Captured / To capture.** Removing a name (flagging inactive) shrinks the
+  target so completion tracks what's actually left, not the raw roster count.
+- **"Progress by usher" card** rolls up active assigned names per usher: Assigned / Done /
+  Remaining, where **Done = inApp AND hasPic** (a record without a photo still counts as
+  remaining — stricter than the top-level Captured stat, which is inApp only). Unassigned
+  active names get their own row so totals reconcile. Clicking a row sets `usherFilter`.
 
 ## Skills
 
