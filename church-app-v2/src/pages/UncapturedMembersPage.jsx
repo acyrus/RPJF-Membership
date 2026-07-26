@@ -68,7 +68,7 @@ function Stat({ label, value, sub, color = "#2a3560" }) {
 // narrow (they're short) so Assigned and Note get the room they actually need.
 const GRID = "28px 0.85fr 0.85fr 74px 60px 1fr 1.4fr";
 
-// Editor for one roster name's working data. Uses the shared .modal styles so it's a
+// Editor for one member's working data. Uses the shared .modal styles so it's a
 // centred dialog on desktop and a bottom sheet on mobile (same as the member forms).
 function AssignmentEditor({ row, ushers, saving, onSave, onClose }) {
   const [usherId, setUsherId] = useState(row.assigned_usher_id || "");
@@ -124,11 +124,11 @@ function AssignmentEditor({ row, ushers, saving, onSave, onClose }) {
   );
 }
 
-// The Roster tab. The published list stays read-only (admins own it); the per-name
+// The Uncaptured Members tab. The published list stays read-only (admins own it); the per-name
 // working data — assigned usher, note, inactive flag — is what ushers edit here.
-export default function RosterPage({ members = [] }) {
+export default function UncapturedMembersPage({ members = [] }) {
   const isMobile = useIsMobile();
-  const [roster, setRoster] = useState(null);
+  const [currentList, setCurrentList] = useState(null);
   const [names, setNames] = useState([]);
   const [assignments, setAssignments] = useState({});   // name_key -> row
   const [loading, setLoading] = useState(true);
@@ -141,21 +141,21 @@ export default function RosterPage({ members = [] }) {
   const [hasPic, setHasPic] = useState("all");          // all | yes | no
   const [usherFilter, setUsherFilter] = useState("all"); // all | unassigned | <memberId>
   const [status, setStatus] = useState("active");        // active | inactive | all
-  const [sort, setSort] = useState("roster");           // roster | last | first
+  const [sort, setSort] = useState("order");            // order | last | first
 
   useEffect(() => {
     (async () => {
-      const { data: rosters } = await supabase.from("rosters")
+      const { data: lists } = await supabase.from("uncaptured_lists")
         .select("*").eq("is_current", true).limit(1);
-      const current = (rosters || [])[0] || null;
-      setRoster(current);
+      const current = (lists || [])[0] || null;
+      setCurrentList(current);
       if (current) {
-        const { data: rows } = await supabase.from("roster_names")
-          .select("*").eq("roster_id", current.id).order("position");
+        const { data: rows } = await supabase.from("uncaptured_names")
+          .select("*").eq("uncaptured_id", current.id).order("position");
         setNames(rows || []);
       }
-      // Assignments are keyed by name and span rosters, so load them regardless.
-      const { data: assn } = await supabase.from("roster_assignments").select("*");
+      // Assignments are keyed by name and span published lists, so load them regardless.
+      const { data: assn } = await supabase.from("uncaptured_assignments").select("*");
       const map = {};
       (assn || []).forEach(a => { map[a.name_key] = a; });
       setAssignments(map);
@@ -172,7 +172,7 @@ export default function RosterPage({ members = [] }) {
     const m = new Map(); ushers.forEach(u => m.set(u.id, u)); return m;
   }, [ushers]);
 
-  // Link each roster name to a member record and to its saved working data.
+  // Link each list name to a member record and to its saved working data.
   const linked = useMemo(() => {
     const byKey = new Map();
     members.forEach(m => {
@@ -194,7 +194,7 @@ export default function RosterPage({ members = [] }) {
 
   // The real target is TOTAL minus INACTIVE: inactive names are ones the ushers have
   // removed from the list (visitors, moved away, duplicates), so completion is measured
-  // against what's actually left to capture, not the raw roster count.
+  // against what's actually left to capture, not the raw list count.
   const stats = useMemo(() => {
     const totalAll = linked.length;
     const inactive = linked.filter(n => n.is_inactive).length;
@@ -270,7 +270,7 @@ export default function RosterPage({ members = [] }) {
       updated_at: new Date().toISOString(),
     };
     // Upsert on the name key: first edit inserts, later edits update the same row.
-    const { error: e } = await supabase.from("roster_assignments").upsert(record, { onConflict: "name_key" });
+    const { error: e } = await supabase.from("uncaptured_assignments").upsert(record, { onConflict: "name_key" });
     setSaving(false);
     if (e) { setError(e.message); return; }
     setAssignments(prev => ({ ...prev, [row.key]: { ...(prev[row.key] || {}), ...record } }));
@@ -293,7 +293,7 @@ export default function RosterPage({ members = [] }) {
     const csv = `${head.join(",")}\n${body.join("\n")}\n`;
     const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
-    a.download = `roster-${(roster?.label || "list").replace(/\s+/g,"-").toLowerCase()}.csv`;
+    a.download = `uncaptured-${(currentList?.label || "list").replace(/\s+/g,"-").toLowerCase()}.csv`;
     a.click();
   }
 
@@ -301,13 +301,13 @@ export default function RosterPage({ members = [] }) {
 
   if (loading) return <Spinner />;
 
-  if (!roster) {
+  if (!currentList) {
     return (
       <div className="fade-in">
-        <div style={{fontFamily:"'Inter',sans-serif", color:"#111827", fontSize:14, letterSpacing:0.5, fontWeight:700, marginBottom:20}}>ATTENDANCE ROSTER</div>
+        <div style={{fontFamily:"'Inter',sans-serif", color:"#111827", fontSize:14, letterSpacing:0.5, fontWeight:700, marginBottom:20}}>UNCAPTURED MEMBERS</div>
         <div className="card" style={{padding:28, textAlign:"center"}}>
           <ClipboardList size={28} color="#c0c8d8" />
-          <div style={{fontWeight:700, fontSize:14, color:"#111827", marginTop:10}}>No roster published yet</div>
+          <div style={{fontWeight:700, fontSize:14, color:"#111827", marginTop:10}}>No list published yet</div>
           <div style={{fontSize:12, color:"#9ca3af", marginTop:4, lineHeight:1.7}}>
             An admin needs to upload the attendance list from the Import page. Once they do, it will appear here.
           </div>
@@ -335,14 +335,14 @@ export default function RosterPage({ members = [] }) {
 
   return (
     <div className="fade-in">
-      <div style={{fontFamily:"'Inter',sans-serif", color:"#111827", fontSize:14, letterSpacing:0.5, fontWeight:700, marginBottom:20}}>ATTENDANCE ROSTER</div>
+      <div style={{fontFamily:"'Inter',sans-serif", color:"#111827", fontSize:14, letterSpacing:0.5, fontWeight:700, marginBottom:20}}>UNCAPTURED MEMBERS</div>
 
       {/* Which list is live */}
       <div className="card" style={{padding:"14px 16px", marginBottom:16, display:"flex", justifyContent:"space-between", alignItems:"center", flexWrap:"wrap", gap:10}}>
         <div>
-          <div style={{fontWeight:700, fontSize:14, color:"#111827"}}>{roster.label}</div>
+          <div style={{fontWeight:700, fontSize:14, color:"#111827"}}>{currentList.label}</div>
           <div style={{fontSize:12, color:"#9ca3af", marginTop:2}}>
-            Published {new Date(roster.created_at).toLocaleDateString()}
+            Published {new Date(currentList.created_at).toLocaleDateString()}
           </div>
         </div>
         <span style={{fontSize:10, fontWeight:700, background:"#e8f5f0", color:"#1f4e4a", padding:"4px 10px", borderRadius:20, textTransform:"uppercase", letterSpacing:0.4}}>Current list</span>
@@ -425,7 +425,7 @@ export default function RosterPage({ members = [] }) {
       {/* Search */}
       <div className="card" style={{padding:"10px 14px", marginBottom:12, display:"flex", alignItems:"center", gap:8}}>
         <Search size={16} color="#9ca3af" />
-        <input placeholder="Search the roster by name…" value={q} onChange={e=>setQ(e.target.value)}
+        <input placeholder="Search by name…" value={q} onChange={e=>setQ(e.target.value)}
           style={{border:"none", outline:"none", flex:1, fontSize:13, background:"transparent"}} />
       </div>
 
@@ -446,7 +446,7 @@ export default function RosterPage({ members = [] }) {
         <FilterGroup label="Has a picture?" value={hasPic} onChange={setHasPic}
           options={[["all","All"],["yes","Yes"],["no","No"]]} />
         <FilterGroup label="Sort by" value={sort} onChange={setSort}
-          options={[["roster","Roster"],["last","Last"],["first","First"]]} />
+          options={[["order","List"],["last","Last"],["first","First"]]} />
         <div style={{marginLeft:"auto", display:"flex", gap:8, alignItems:"center"}}>
           {anyFilter && (
             <button className="btn-ghost" style={{fontSize:12}}
@@ -458,12 +458,12 @@ export default function RosterPage({ members = [] }) {
 
       {rows.length === 0 ? (
         <div className="card" style={{padding:24, textAlign:"center", fontSize:13, color:"#9ca3af"}}>
-          {q ? <>No one on the roster matches “{q}”.</> : "Nothing matches these filters."}
+          {q ? <>No one on the list matches “{q}”.</> : "Nothing matches these filters."}
         </div>
       ) : isMobile ? (
           /* Mobile: one card per name. Full name never truncates; everything else is a
              labelled chip underneath, so nothing gets squeezed to a single letter. */
-          <div className="roster-mobile" style={{display:"flex", flexDirection:"column", gap:8}}>
+          <div className="uncaptured-mobile" style={{display:"flex", flexDirection:"column", gap:8}}>
             {rows.map(n => (
               <div key={n.id} className="card" onClick={()=>setEditing(n)} style={{
                 padding:"12px 14px", cursor:"pointer",
@@ -513,9 +513,9 @@ export default function RosterPage({ members = [] }) {
           </div>
       ) : (
           /* Desktop: full table. The card scrolls internally so the header can pin to
-             the top of the list (see .roster-scroll / .roster-head in styles.css). */
-          <div className="roster-desktop card roster-scroll" style={{padding:0}}>
-            <div className="roster-head" style={{
+             the top of the list (see .uncaptured-scroll / .uncaptured-head in styles.css). */
+          <div className="uncaptured-desktop card uncaptured-scroll" style={{padding:0}}>
+            <div className="uncaptured-head" style={{
               display:"grid", gridTemplateColumns:GRID,
               padding:"10px 14px", background:"#f7f9fc", borderBottom:"1.5px solid #e4e9f5",
               fontSize:10, fontWeight:700, color:"#6b7280", textTransform:"uppercase", letterSpacing:0.5,
@@ -566,7 +566,7 @@ export default function RosterPage({ members = [] }) {
 
       <div style={{fontSize:11, color:"#9ca3af", marginTop:12, lineHeight:1.7}}>
         Showing {rows.length} of {linked.length} names. Tap any name to assign an usher, add a note, or flag it inactive.
-        The published list itself is read-only — ask an admin to publish an updated roster to change the names.
+        The published list itself is read-only — ask an admin to publish an updated list to change the names.
       </div>
 
       {editing && (

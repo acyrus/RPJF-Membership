@@ -177,7 +177,7 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
   // Load the roster that's currently published to the ushers.
   useEffect(() => {
     if (activeTab !== "roster") return;
-    supabase.from("rosters").select("*").order("created_at", { ascending: false })
+    supabase.from("uncaptured_lists").select("*").order("created_at", { ascending: false })
       .then(({ data }) => {
         const all = data || [];
         setCurrentRoster(all.find(r => r.is_current) || null);
@@ -541,21 +541,21 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
       // Demote whatever is current. Must happen before insert — a partial unique
       // index enforces that only one roster can be current at a time.
       const { error: demoteErr } = await supabase
-        .from("rosters").update({ is_current: false }).eq("is_current", true);
+        .from("uncaptured_lists").update({ is_current: false }).eq("is_current", true);
       if (demoteErr) throw demoteErr;
 
-      const { data: roster, error: rErr } = await supabase.from("rosters")
+      const { data: roster, error: rErr } = await supabase.from("uncaptured_lists")
         .insert({ label, is_current: true, name_count: rosterRows.length, uploaded_by: profile.id })
         .select("id").single();
       if (rErr) throw rErr;
 
       const payload = rosterRows.map((r, i) => ({
-        roster_id: roster.id, first_name: r.first, last_name: r.last, position: i,
+        uncaptured_id: roster.id, first_name: r.first, last_name: r.last, position: i,
       }));
       // Chunk the insert — 300+ names in one request is fine, but this keeps
       // us well clear of any payload limit as the roster grows.
       for (let i = 0; i < payload.length; i += 200) {
-        const { error: nErr } = await supabase.from("roster_names").insert(payload.slice(i, i + 200));
+        const { error: nErr } = await supabase.from("uncaptured_names").insert(payload.slice(i, i + 200));
         if (nErr) throw nErr;
       }
 
@@ -1013,7 +1013,7 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
             <div style={{fontSize:12, color:"#5a7a76", lineHeight:1.7}}>
               {currentRoster
                 ? <>Ushers currently see <strong>{currentRoster.label}</strong> — {currentRoster.name_count} names, uploaded {new Date(currentRoster.created_at).toLocaleDateString()}.</>
-                : <>No roster published yet. Upload one below and the ushers' Roster tab will be empty until you do.</>}
+                : <>No roster published yet. Upload one below and the ushers' Uncaptured Members tab will be empty until you do.</>}
             </div>
             {rosterHistory.length > 0 && (
               <div style={{fontSize:11, color:"#9ca3af", marginTop:6}}>

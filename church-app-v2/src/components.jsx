@@ -534,26 +534,26 @@ export const ROLES = ["Usher","Musician","Worship Team","Youth Worship Team","Mi
 // ── Tab access, single source of truth ───────────────────────────────────────
 // App.jsx (nav + routing) and UsersPage.jsx (the "who can see what" cards) both
 // read from these. Add a tab in ONE place and everywhere stays in step — the
-// Roster tab got missed on the Users page precisely because this was duplicated.
+// Uncaptured Members tab got missed on the Users page precisely because this was duplicated.
 export const TAB_LABELS = {
-  dashboard:"Home", members:"Members", attendance:"Attendance", roster:"Roster",
+  dashboard:"Home", members:"Members", attendance:"Attendance", uncaptured:"Uncaptured Members",
   photos:"Photos", roles:"Ministries", households:"Households", celebrations:"Celebrations",
   skills:"Skills", analytics:"Analytics", users:"Users", changelog:"Log", import:"Import",
 };
 
 export const TAB_ACCESS = {
-  admin:        ["dashboard","members","attendance","roster","roles","households","celebrations","skills","analytics","users","photos","changelog","import"],
-  leadership:   ["dashboard","members","attendance","roster","roles","households","celebrations","skills","analytics"],
-  usher:        ["attendance","roster","photos","households","celebrations"],
+  admin:        ["dashboard","members","attendance","uncaptured","roles","households","celebrations","skills","analytics","users","photos","changelog","import"],
+  leadership:   ["dashboard","members","attendance","uncaptured","roles","households","celebrations","skills","analytics"],
+  usher:        ["attendance","uncaptured","photos","households","celebrations"],
   celebrations: ["celebrations"],
 };
 
 // The tab each role lands on after signing in.
-// Ushers land on Roster: the printed attendance list is what they actually work from
+// Ushers land on Uncaptured Members: the printed attendance list is what they actually work from
 // at the door, so it's the first thing they need rather than Attendance.
-export const DEFAULT_TAB = { admin:"dashboard", leadership:"dashboard", usher:"roster", celebrations:"celebrations" };
+export const DEFAULT_TAB = { admin:"dashboard", leadership:"dashboard", usher:"uncaptured", celebrations:"celebrations" };
 
-// Human-readable list of what a role can reach, e.g. "Attendance, Roster, Households, Celebrations".
+// Human-readable list of what a role can reach, e.g. "Attendance, Uncaptured Members, Households, Celebrations".
 export const tabsForRole = role =>
   (TAB_ACCESS[role] || []).map(k => TAB_LABELS[k] || k).join(", ");
 
