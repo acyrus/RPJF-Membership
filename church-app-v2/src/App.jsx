@@ -14,7 +14,7 @@ import ChangelogPage from "./pages/ChangelogPage";
 import ImportPage from "./pages/ImportPage";
 import HouseholdsPage from "./pages/HouseholdsPage";
 import PhotoRequestsPage from "./pages/PhotoRequestsPage";
-import RosterPage from "./pages/RosterPage";
+import UncapturedMembersPage from "./pages/UncapturedMembersPage";
 import { Spinner, fullName, PhotoLightbox, MfaChallenge, SecurityModal, SetPasswordScreen, OnboardingFlow, ROLES, TAB_LABELS, tabsForProfile, defaultTabForProfile } from "./components";
 import { logoMark } from "./logoData";
 import { AlertTriangle, Home, Users, ClipboardList, Camera, Tag, LayoutDashboard, PartyPopper, Zap, BarChart3, UserCog, ScrollText, Upload, ShieldCheck, LogOut, ListChecks } from "lucide-react";
@@ -236,7 +236,7 @@ export default function App() {
     { key:"dashboard",   Icon: LayoutDashboard },
     { key:"members",     Icon: Users },
     { key:"attendance",  Icon: ClipboardList },
-    { key:"roster",      Icon: ListChecks },
+    { key:"uncaptured",  Icon: ListChecks },
     { key:"photos",      Icon: Camera, badge: pendingPhotos },
     { key:"roles",       Icon: Tag },
     { key:"households",  Icon: Home },
@@ -296,7 +296,7 @@ export default function App() {
         }}>
           {/* Derived from the tabs this account actually has, so it can't drift out of
               date the way the hand-written usher line did — that still promised only
-              attendance, households and celebrations after Roster and Photos were added. */}
+              attendance, households and celebrations after Uncaptured Members and Photos were added. */}
           {isLeadership && "Leadership access — "}
           {isUsher && "Usher access — "}
           {isCelebrations && "Celebrations access — "}
@@ -330,8 +330,8 @@ export default function App() {
             attendance={attendance} setAttendance={setAttendance}
           />
         )}
-        {tab==="roster" && allowedTabs.includes("roster") && (
-          <RosterPage members={members} />
+        {tab==="uncaptured" && allowedTabs.includes("uncaptured") && (
+          <UncapturedMembersPage members={members} />
         )}
         {tab==="roles" && allowedTabs.includes("roles") && (
           <RolesPage members={members} onMemberClick={m=>{ setTab("members"); }} />
