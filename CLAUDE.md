@@ -77,6 +77,13 @@ plus Login and SubmitPhoto (the public photo-submission page, outside the tab sh
   SQL. Don't "tidy up" that migration expecting it to be dead.
 - **15-minute idle auto-logout still applies** (warning at 13 min) — that's separate from
   the session work above and was not touched.
+- **Changing a password (signed in, `SecurityModal`) requires the current password.** It's
+  verified on a *throwaway* Supabase client (`createClient(..., { auth: { persistSession:
+  false } })`, `supabaseUrl`/`supabaseAnonKey` exported from `supabase.js`) — a plain
+  `supabase.auth.signInWithPassword` on the live client would downgrade the session to aal1
+  and bounce a 2FA user into an MFA re-challenge mid-change. Don't "simplify" it back to the
+  main client. The reset-link (`SetPasswordScreen`) and first-time (`OnboardingFlow`) flows
+  deliberately do NOT ask for a current password — the user hasn't got one.
 
 ## Migrations
 

@@ -1,5 +1,6 @@
 import { useState, useEffect, createContext, useContext } from "react";
-import { supabase } from "./supabase";
+import { createClient } from "@supabase/supabase-js";
+import { supabase, supabaseUrl, supabaseAnonKey } from "./supabase";
 import { ShieldCheck, KeyRound, Camera, X } from "lucide-react";
 
 // ── Profile photo lightbox (click any member photo to enlarge) ──
@@ -330,6 +331,7 @@ export function SecurityModal({ onClose }) {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   // Password change
+  const [curPw, setCurPw] = useState("");
   const [pw, setPw] = useState("");
   const [pw2, setPw2] = useState("");
   const [pwMsg, setPwMsg] = useState("");
@@ -338,13 +340,32 @@ export function SecurityModal({ onClose }) {
 
   async function changePassword() {
     setPwMsg(""); setPwErr("");
-    if (pw.length < 8) { setPwErr("Use at least 8 characters."); return; }
-    if (pw !== pw2) { setPwErr("The two passwords don't match."); return; }
+    if (!curPw) { setPwErr("Enter your current password."); return; }
+    if (pw.length < 8) { setPwErr("Use at least 8 characters for the new password."); return; }
+    if (pw !== pw2) { setPwErr("The two new passwords don't match."); return; }
+    if (pw === curPw) { setPwErr("The new password must be different from the current one."); return; }
     setPwBusy(true);
     try {
+      // Who's signed in — we need the email to check the current password.
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user?.email) throw new Error("Could not confirm your account. Sign in again and retry.");
+
+      // Verify the CURRENT password in an isolated client so we don't disturb the
+      // real session. A plain supabase.auth.signInWithPassword here would downgrade
+      // the live session to aal1 and bounce a 2FA user into a re-challenge mid-change.
+      // persistSession:false keeps this check from touching the stored auth token.
+      const probe = createClient(supabaseUrl, supabaseAnonKey, {
+        auth: { persistSession: false, autoRefreshToken: false },
+      });
+      const { error: checkErr } = await probe.auth.signInWithPassword({
+        email: user.email, password: curPw,
+      });
+      if (checkErr) { setPwErr("Your current password is incorrect."); setPwBusy(false); return; }
+
+      // Current password confirmed — now change it on the real session.
       const { error } = await supabase.auth.updateUser({ password: pw });
       if (error) throw error;
-      setPw(""); setPw2(""); setPwMsg("Password updated.");
+      setCurPw(""); setPw(""); setPw2(""); setPwMsg("Password updated.");
     } catch (e) { setPwErr(e.message || "Could not update password."); }
     setPwBusy(false);
   }
@@ -406,7 +427,8 @@ export function SecurityModal({ onClose }) {
 
         {/* Password */}
         <div style={{ margin: "12px 0 4px", fontSize: 13, fontWeight: 700, color: "#2a5357" }}>Password</div>
-        <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 8, lineHeight: 1.5 }}>Set or change the password you use to sign in.</div>
+        <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 8, lineHeight: 1.5 }}>Change the password you use to sign in. Enter your current password to confirm it's you.</div>
+        <PasswordInput value={curPw} onChange={e => setCurPw(e.target.value)} placeholder="Current password" small />
         <PasswordInput value={pw} onChange={e => setPw(e.target.value)} placeholder="New password" small />
         <PasswordInput value={pw2} onChange={e => setPw2(e.target.value)} placeholder="Confirm new password" onEnter={changePassword} small />
         {pwErr && <div style={{ color: "#d05050", fontSize: 12, marginTop: 8 }}>{pwErr}</div>}
