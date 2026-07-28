@@ -169,11 +169,26 @@ export default function UsersPage({ currentProfile }) {
     setTimeout(() => setSuccess(""), 3000);
   }
 
-  async function toggle2fa(id, current) {
+  async function toggle2fa(id, current, name) {
     const next = !current;
-    await supabase.from("profiles").update({ require_2fa: next }).eq("id", id);
+    setError("");
+    // Turning OFF: also remove any authenticator they've already enrolled. Flipping the
+    // flag alone leaves a verified factor in place, so the user keeps getting challenged
+    // at login and it looks like nothing happened. Confirm first — it's a security change.
+    if (!next) {
+      if (!confirm(`Turn off two-step verification for ${name}? Any authenticator they set up will be removed, and they won't be asked for a code at login.`)) return;
+      const { error: e } = await supabase.rpc("admin_clear_mfa", { target: id });
+      if (e) {
+        setError(/admin_clear_mfa/i.test(e.message)
+          ? "Turning off two-step needs a one-time setup: run supabase_migration_admin_mfa.sql in the Supabase SQL editor, then try again."
+          : e.message);
+        return;
+      }
+    }
+    const { error: uErr } = await supabase.from("profiles").update({ require_2fa: next }).eq("id", id);
+    if (uErr) { setError(uErr.message); return; }
     setUsers(prev => prev.map(u => u.id === id ? { ...u, require_2fa: next } : u));
-    setSuccess(next ? "Two-step verification now required for this user" : "Two-step verification made optional for this user");
+    setSuccess(next ? "Two-step verification now required for this user" : "Two-step verification turned off for this user");
     setTimeout(() => setSuccess(""), 3000);
   }
 
@@ -192,13 +207,23 @@ export default function UsersPage({ currentProfile }) {
   }
 
   async function sendReset(user) {
-    setSaving(true);
-    try {
-      await supabase.auth.resetPasswordForEmail(user.email);
-      setSuccess(`Password reset email sent to ${user.name}`);
-      setResetTarget(null);
-    } catch(e) { setError(e.message); }
-    finally { setSaving(false); }
+    setSaving(true); setError("");
+    if (!user.email) {
+      setSaving(false);
+      setError(`No email address on file for ${user.name}, so a reset link can't be sent.`);
+      return;
+    }
+    // supabase-js RESOLVES with { error } — it does not throw — so the old try/catch
+    // caught nothing and reported success even when the send failed. Check error, and
+    // send redirectTo so the link returns to THIS app's set-password screen.
+    const { error } = await supabase.auth.resetPasswordForEmail(user.email, {
+      redirectTo: window.location.origin,
+    });
+    setSaving(false);
+    if (error) { setError(`Couldn't send the reset email: ${error.message}`); return; }
+    setSuccess(`Password reset email sent to ${user.name}`);
+    setResetTarget(null);
+    setTimeout(() => setSuccess(""), 4000);
   }
 
   const groupedUsers = ROLE_OPTIONS.map(role => ({
@@ -288,7 +313,7 @@ export default function UsersPage({ currentProfile }) {
                   </div>
                   <div className="user-controls" style={{display:"flex", alignItems:"center", gap:8, flexShrink:0}}>
                     <label title="When on, this user is forced to set up two-step verification at login" style={{display:"inline-flex", alignItems:"center", gap:5, fontSize:11, color:"#4a5568", cursor:"pointer"}}>
-                      <input type="checkbox" checked={u.require_2fa} onChange={()=>toggle2fa(u.id, u.require_2fa)} />
+                      <input type="checkbox" checked={u.require_2fa} onChange={()=>toggle2fa(u.id, u.require_2fa, u.name)} />
                       Require 2FA
                     </label>
                     {u.id !== currentProfile.id && (

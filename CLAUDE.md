@@ -118,7 +118,19 @@ plus Login and SubmitPhoto (the public photo-submission page, outside the tab sh
 files are for the **existing** database and must be run by hand in the Supabase SQL editor:
 `require_2fa`, `single_session`, `usher_services` (ushers + leadership may create an
 attendance service; **deleting** one stays admin-only), `rosters`, `tab_access`, `usher_photos`,
-`roster_assignments` (usher-editable assign / note / inactive data, keyed by name).
+`roster_assignments` (usher-editable assign / note / inactive data, keyed by name),
+`admin_mfa` (`admin_clear_mfa(uuid)` so an admin can actually turn OFF a user's 2FA).
+
+**Turning off a user's 2FA from the Users page needs `admin_clear_mfa`.** The "Require 2FA"
+checkbox is only a flag that forces enrollment; a user who already has a verified factor is
+still challenged at login regardless. Unchecking it now also calls `admin_clear_mfa(id)` (a
+`SECURITY DEFINER` function, admin-only, deletes their `auth.mfa_factors` rows) — the browser
+can't remove another user's factor with the anon key. Until `supabase_migration_admin_mfa.sql`
+is run, disabling shows a "run the migration" message. **Reset Password** uses
+`resetPasswordForEmail(email, { redirectTo: origin })` — the old call had no `redirectTo` (link
+didn't return to the app) and swallowed the error in a `try/catch` (supabase-js resolves, not
+throws), so it falsely reported success. Needs email/SMTP configured in Supabase to actually
+deliver.
 
 **Photo review is function-gated, not policy-gated.** Ushers can reach the Photos tab, but
 `photo_submissions` UPDATE and `members` UPDATE are both still admin-only. Approving calls
