@@ -214,7 +214,7 @@ export function SetPasswordScreen({ onDone, onCancel }) {
 }
 
 // Mandatory onboarding for newly invited users: set a password, then enable 2FA.
-export function OnboardingFlow({ onComplete, onCancel, requirePassword = true, require2fa = true }) {
+export function OnboardingFlow({ onComplete, onCancel, onPasswordSet, requirePassword = true, require2fa = true }) {
   const [step, setStep] = useState(requirePassword ? 1 : 2);
   // Step 1 — password
   const [pw, setPw] = useState("");
@@ -243,6 +243,7 @@ export function OnboardingFlow({ onComplete, onCancel, requirePassword = true, r
     try {
       const { error } = await supabase.auth.updateUser({ password: pw });
       if (error) throw error;
+      onPasswordSet?.(); // tell App the password is set, so a remount resumes at 2FA (not step 1)
       if (require2fa) { setStep(2); startEnroll(); }
       else { onComplete(); } // account is exempt from 2FA → finish after password
     } catch (e) { setPwErr(e.message || "Could not set the password."); }

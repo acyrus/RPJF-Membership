@@ -93,6 +93,11 @@ export default function App() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session);
       if (event === "PASSWORD_RECOVERY") { setRecovery(true); setLoading(false); return; }
+      // A password change (updateUser) fires USER_UPDATED for the SAME account. Re-running
+      // the full post-auth load here flips `loading` on and remounts the onboarding flow
+      // mid-step, bouncing a just-created user back to the password screen. Nothing about
+      // the account identity changed, so skip it — the session is already refreshed above.
+      if (event === "USER_UPDATED") return;
       if (session) proceedAfterAuth(session);
       else { setProfile(null); setMembers([]); setServices([]); setAttendance({}); setMfaStatus("ok"); setLoading(false); }
     });
@@ -221,7 +226,7 @@ export default function App() {
   // New (invited) accounts must set a password + 2FA before using the app.
   // Older accounts have onboarded=true (set in migration v13); if the column is
   // missing entirely (migration not yet run), onboarded is undefined and this is skipped.
-  if (profile.onboarded === false) return <OnboardingFlow requirePassword={!passwordSet} require2fa={profile.require_2fa !== false} onComplete={handleOnboarded} onCancel={logout} />;
+  if (profile.onboarded === false) return <OnboardingFlow requirePassword={!passwordSet} onPasswordSet={() => setPasswordSet(true)} require2fa={profile.require_2fa !== false} onComplete={handleOnboarded} onCancel={logout} />;
   // 2FA is mandatory for every account: anyone without a factor must enrol before continuing.
   if (needs2fa) return <OnboardingFlow requirePassword={false} onComplete={()=>setNeeds2fa(false)} onCancel={logout} />;
   const isAdmin = profile.role === "admin";
