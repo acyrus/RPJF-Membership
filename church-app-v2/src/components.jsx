@@ -1,7 +1,7 @@
 import { useState, useEffect, createContext, useContext } from "react";
 import { createClient } from "@supabase/supabase-js";
 import { supabase, supabaseUrl, supabaseAnonKey } from "./supabase";
-import { ShieldCheck, KeyRound, Camera, X } from "lucide-react";
+import { ShieldCheck, KeyRound, Camera, X, ChevronRight, ChevronLeft } from "lucide-react";
 
 // ── Profile photo lightbox (click any member photo to enlarge) ──
 export const PhotoLightboxContext = createContext({ open: () => {} });
@@ -342,6 +342,8 @@ export function SecurityModal({ onClose }) {
   const [pwMsg, setPwMsg] = useState("");
   const [pwErr, setPwErr] = useState("");
   const [pwBusy, setPwBusy] = useState(false);
+  // The modal opens to a menu; picking Password or Two-step shows only that flow.
+  const [view, setView] = useState("menu"); // menu | password | 2fa
   // 2FA activation is gated behind a password check (see the Two-step section).
   const [gateOpen, setGateOpen] = useState(false);
   const [gatePw, setGatePw] = useState("");
@@ -446,112 +448,159 @@ export function SecurityModal({ onClose }) {
     setBusy(false);
   }
 
+  // Reset any half-entered state when leaving a sub-view, so re-opening it is clean.
+  function goMenu() {
+    setView("menu");
+    setPwErr(""); setPwMsg(""); setCurPw(""); setPw(""); setPw2("");
+    setGateOpen(false); setGatePw(""); setGateErr(""); setError("");
+  }
+
+  const twoFaStatus = factor === undefined ? "Loading…" : (factor ? "On" : "Off");
+
   return (
     <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 900, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
       <div onClick={e => e.stopPropagation()} style={{ background: "#fff", borderRadius: 14, padding: 24, width: "100%", maxWidth: 420, maxHeight: "90vh", overflowY: "auto" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-          <div style={{ fontSize: 16, fontWeight: 700, color: "#111827" }}>Account security</div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            {view !== "menu" && (
+              <button onClick={goMenu} title="Back" style={{ background: "none", border: "none", padding: 0, cursor: "pointer", color: "#6b7280", display: "flex" }}><ChevronLeft size={20} /></button>
+            )}
+            <div style={{ fontSize: 16, fontWeight: 700, color: "#111827" }}>
+              {view === "password" ? "Password" : view === "2fa" ? "Two-step verification" : "Account security"}
+            </div>
+          </div>
           <button onClick={onClose} style={{ background: "none", border: "none", fontSize: 18, color: "#9ca3af", cursor: "pointer" }}><X size={18} /></button>
         </div>
 
-        {/* Password */}
-        <div style={{ margin: "12px 0 4px", fontSize: 13, fontWeight: 700, color: "#2a5357" }}>Password</div>
-        <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 8, lineHeight: 1.5 }}>Change the password you use to sign in. Enter your current password to confirm it's you.</div>
-        <PasswordInput value={curPw} onChange={e => setCurPw(e.target.value)} placeholder="Current password" small />
-        <PasswordInput value={pw} onChange={e => setPw(e.target.value)} placeholder="New password" small />
-        <PasswordInput value={pw2} onChange={e => setPw2(e.target.value)} placeholder="Confirm new password" onEnter={changePassword} small />
-        {pwErr && <div style={{ color: "#d05050", fontSize: 12, marginTop: 8 }}>{pwErr}</div>}
-        {pwMsg && <div style={{ color: "#2a7a50", fontSize: 12, marginTop: 8 }}>{pwMsg}</div>}
-        <button onClick={changePassword} disabled={pwBusy}
-          style={{ marginTop: 10, background: "#2a5357", color: "#fff", border: "none", borderRadius: 8, padding: "9px 16px", fontSize: 13, fontWeight: 600, cursor: pwBusy ? "default" : "pointer", opacity: pwBusy ? 0.6 : 1 }}>
-          {pwBusy ? "Saving…" : "Save password"}
-        </button>
-
-        <div style={{ borderTop: "1px solid #eef2f4", margin: "18px 0 4px" }} />
-        <div style={{ margin: "8px 0 4px", fontSize: 13, fontWeight: 700, color: "#2a5357" }}>Two-step verification</div>
-
-        {factor === undefined && <div style={{ color: "#9ca3af", fontSize: 13, padding: "12px 0" }}>Loading…</div>}
-
-        {/* Already enabled */}
-        {factor && !enroll && (
-          <div>
-            <div style={{ background: "#f0fff8", border: "1.5px solid #b0e8c8", borderRadius: 8, padding: "10px 12px", fontSize: 13, color: "#2a7a50", margin: "10px 0" }}>
-              Two-step verification is <strong>on</strong> for your account.
-            </div>
-            <p style={{ fontSize: 12.5, color: "#6b7280", lineHeight: 1.6 }}>
-              You'll be asked for a code from your authenticator app each time you sign in. If you lose your device, an admin can remove two-step verification for your account from the Supabase dashboard.
-            </p>
-          </div>
-        )}
-
-        {/* Not enabled, not yet enrolling */}
-        {factor === null && !enroll && (
-          <div>
-            <p style={{ fontSize: 12.5, color: "#6b7280", lineHeight: 1.6, margin: "10px 0" }}>
-              Add a second step at sign-in using an authenticator app (Google Authenticator, Authy, 1Password, etc.). This makes your account much harder to break into.
-            </p>
-
-            {!gateOpen ? (
-              <button onClick={() => { setGateErr(""); setGatePw(""); setGateOpen(true); }} disabled={busy}
-                style={{ marginTop: 6, background: "#2a5357", color: "#fff", border: "none", borderRadius: 8, padding: "10px 16px", fontSize: 13, fontWeight: 600, cursor: "pointer", opacity: busy ? 0.6 : 1 }}>
-                Set up two-step verification
-              </button>
-            ) : (
-              /* Confirm the password before the QR is ever shown. */
-              <div style={{ background: "#f7f9fb", border: "1px solid #e4e9f5", borderRadius: 10, padding: "12px 14px", marginTop: 6 }}>
-                <div style={{ fontSize: 12.5, color: "#374151", marginBottom: 8, lineHeight: 1.5 }}>Confirm your password to turn on two-step verification.</div>
-                <PasswordInput value={gatePw} onChange={e => setGatePw(e.target.value)} placeholder="Your password" onEnter={confirmAndEnroll} small autoFocus />
-                {gateErr && <div style={{ color: "#d05050", fontSize: 12, marginTop: 8 }}>{gateErr}</div>}
-                <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-                  <button onClick={confirmAndEnroll} disabled={gateBusy}
-                    style={{ background: "#2a5357", color: "#fff", border: "none", borderRadius: 8, padding: "9px 16px", fontSize: 13, fontWeight: 600, cursor: gateBusy ? "default" : "pointer", opacity: gateBusy ? 0.6 : 1 }}>
-                    {gateBusy ? "Checking…" : "Continue"}
-                  </button>
-                  <button onClick={() => { setGateOpen(false); setGatePw(""); setGateErr(""); }} disabled={gateBusy}
-                    style={{ background: "none", border: "none", color: "#6b7280", fontSize: 12, cursor: "pointer" }}>
-                    Cancel
-                  </button>
-                </div>
+        {/* ── Menu: choose what to do ── */}
+        {view === "menu" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <button onClick={() => { setPwErr(""); setPwMsg(""); setView("password"); }}
+              style={{ display: "flex", alignItems: "center", gap: 12, textAlign: "left", background: "#f7f9fb", border: "1px solid #e4e9f5", borderRadius: 10, padding: "13px 14px", cursor: "pointer" }}>
+              <KeyRound size={20} color="#2a5357" />
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: "#111827" }}>Password</div>
+                <div style={{ fontSize: 12, color: "#6b7280" }}>Change the password you use to sign in</div>
               </div>
-            )}
-          </div>
-        )}
+              <ChevronRight size={18} color="#c0c8d8" />
+            </button>
 
-        {/* Enrolling: show QR + code entry */}
-        {enroll && (
-          <div style={{ textAlign: "center" }}>
-            <p style={{ fontSize: 12.5, color: "#6b7280", lineHeight: 1.6, margin: "10px 0" }}>
-              1. Scan this QR code with your authenticator app.
-            </p>
-            <div style={{ display: "flex", justifyContent: "center", margin: "8px 0" }}><QRCode value={enroll.qr} /></div>
-            {enroll.secret && (
-              <div style={{ fontSize: 11, color: "#9ca3af", marginBottom: 12 }}>
-                Can't scan? Enter this key manually:<br />
-                <code style={{ fontSize: 12, color: "#374151", wordBreak: "break-all" }}>{enroll.secret}</code>
+            <button onClick={() => setView("2fa")}
+              style={{ display: "flex", alignItems: "center", gap: 12, textAlign: "left", background: "#f7f9fb", border: "1px solid #e4e9f5", borderRadius: 10, padding: "13px 14px", cursor: "pointer" }}>
+              <ShieldCheck size={20} color="#2a5357" />
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: "#111827" }}>Two-step verification</div>
+                <div style={{ fontSize: 12, color: "#6b7280" }}>An extra code at sign-in from your authenticator app</div>
               </div>
-            )}
-            <p style={{ fontSize: 12.5, color: "#6b7280", lineHeight: 1.6 }}>2. Enter the 6-digit code it shows:</p>
-            <input
-              value={code}
-              onChange={e => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-              onKeyDown={e => e.key === "Enter" && confirmEnroll()}
-              inputMode="numeric" autoFocus placeholder="000000"
-              style={{ width: 160, textAlign: "center", letterSpacing: 6, fontSize: 20, fontWeight: 700, padding: "9px 10px", border: "1.5px solid #d6dde3", borderRadius: 10, fontFamily: "monospace" }}
-            />
-            <div>
-              <button onClick={confirmEnroll} disabled={busy}
-                style={{ marginTop: 14, background: "#2a5357", color: "#fff", border: "none", borderRadius: 8, padding: "10px 20px", fontSize: 13, fontWeight: 600, cursor: "pointer", opacity: busy ? 0.6 : 1 }}>
-                {busy ? "Verifying…" : "Verify & turn on"}
-              </button>
-            </div>
-            <button onClick={() => { setEnroll(null); setCode(""); setError(""); }}
-              style={{ marginTop: 8, background: "none", border: "none", color: "#9ca3af", fontSize: 12, cursor: "pointer" }}>
-              Cancel
+              <span style={{ fontSize: 11, fontWeight: 700, color: factor ? "#2a7a50" : "#9ca3af", background: factor ? "#e8f6ee" : "#eef1f6", borderRadius: 20, padding: "3px 10px" }}>{twoFaStatus}</span>
+              <ChevronRight size={18} color="#c0c8d8" />
             </button>
           </div>
         )}
 
-        {error && <div style={{ color: "#d05050", fontSize: 12, marginTop: 12 }}>{error}</div>}
+        {/* ── Password ── */}
+        {view === "password" && (
+          <div>
+            <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 10, lineHeight: 1.5 }}>Enter your current password to confirm it's you, then choose a new one.</div>
+            <PasswordInput value={curPw} onChange={e => setCurPw(e.target.value)} placeholder="Current password" small autoFocus />
+            <PasswordInput value={pw} onChange={e => setPw(e.target.value)} placeholder="New password" small />
+            <PasswordInput value={pw2} onChange={e => setPw2(e.target.value)} placeholder="Confirm new password" onEnter={changePassword} small />
+            {pwErr && <div style={{ color: "#d05050", fontSize: 12, marginTop: 8 }}>{pwErr}</div>}
+            {pwMsg && <div style={{ color: "#2a7a50", fontSize: 12, marginTop: 8 }}>{pwMsg}</div>}
+            <button onClick={changePassword} disabled={pwBusy}
+              style={{ marginTop: 12, background: "#2a5357", color: "#fff", border: "none", borderRadius: 8, padding: "9px 16px", fontSize: 13, fontWeight: 600, cursor: pwBusy ? "default" : "pointer", opacity: pwBusy ? 0.6 : 1 }}>
+              {pwBusy ? "Saving…" : "Save password"}
+            </button>
+          </div>
+        )}
+
+        {/* ── Two-step verification ── */}
+        {view === "2fa" && (
+          <div>
+            {factor === undefined && <div style={{ color: "#9ca3af", fontSize: 13, padding: "12px 0" }}>Loading…</div>}
+
+            {/* Already enabled */}
+            {factor && !enroll && (
+              <div>
+                <div style={{ background: "#f0fff8", border: "1.5px solid #b0e8c8", borderRadius: 8, padding: "10px 12px", fontSize: 13, color: "#2a7a50", margin: "4px 0 10px" }}>
+                  Two-step verification is <strong>on</strong> for your account.
+                </div>
+                <p style={{ fontSize: 12.5, color: "#6b7280", lineHeight: 1.6 }}>
+                  You'll be asked for a code from your authenticator app each time you sign in. If you lose your device, an admin can remove two-step verification for your account from the Supabase dashboard.
+                </p>
+              </div>
+            )}
+
+            {/* Not enabled, not yet enrolling */}
+            {factor === null && !enroll && (
+              <div>
+                <p style={{ fontSize: 12.5, color: "#6b7280", lineHeight: 1.6, margin: "4px 0 10px" }}>
+                  Add a second step at sign-in using an authenticator app (Google Authenticator, Authy, 1Password, etc.). This makes your account much harder to break into.
+                </p>
+
+                {!gateOpen ? (
+                  <button onClick={() => { setGateErr(""); setGatePw(""); setGateOpen(true); }} disabled={busy}
+                    style={{ marginTop: 2, background: "#2a5357", color: "#fff", border: "none", borderRadius: 8, padding: "10px 16px", fontSize: 13, fontWeight: 600, cursor: "pointer", opacity: busy ? 0.6 : 1 }}>
+                    Set up two-step verification
+                  </button>
+                ) : (
+                  /* Confirm the password before the QR is ever shown. */
+                  <div style={{ background: "#f7f9fb", border: "1px solid #e4e9f5", borderRadius: 10, padding: "12px 14px" }}>
+                    <div style={{ fontSize: 12.5, color: "#374151", marginBottom: 8, lineHeight: 1.5 }}>Confirm your password to turn on two-step verification.</div>
+                    <PasswordInput value={gatePw} onChange={e => setGatePw(e.target.value)} placeholder="Your password" onEnter={confirmAndEnroll} small autoFocus />
+                    {gateErr && <div style={{ color: "#d05050", fontSize: 12, marginTop: 8 }}>{gateErr}</div>}
+                    <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+                      <button onClick={confirmAndEnroll} disabled={gateBusy}
+                        style={{ background: "#2a5357", color: "#fff", border: "none", borderRadius: 8, padding: "9px 16px", fontSize: 13, fontWeight: 600, cursor: gateBusy ? "default" : "pointer", opacity: gateBusy ? 0.6 : 1 }}>
+                        {gateBusy ? "Checking…" : "Continue"}
+                      </button>
+                      <button onClick={() => { setGateOpen(false); setGatePw(""); setGateErr(""); }} disabled={gateBusy}
+                        style={{ background: "none", border: "none", color: "#6b7280", fontSize: 12, cursor: "pointer" }}>
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Enrolling: show QR + code entry */}
+            {enroll && (
+              <div style={{ textAlign: "center" }}>
+                <p style={{ fontSize: 12.5, color: "#6b7280", lineHeight: 1.6, margin: "4px 0 10px" }}>
+                  1. Scan this QR code with your authenticator app.
+                </p>
+                <div style={{ display: "flex", justifyContent: "center", margin: "8px 0" }}><QRCode value={enroll.qr} /></div>
+                {enroll.secret && (
+                  <div style={{ fontSize: 11, color: "#9ca3af", marginBottom: 12 }}>
+                    Can't scan? Enter this key manually:<br />
+                    <code style={{ fontSize: 12, color: "#374151", wordBreak: "break-all" }}>{enroll.secret}</code>
+                  </div>
+                )}
+                <p style={{ fontSize: 12.5, color: "#6b7280", lineHeight: 1.6 }}>2. Enter the 6-digit code it shows:</p>
+                <input
+                  value={code}
+                  onChange={e => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                  onKeyDown={e => e.key === "Enter" && confirmEnroll()}
+                  inputMode="numeric" autoFocus placeholder="000000"
+                  style={{ width: 160, textAlign: "center", letterSpacing: 6, fontSize: 20, fontWeight: 700, padding: "9px 10px", border: "1.5px solid #d6dde3", borderRadius: 10, fontFamily: "monospace" }}
+                />
+                <div>
+                  <button onClick={confirmEnroll} disabled={busy}
+                    style={{ marginTop: 14, background: "#2a5357", color: "#fff", border: "none", borderRadius: 8, padding: "10px 20px", fontSize: 13, fontWeight: 600, cursor: "pointer", opacity: busy ? 0.6 : 1 }}>
+                    {busy ? "Verifying…" : "Verify & turn on"}
+                  </button>
+                </div>
+                <button onClick={() => { setEnroll(null); setCode(""); setError(""); }}
+                  style={{ marginTop: 8, background: "none", border: "none", color: "#9ca3af", fontSize: 12, cursor: "pointer" }}>
+                  Cancel
+                </button>
+              </div>
+            )}
+
+            {error && <div style={{ color: "#d05050", fontSize: 12, marginTop: 12 }}>{error}</div>}
+          </div>
+        )}
       </div>
     </div>
   );
