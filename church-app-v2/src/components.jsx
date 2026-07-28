@@ -227,8 +227,13 @@ export function OnboardingFlow({ onComplete, onCancel, requirePassword = true, r
   const [mfaErr, setMfaErr] = useState("");
   const [mfaBusy, setMfaBusy] = useState(false);
 
-  // When the password step is skipped (2FA-only mode), begin enrollment immediately.
-  useEffect(() => { if (!requirePassword && require2fa) startEnroll(); /* eslint-disable-next-line */ }, []);
+  // When the password step is skipped: start 2FA enrollment, or — if the account is also
+  // 2FA-exempt — there's nothing left to do, so finish (otherwise it hangs on a blank
+  // "Preparing…" 2FA screen for an invited, exempt user).
+  useEffect(() => {
+    if (!requirePassword) { if (require2fa) startEnroll(); else onComplete(); }
+    /* eslint-disable-next-line */
+  }, []);
 
   async function savePassword() {
     setPwErr("");
@@ -337,6 +342,25 @@ export function SecurityModal({ onClose }) {
   const [pwMsg, setPwMsg] = useState("");
   const [pwErr, setPwErr] = useState("");
   const [pwBusy, setPwBusy] = useState(false);
+  // 2FA activation is gated behind a password check (see the Two-step section).
+  const [gateOpen, setGateOpen] = useState(false);
+  const [gatePw, setGatePw] = useState("");
+  const [gateErr, setGateErr] = useState("");
+  const [gateBusy, setGateBusy] = useState(false);
+
+  // Verify the signed-in user's password WITHOUT touching the live session. A plain
+  // supabase.auth.signInWithPassword would downgrade the session to aal1 and bounce a
+  // 2FA user into a re-challenge, so we sign in on a throwaway, non-persistent client
+  // purely to check the credential. Returns { ok } or { ok:false, error }.
+  async function verifyPassword(password) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user?.email) return { ok: false, error: "Could not confirm your account. Sign in again and retry." };
+    const probe = createClient(supabaseUrl, supabaseAnonKey, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    const { error } = await probe.auth.signInWithPassword({ email: user.email, password });
+    return error ? { ok: false, error: "Your password is incorrect." } : { ok: true };
+  }
 
   async function changePassword() {
     setPwMsg(""); setPwErr("");
@@ -346,26 +370,17 @@ export function SecurityModal({ onClose }) {
     if (pw === curPw) { setPwErr("The new password must be different from the current one."); return; }
     setPwBusy(true);
     try {
-      // Who's signed in — we need the email to check the current password.
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user?.email) throw new Error("Could not confirm your account. Sign in again and retry.");
-
-      // Verify the CURRENT password in an isolated client so we don't disturb the
-      // real session. A plain supabase.auth.signInWithPassword here would downgrade
-      // the live session to aal1 and bounce a 2FA user into a re-challenge mid-change.
-      // persistSession:false keeps this check from touching the stored auth token.
-      const probe = createClient(supabaseUrl, supabaseAnonKey, {
-        auth: { persistSession: false, autoRefreshToken: false },
-      });
-      const { error: checkErr } = await probe.auth.signInWithPassword({
-        email: user.email, password: curPw,
-      });
-      if (checkErr) { setPwErr("Your current password is incorrect."); setPwBusy(false); return; }
+      const check = await verifyPassword(curPw);
+      if (!check.ok) { setPwErr(check.error === "Your password is incorrect." ? "Your current password is incorrect." : check.error); setPwBusy(false); return; }
 
       // Current password confirmed — now change it on the real session.
       const { error } = await supabase.auth.updateUser({ password: pw });
       if (error) throw error;
       setCurPw(""); setPw(""); setPw2(""); setPwMsg("Password updated.");
+      setPwBusy(false);
+      // Confirm briefly, then close the whole panel rather than leaving them on the form.
+      setTimeout(() => onClose(), 1100);
+      return;
     } catch (e) { setPwErr(e.message || "Could not update password."); }
     setPwBusy(false);
   }
@@ -378,6 +393,20 @@ export function SecurityModal({ onClose }) {
     } catch (e) { setError(e.message); setFactor(null); }
   }
   useEffect(() => { refresh(); }, []);
+
+  // Turning ON 2FA is gated: confirm the password first, then reveal the QR. This stops
+  // someone at an unlocked, unattended session from silently binding their own
+  // authenticator to the account.
+  async function confirmAndEnroll() {
+    setGateErr("");
+    if (!gatePw) { setGateErr("Enter your password to continue."); return; }
+    setGateBusy(true);
+    const check = await verifyPassword(gatePw);
+    setGateBusy(false);
+    if (!check.ok) { setGateErr(check.error); return; }
+    setGateOpen(false); setGatePw("");
+    startEnroll();
+  }
 
   async function startEnroll() {
     setError(""); setBusy(true);
@@ -461,10 +490,30 @@ export function SecurityModal({ onClose }) {
             <p style={{ fontSize: 12.5, color: "#6b7280", lineHeight: 1.6, margin: "10px 0" }}>
               Add a second step at sign-in using an authenticator app (Google Authenticator, Authy, 1Password, etc.). This makes your account much harder to break into.
             </p>
-            <button onClick={startEnroll} disabled={busy}
-              style={{ marginTop: 6, background: "#2a5357", color: "#fff", border: "none", borderRadius: 8, padding: "10px 16px", fontSize: 13, fontWeight: 600, cursor: "pointer", opacity: busy ? 0.6 : 1 }}>
-              {busy ? "Starting…" : "Set up two-step verification"}
-            </button>
+
+            {!gateOpen ? (
+              <button onClick={() => { setGateErr(""); setGatePw(""); setGateOpen(true); }} disabled={busy}
+                style={{ marginTop: 6, background: "#2a5357", color: "#fff", border: "none", borderRadius: 8, padding: "10px 16px", fontSize: 13, fontWeight: 600, cursor: "pointer", opacity: busy ? 0.6 : 1 }}>
+                Set up two-step verification
+              </button>
+            ) : (
+              /* Confirm the password before the QR is ever shown. */
+              <div style={{ background: "#f7f9fb", border: "1px solid #e4e9f5", borderRadius: 10, padding: "12px 14px", marginTop: 6 }}>
+                <div style={{ fontSize: 12.5, color: "#374151", marginBottom: 8, lineHeight: 1.5 }}>Confirm your password to turn on two-step verification.</div>
+                <PasswordInput value={gatePw} onChange={e => setGatePw(e.target.value)} placeholder="Your password" onEnter={confirmAndEnroll} small autoFocus />
+                {gateErr && <div style={{ color: "#d05050", fontSize: 12, marginTop: 8 }}>{gateErr}</div>}
+                <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+                  <button onClick={confirmAndEnroll} disabled={gateBusy}
+                    style={{ background: "#2a5357", color: "#fff", border: "none", borderRadius: 8, padding: "9px 16px", fontSize: 13, fontWeight: 600, cursor: gateBusy ? "default" : "pointer", opacity: gateBusy ? 0.6 : 1 }}>
+                    {gateBusy ? "Checking…" : "Continue"}
+                  </button>
+                  <button onClick={() => { setGateOpen(false); setGatePw(""); setGateErr(""); }} disabled={gateBusy}
+                    style={{ background: "none", border: "none", color: "#6b7280", fontSize: 12, cursor: "pointer" }}>
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
 

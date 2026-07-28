@@ -27,6 +27,7 @@ export default function App() {
   const [mfaStatus, setMfaStatus] = useState("checking"); // checking | required | ok
   const [securityOpen, setSecurityOpen] = useState(false);
   const [recovery, setRecovery] = useState(false); // arrived via password-reset link
+  const [passwordSet, setPasswordSet] = useState(false); // just set a password this session (invite/reset)
   const [needs2fa, setNeeds2fa] = useState(false); // logged in but no 2FA factor enrolled
   const [warningVisible, setWarningVisible] = useState(false);
   const inactivityTimer = useRef(null);
@@ -141,6 +142,8 @@ export default function App() {
 
   function handlePasswordSet() {
     setRecovery(false);
+    setPasswordSet(true); // so a brand-new invited account doesn't get asked for a password
+                          // AGAIN in onboarding (Supabase rejects reusing the same one)
     setLoading(true);
     if (session) proceedAfterAuth(session);
     else setLoading(false);
@@ -218,7 +221,7 @@ export default function App() {
   // New (invited) accounts must set a password + 2FA before using the app.
   // Older accounts have onboarded=true (set in migration v13); if the column is
   // missing entirely (migration not yet run), onboarded is undefined and this is skipped.
-  if (profile.onboarded === false) return <OnboardingFlow require2fa={profile.require_2fa !== false} onComplete={handleOnboarded} onCancel={logout} />;
+  if (profile.onboarded === false) return <OnboardingFlow requirePassword={!passwordSet} require2fa={profile.require_2fa !== false} onComplete={handleOnboarded} onCancel={logout} />;
   // 2FA is mandatory for every account: anyone without a factor must enrol before continuing.
   if (needs2fa) return <OnboardingFlow requirePassword={false} onComplete={()=>setNeeds2fa(false)} onCancel={logout} />;
   const isAdmin = profile.role === "admin";

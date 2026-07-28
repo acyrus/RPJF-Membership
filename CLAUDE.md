@@ -83,7 +83,20 @@ plus Login and SubmitPhoto (the public photo-submission page, outside the tab sh
   `supabase.auth.signInWithPassword` on the live client would downgrade the session to aal1
   and bounce a 2FA user into an MFA re-challenge mid-change. Don't "simplify" it back to the
   main client. The reset-link (`SetPasswordScreen`) and first-time (`OnboardingFlow`) flows
-  deliberately do NOT ask for a current password — the user hasn't got one.
+  deliberately do NOT ask for a current password — the user hasn't got one. On success the
+  `SecurityModal` shows "Password updated." then auto-closes after ~1.1s.
+- **Turning on 2FA from `SecurityModal` is password-gated.** "Set up two-step verification"
+  opens a password-confirm step first; only after `verifyPassword()` succeeds does the QR
+  appear (`confirmAndEnroll` → `startEnroll`). Stops someone at an unattended session from
+  binding their own authenticator. `verifyPassword()` is the shared throwaway-client check
+  used by both the password change and this gate.
+- **Invited users must not be asked for a password twice.** An invite link fires
+  `SetPasswordScreen` (sets the password), then `onboarded === false` used to drop them into
+  the *full* `OnboardingFlow` whose step 1 asked again — and Supabase rejects reusing the same
+  password, so it looked broken. `App.jsx` now tracks `passwordSet` and passes
+  `requirePassword={!passwordSet}`, so a just-invited account goes straight to 2FA.
+  `OnboardingFlow`'s effect calls `onComplete()` immediately when both steps are skipped
+  (invited + 2FA-exempt), so it can't hang on a blank "Preparing…" screen.
 
 ## Migrations
 
