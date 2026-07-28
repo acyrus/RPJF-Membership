@@ -105,6 +105,12 @@ plus Login and SubmitPhoto (the public photo-submission page, outside the tab sh
   handler now ignores `USER_UPDATED` (identity didn't change), and `OnboardingFlow` calls
   `onPasswordSet()` so `passwordSet` flips true and any remount resumes at 2FA. Don't restore
   the blanket `proceedAfterAuth` on every event.
+- **2FA enrollment is self-healing.** `startEnroll` (both `OnboardingFlow` and `SecurityModal`)
+  first checks for an already-*verified* TOTP factor and, if found, calls `onComplete()` rather
+  than enrolling a second one — an interrupted earlier setup left a factor behind and the new
+  enroll failed with *"a factor with the friendly name '' already exists"*, trapping the user.
+  It also unenrolls leftover factors and enrolls with a unique `friendlyName` (`Authenticator
+  <timestamp>`) so a blank name can't collide. Keep the friendly name unique.
 
 ## Migrations
 

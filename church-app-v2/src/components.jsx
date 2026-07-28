@@ -254,10 +254,18 @@ export function OnboardingFlow({ onComplete, onCancel, onPasswordSet, requirePas
     setMfaErr("");
     try {
       const { data: list } = await supabase.auth.mfa.listFactors();
-      for (const f of (list?.all || [])) {
-        if (f.factor_type === "totp" && f.status !== "verified") await supabase.auth.mfa.unenroll({ factorId: f.id });
+      const factors = list?.all || [];
+      // If a verified authenticator already exists — e.g. from an earlier interrupted
+      // setup — 2FA is effectively done. Finish instead of enrolling a second factor,
+      // which errors with "a factor with the friendly name already exists" and traps
+      // the user on this screen.
+      if (factors.some(f => f.factor_type === "totp" && f.status === "verified")) { onComplete(); return; }
+      // Clear any half-finished factors so a fresh enroll can't collide on the name.
+      for (const f of factors) {
+        if (f.factor_type === "totp") await supabase.auth.mfa.unenroll({ factorId: f.id });
       }
-      const { data, error } = await supabase.auth.mfa.enroll({ factorType: "totp" });
+      // Unique friendly name — a blank one collides with any leftover blank-named factor.
+      const { data, error } = await supabase.auth.mfa.enroll({ factorType: "totp", friendlyName: `Authenticator ${Date.now()}` });
       if (error) throw error;
       setEnrolling({ id: data.id, qr: data.totp?.qr_code, secret: data.totp?.secret });
     } catch (e) { setMfaErr(e.message || "Could not start two-step setup."); }
@@ -421,7 +429,8 @@ export function SecurityModal({ onClose }) {
           await supabase.auth.mfa.unenroll({ factorId: f.id });
         }
       }
-      const { data, error } = await supabase.auth.mfa.enroll({ factorType: "totp" });
+      // Unique friendly name — a blank one collides with any leftover blank-named factor.
+      const { data, error } = await supabase.auth.mfa.enroll({ factorType: "totp", friendlyName: `Authenticator ${Date.now()}` });
       if (error) throw error;
       setEnroll({ id: data.id, qr: data.totp?.qr_code, secret: data.totp?.secret });
     } catch (e) { setError(e.message); }
