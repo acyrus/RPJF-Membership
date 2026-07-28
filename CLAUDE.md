@@ -97,6 +97,20 @@ plus Login and SubmitPhoto (the public photo-submission page, outside the tab sh
   `requirePassword={!passwordSet}`, so a just-invited account goes straight to 2FA.
   `OnboardingFlow`'s effect calls `onComplete()` immediately when both steps are skipped
   (invited + 2FA-exempt), so it can't hang on a blank "Preparing…" screen.
+- **Accounts created directly in Supabase (not invited) hit a different loop.** They have no
+  recovery link, so `passwordSet` starts false and onboarding shows the password step. That
+  step's `updateUser` fires a `USER_UPDATED` auth event; `onAuthStateChange` used to re-run
+  the full post-auth load on it, flipping `loading` and *remounting* `OnboardingFlow` at
+  step 1 — so the flow went password → 2FA → password again. Fix is two-part: the auth
+  handler now ignores `USER_UPDATED` (identity didn't change), and `OnboardingFlow` calls
+  `onPasswordSet()` so `passwordSet` flips true and any remount resumes at 2FA. Don't restore
+  the blanket `proceedAfterAuth` on every event.
+- **2FA enrollment is self-healing.** `startEnroll` (both `OnboardingFlow` and `SecurityModal`)
+  first checks for an already-*verified* TOTP factor and, if found, calls `onComplete()` rather
+  than enrolling a second one — an interrupted earlier setup left a factor behind and the new
+  enroll failed with *"a factor with the friendly name '' already exists"*, trapping the user.
+  It also unenrolls leftover factors and enrolls with a unique `friendlyName` (`Authenticator
+  <timestamp>`) so a blank name can't collide. Keep the friendly name unique.
 
 ## Migrations
 
