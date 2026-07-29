@@ -263,6 +263,17 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
   }, [memberRows, memberMapping]);
   const dateOrder = dateOrderOverride || dateDetect.order;
 
+  // Name key that mirrors how import_members matches: first+last+middle, lowercased and
+  // trimmed, blank middle = blank. Used to spot rows that already exist so they can be
+  // hidden from the preview when Replace Mode is off (they'd be skipped on import anyway).
+  const memberKey = (f, m, l) =>
+    `${(f || "").trim().toLowerCase()}|${(m || "").trim().toLowerCase()}|${(l || "").trim().toLowerCase()}`;
+  const existingKeys = useMemo(() => {
+    const set = new Set();
+    members.forEach(m => set.add(memberKey(m.first_name, m.middle_name, m.last_name)));
+    return set;
+  }, [members]);
+
   // Attendance import state
   const [attFile, setAttFile] = useState(null);
   const [attRows, setAttRows] = useState([]);
@@ -386,22 +397,26 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
 
   function validateMemberRows() {
     const issues = [], warnings = [];
-    let emptyRows = 0;
+    let emptyRows = 0, existingSkipped = 0;
     const badRowNums = new Set();
     memberRows.forEach((row, i) => {
       const rowNum = i + 2;
       const get = col => memberMapping[col] ? (row[memberMapping[col]] || "").trim() : "";
-      const first = get("first_name"), last = get("last_name");
+      const first = get("first_name"), last = get("last_name"), middle = get("middle_name");
       if (!first && !last) { emptyRows++; return; } // fully blank row is silently skipped
+      // With Replace Mode off, a row that already matches a member in the app is skipped
+      // on import, so its issues/warnings are noise. The aim is only new people, so leave
+      // these out of the preview entirely (just count them for the reconciliation line).
+      if (!memberReplaceMode && existingKeys.has(memberKey(first, middle, last))) { existingSkipped++; return; }
       const name = `${first} ${last}`.trim() || "(no name)";
       const { issues: ri, warnings: rw } = memberRowChecks(row);
       if (ri.length) badRowNums.add(rowNum);
       ri.forEach(x => issues.push({ row: rowNum, name, ...x }));
       rw.forEach(x => warnings.push({ row: rowNum, name, ...x }));
     });
-    const nonEmpty = memberRows.length - emptyRows;
-    const validRows = nonEmpty - badRowNums.size;
-    setMemberValidation({ issues, warnings, validRows, badRows: badRowNums.size, emptyRows, total: memberRows.length });
+    const considered = memberRows.length - emptyRows - existingSkipped;
+    const validRows = considered - badRowNums.size;
+    setMemberValidation({ issues, warnings, validRows, badRows: badRowNums.size, emptyRows, existingSkipped, total: memberRows.length });
     return issues.length === 0;
   }
 
@@ -957,6 +972,7 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
                     <div style={{fontSize:12, color:"#6b7280", marginBottom: memberValidation.issues.length?8:0}}>
                       {memberValidation.validRows} valid row{memberValidation.validRows!==1?"s":""} will import
                       {memberValidation.badRows > 0 && ` · ${memberValidation.badRows} row${memberValidation.badRows!==1?"s":""} with issues will be skipped`}
+                      {memberValidation.existingSkipped > 0 && ` · ${memberValidation.existingSkipped} already in the app (not shown)`}
                       {memberValidation.emptyRows > 0 && ` · ${memberValidation.emptyRows} empty skipped`}
                     </div>
                     {memberValidation.issues.length > 0 && (
@@ -971,33 +987,18 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
                   </div>
                 )}
 
-                {memberValidation && memberValidation.warnings && memberValidation.warnings.length > 0 && (() => {
-                  // Collapse repeated warnings into one line per kind, with the affected
-                  // row numbers, so a form slip on 20 rows doesn't fill the screen.
-                  const LABEL = {
-                    dob: 'a birth year that implies an age under 2 (likely an "Include year" form slip)',
-                    email: 'an unusual email domain (possible typo)',
-                    anniversary: 'a wedding anniversary despite being marked Single',
-                    phone: 'a non-standard phone number',
-                  };
-                  const groups = {};
-                  memberValidation.warnings.forEach(w => { (groups[w.field] = groups[w.field] || []).push(w.row); });
-                  return (
-                    <div style={{marginBottom:14, background:"#fff8ec", border:"1.5px solid #f0cf8a", borderRadius:8, padding:"12px 14px"}}>
-                      <div style={{fontWeight:700, fontSize:12, color:"#8a5a10", marginBottom:8}}>
-                        {memberValidation.warnings.length} warning{memberValidation.warnings.length!==1?"s":""} (these won't block the import)
-                      </div>
-                      <div style={{maxHeight:200, overflowY:"auto", paddingRight:4}}>
-                        {Object.entries(groups).map(([field, rows]) => (
-                          <div key={field} style={{fontSize:12, color:"#a06a10", marginTop:4, lineHeight:1.5}}>
-                            <strong>{rows.length} row{rows.length!==1?"s":""}</strong> {rows.length!==1?"have":"has"} {LABEL[field] || "a warning"}
-                            <span style={{color:"#c0a060"}}> (row{rows.length!==1?"s":""} {rows.join(", ")})</span>
-                          </div>
-                        ))}
-                      </div>
+                {memberValidation && memberValidation.warnings && memberValidation.warnings.length > 0 && (
+                  <div style={{marginBottom:14, background:"#fff8ec", border:"1.5px solid #f0cf8a", borderRadius:8, padding:"12px 14px"}}>
+                    <div style={{fontWeight:700, fontSize:12, color:"#8a5a10", marginBottom:6}}>
+                      {memberValidation.warnings.length} warning{memberValidation.warnings.length!==1?"s":""} (these won't block the import)
                     </div>
-                  );
-                })()}
+                    <div style={{maxHeight:200, overflowY:"auto", paddingRight:4}}>
+                      {memberValidation.warnings.map((w,i)=>(
+                        <div key={i} style={{fontSize:12, color:"#a06a10", marginTop:3}}><strong>Row {w.row}</strong> · {w.name} · {w.msg}</div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
 
                 {/* Count the rows that will ACTUALLY import (validated), not every parsed
