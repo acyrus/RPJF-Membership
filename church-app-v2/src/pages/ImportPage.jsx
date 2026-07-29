@@ -971,18 +971,33 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
                   </div>
                 )}
 
-                {memberValidation && memberValidation.warnings && memberValidation.warnings.length > 0 && (
-                  <div style={{marginBottom:14, background:"#fff8ec", border:"1.5px solid #f0cf8a", borderRadius:8, padding:"12px 14px"}}>
-                    <div style={{fontWeight:700, fontSize:12, color:"#8a5a10", marginBottom:6}}>
-                      {memberValidation.warnings.length} warning{memberValidation.warnings.length!==1?"s":""} (these won't block the import)
+                {memberValidation && memberValidation.warnings && memberValidation.warnings.length > 0 && (() => {
+                  // Collapse repeated warnings into one line per kind, with the affected
+                  // row numbers, so a form slip on 20 rows doesn't fill the screen.
+                  const LABEL = {
+                    dob: 'a birth year that implies an age under 2 (likely an "Include year" form slip)',
+                    email: 'an unusual email domain (possible typo)',
+                    anniversary: 'a wedding anniversary despite being marked Single',
+                    phone: 'a non-standard phone number',
+                  };
+                  const groups = {};
+                  memberValidation.warnings.forEach(w => { (groups[w.field] = groups[w.field] || []).push(w.row); });
+                  return (
+                    <div style={{marginBottom:14, background:"#fff8ec", border:"1.5px solid #f0cf8a", borderRadius:8, padding:"12px 14px"}}>
+                      <div style={{fontWeight:700, fontSize:12, color:"#8a5a10", marginBottom:8}}>
+                        {memberValidation.warnings.length} warning{memberValidation.warnings.length!==1?"s":""} (these won't block the import)
+                      </div>
+                      <div style={{maxHeight:200, overflowY:"auto", paddingRight:4}}>
+                        {Object.entries(groups).map(([field, rows]) => (
+                          <div key={field} style={{fontSize:12, color:"#a06a10", marginTop:4, lineHeight:1.5}}>
+                            <strong>{rows.length} row{rows.length!==1?"s":""}</strong> {rows.length!==1?"have":"has"} {LABEL[field] || "a warning"}
+                            <span style={{color:"#c0a060"}}> (row{rows.length!==1?"s":""} {rows.join(", ")})</span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                    <div style={{maxHeight:200, overflowY:"auto", paddingRight:4}}>
-                      {memberValidation.warnings.map((w,i)=>(
-                        <div key={i} style={{fontSize:12, color:"#a06a10", marginTop:3}}><strong>Row {w.row}</strong> · {w.name} · {w.msg}</div>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                  );
+                })()}
 
 
                 {/* Count the rows that will ACTUALLY import (validated), not every parsed
