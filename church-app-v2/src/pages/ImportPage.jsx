@@ -477,7 +477,7 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
 
     // 3) One atomic call — every row commits, or none do and nothing is left half-saved.
     let added = 0, updated = 0, duplicates = 0;
-    const addedList = [], updatedList = [];
+    const addedList = [], updatedList = [], emailFlags = [];
     if (records.length) {
       const { data, error } = await supabase.rpc("import_members", {
         p_rows: records, p_replace: memberReplaceMode,
@@ -497,11 +497,13 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
         log.push(entry);
         if (r.outcome === "added") addedList.push({ row: entry.row, name: entry.name });
         if (r.outcome === "updated") updatedList.push({ row: entry.row, name: entry.name });
+        // Rows added but sharing an email with an existing member — surface for review.
+        if (r.flag) emailFlags.push({ row: entry.row, name: entry.name, reason: entry.reason });
       });
     }
 
     log.sort((a, b) => a.row - b.row);
-    const result = { added, updated, duplicates, deduped: dedupedAway, errorSkipped, nameSkipped, emptySkipped, addedList, updatedList, log, errors: [], replaced: memberReplaceMode };
+    const result = { added, updated, duplicates, deduped: dedupedAway, errorSkipped, nameSkipped, emptySkipped, addedList, updatedList, emailFlags, log, errors: [], replaced: memberReplaceMode };
     if (added > 0 || updated > 0) {
       const desc = memberReplaceMode
         ? `Imported members: ${added} added, ${updated} updated`
@@ -1066,6 +1068,23 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
               )}
               {memberResult.duplicates > 0 && !memberResult.replaced && (
                 <div style={{fontSize:12, color:"#9ca3af", marginBottom:4}}>ℹ {memberResult.duplicates} duplicate{memberResult.duplicates!==1?"s":""} skipped (already in database) — turn on Replace Mode to update them</div>
+              )}
+              {/* People added who share an email with someone already in the app — could be
+                  a corrected name or a family sharing one address. Added, but flagged. */}
+              {memberResult.emailFlags && memberResult.emailFlags.length > 0 && (
+                <div style={{marginTop:8, marginBottom:6, background:"#f0f6ff", border:"1.5px solid #b8d0f0", borderRadius:8, padding:"10px 12px"}}>
+                  <div style={{fontSize:12, fontWeight:700, color:"#2a5aa0", marginBottom:5}}>
+                    {memberResult.emailFlags.length} added but sharing an email — worth a check
+                  </div>
+                  <div style={{fontSize:11, color:"#4a6a90", marginBottom:6, lineHeight:1.5}}>
+                    These were added as new people, but their email is already on another member. If it's the same person (a corrected name), delete one; if it's a family sharing an address, leave both.
+                  </div>
+                  <div style={{maxHeight:160, overflowY:"auto"}}>
+                    {memberResult.emailFlags.map((f,i)=>(
+                      <div key={"f"+i} style={{fontSize:12, color:"#3a6ab0", marginTop:2}}><strong>Row {f.row}</strong> · {f.reason}</div>
+                    ))}
+                  </div>
+                </div>
               )}
               {memberResult.errorSkipped > 0 && (
                 <div style={{fontSize:12, color:"#c06010", marginBottom:4}}>{memberResult.errorSkipped} row{memberResult.errorSkipped!==1?"s":""} skipped due to validation issues (see Validate Data for details)</div>

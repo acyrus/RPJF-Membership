@@ -11,11 +11,12 @@
 -- The client sends already-normalised rows (dates as ISO yyyy-mm-dd, phone
 -- canonicalised, skills de-duplicated, roles validated).
 --
--- MATCHING is email-first, then name: if the row carries an email that an existing
--- member already has, it's treated as the SAME person even when the name was corrected
--- in the sheet — so a re-import updates them instead of inserting a duplicate. Only when
--- there's no email match does it fall back to first + last + middle (case-insensitive,
--- blank = blank). p_replace = false skips rows that already exist; true overwrites them.
+-- MATCHING is by NAME (first + last + middle, case-insensitive, blank = blank). Email is
+-- NOT a match key on purpose: families share one address, so matching on email would
+-- silently merge a spouse or child onto someone else's record. Instead, when a brand-new
+-- person's email is already on a DIFFERENT member, the row is still added and simply
+-- FLAGGED for review (returned in `flagged` and per-row `flag`) — nothing is ever quietly
+-- dropped or overwritten. p_replace = false skips existing rows; true overwrites them.
 -- ============================================================
 
 create or replace function import_members(p_rows jsonb, p_replace boolean default false)
@@ -29,10 +30,11 @@ declare
   v_existing  uuid;
   v_id        uuid;
   v_email     text;
-  v_matched_by text;
+  v_flag      text;
   v_added     int := 0;
   v_updated   int := 0;
   v_skipped   int := 0;
+  v_flagged   int := 0;
   v_results   jsonb := '[]'::jsonb;
   v_role      text;
 begin
@@ -43,31 +45,25 @@ begin
   for rec in select value from jsonb_array_elements(p_rows) as t(value)
   loop
     v_existing := null;
-    v_matched_by := null;
-    v_email := nullif(lower(trim(rec->>'email')), '');
+    v_flag := null;
 
-    -- 1) Stable key: email, when the row has one. A corrected name still matches the
-    --    same person, so a re-import updates rather than inserting a duplicate.
-    if v_email is not null then
-      select id into v_existing from members where lower(trim(email)) = v_email limit 1;
-      if v_existing is not null then v_matched_by := ' by email'; end if;
-    end if;
-
-    -- 2) Fall back to name: first + last + middle, case-insensitive, blank = blank.
-    if v_existing is null then
-      select id into v_existing
-        from members m
-       where lower(trim(m.first_name)) = lower(trim(rec->>'first_name'))
-         and lower(trim(m.last_name))  = lower(trim(rec->>'last_name'))
-         and coalesce(lower(trim(m.middle_name)), '') = coalesce(lower(trim(rec->>'middle_name')), '')
-       limit 1;
-    end if;
+    -- Match on NAME: first + last + middle, case-insensitive, blank = blank. Email is
+    -- deliberately NOT a match key — families share one address, so matching by email
+    -- would silently merge a spouse or child onto someone else's record. Instead, when a
+    -- NEW person's email is already used by a DIFFERENT member, we still add them and just
+    -- flag it for review (below) — no data is ever quietly dropped or overwritten.
+    select id into v_existing
+      from members m
+     where lower(trim(m.first_name)) = lower(trim(rec->>'first_name'))
+       and lower(trim(m.last_name))  = lower(trim(rec->>'last_name'))
+       and coalesce(lower(trim(m.middle_name)), '') = coalesce(lower(trim(rec->>'middle_name')), '')
+     limit 1;
 
     if v_existing is not null and not p_replace then
       v_skipped := v_skipped + 1;
       v_results := v_results || jsonb_build_object(
         'row', rec->>'row', 'name', rec->>'name',
-        'outcome', 'skipped', 'reason', 'already in database' || coalesce(v_matched_by, '') || ' (Replace mode off)');
+        'outcome', 'skipped', 'reason', 'already in database (Replace mode off)');
       continue;
     end if;
 
@@ -98,8 +94,16 @@ begin
       v_updated := v_updated + 1;
       v_results := v_results || jsonb_build_object(
         'row', rec->>'row', 'name', rec->>'name',
-        'outcome', 'updated', 'reason', 'matched existing record' || coalesce(v_matched_by, ' by name') || ' — replaced');
+        'outcome', 'updated', 'reason', 'matched existing record by name — replaced');
     else
+      -- New person (no name match). If their email is already on a DIFFERENT member,
+      -- flag it — could be a corrected name (same person) or a shared family email.
+      v_email := nullif(lower(trim(rec->>'email')), '');
+      if v_email is not null then
+        select first_name || ' ' || last_name into v_flag
+          from members where lower(trim(email)) = v_email limit 1;
+      end if;
+
       insert into members (
         first_name, last_name, middle_name, email, phone, dob, sex, marital_status,
         address, join_date, anniversary, skill1, skill2, skill3, other_skills,
@@ -114,8 +118,13 @@ begin
         nullif(rec->>'city', ''), nullif(rec->>'notes', ''), true)
       returning id into v_id;
       v_added := v_added + 1;
+      if v_flag is not null then v_flagged := v_flagged + 1; end if;
       v_results := v_results || jsonb_build_object(
-        'row', rec->>'row', 'name', rec->>'name', 'outcome', 'added', 'reason', '');
+        'row', rec->>'row', 'name', rec->>'name', 'outcome', 'added',
+        'reason', case when v_flag is not null
+                       then 'added — shares an email with existing member "' || v_flag || '"; check they aren''t the same person'
+                       else '' end,
+        'flag', v_flag is not null);
     end if;
 
     -- Roles arrive as a JSON array of validated, de-duplicated names.
@@ -128,7 +137,8 @@ begin
   end loop;
 
   return jsonb_build_object(
-    'added', v_added, 'updated', v_updated, 'skipped', v_skipped, 'results', v_results);
+    'added', v_added, 'updated', v_updated, 'skipped', v_skipped,
+    'flagged', v_flagged, 'results', v_results);
 end;
 $$;
 

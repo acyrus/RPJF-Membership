@@ -184,11 +184,13 @@ Three tabs: Import Members, Import Attendance, Roster Check.
 - **Skills are deduped on ingest.** The form asks for three skills as three independent
   questions, so people pick the same one twice. The importer collapses repeats and
   left-packs `skill1..3`.
-- **Member import matches email-first, then name.** `import_members` checks for an existing
-  member with the same email before falling back to first+last+middle. So a corrected name
-  re-imports as an *update* (or a skip in add-only mode) instead of a duplicate. Caveat: a
-  wrong email in the sheet could match the wrong person — the unusual-domain warning is the
-  guard. The client dedup key is still name-based; DB-side email matching covers the rest.
+- **Member import matches by NAME only; email is a flag, not a match key.** Families share
+  one email, so matching on it would silently merge a spouse/child onto someone else's record.
+  `import_members` matches first+last+middle; when a brand-new person's email is already on a
+  *different* member, the row is still **added** and returned with `flag: true` + a `flagged`
+  count, surfaced in the result as "added but sharing an email — worth a check." Nothing is
+  ever dropped or overwritten on an email collision. (Tradeoff: a genuinely corrected name can
+  still produce a duplicate, but that's visible and fixable, unlike silent family-data loss.)
 - **Google Sheets import goes through `/api/sheet`** (`church-app-v2/api/sheet.js`), a Vercel
   serverless function that fetches the CSV server-side — no CORS. SSRF-guarded to
   `docs.google.com/spreadsheets` only, and it detects an HTML sign-in page (sheet not public)
