@@ -229,7 +229,7 @@ $$;
 
 -- View exposing last_sign_in_at alongside profile (used by the Users screen).
 create or replace view user_profiles_with_login as
-select p.id, p.name, p.role, p.created_at, u.last_sign_in_at
+select p.id, p.name, p.role, p.created_at, u.last_sign_in_at, u.email
 from profiles p
 join auth.users u on u.id = p.id;
 

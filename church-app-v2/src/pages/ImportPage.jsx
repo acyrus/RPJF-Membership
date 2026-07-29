@@ -15,13 +15,17 @@ function normName(s) {
 const nameKey = (first, last) => `${normName(first)}|${normName(last)}`;
 
 // Convert DD/MM/YYYY to YYYY-MM-DD for database storage
-function convertDate(raw) {
+// order: "DMY" (03/04 = 3 April) or "MDY" (03/04 = 4 March). ISO yyyy-mm-dd is always
+// unambiguous. Google Sheets renders US MM/DD by default, so the wrong assumption here
+// silently swaps day and month for any date where both parts are <= 12.
+function convertDate(raw, order = "DMY") {
   if (!raw || !raw.trim()) return null;
   const s = raw.trim();
   let iso = null;
   if (/^\d{4}-\d{2}-\d{2}$/.test(s)) iso = s;
   else if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(s)) {
-    const [d, m, y] = s.split("/");
+    const [a, b, y] = s.split("/");
+    const [d, m] = order === "MDY" ? [b, a] : [a, b];
     iso = `${y}-${m.padStart(2,"0")}-${d.padStart(2,"0")}`;
   }
   if (!iso) return null; // unrecognized text (e.g. "Not sure") → invalid
@@ -32,6 +36,31 @@ function convertDate(raw) {
   const dt = new Date(iso + "T00:00:00Z");
   if (isNaN(dt.getTime()) || dt.getUTCFullYear() !== y || (dt.getUTCMonth() + 1) !== m || dt.getUTCDate() !== d) return null;
   return iso;
+}
+
+// Infer whether slash-format dates in a file are DD/MM or MM/DD by finding any value
+// where one part exceeds 12 — that part can only be the day. Returns the order plus how
+// confident we are; defaults to DMY when nothing in the data is decisive.
+function detectDateOrder(rawStrings) {
+  let dmy = 0, mdy = 0;
+  for (const raw of rawStrings) {
+    const m = /^(\d{1,2})\/(\d{1,2})\/\d{4}$/.exec(String(raw || "").trim());
+    if (!m) continue;
+    const a = +m[1], b = +m[2];
+    if (a > 12 && b <= 12) dmy++;      // first part must be a day → DD/MM
+    else if (b > 12 && a <= 12) mdy++; // second part must be a day → MM/DD
+  }
+  if (dmy && !mdy) return { order: "DMY", confident: true, dmy, mdy };
+  if (mdy && !dmy) return { order: "MDY", confident: true, dmy, mdy };
+  if (dmy && mdy)  return { order: dmy >= mdy ? "DMY" : "MDY", confident: false, dmy, mdy };
+  return { order: "DMY", confident: false, dmy, mdy }; // all values <= 12 → truly ambiguous
+}
+
+// Years-old from an ISO date, for catching implausible birth years (the "Include year off"
+// Google-Forms bug produced current-year birthdays).
+function ageFromISO(iso) {
+  if (!iso) return null;
+  return (Date.now() - new Date(iso + "T00:00:00Z").getTime()) / (365.25 * 24 * 3600 * 1000);
 }
 
 // Normalize any way a member might type a Trinidad & Tobago phone number into the
@@ -196,8 +225,18 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
   const [memberSuccess, setMemberSuccess] = useState(false);
   const [memberReplaceMode, setMemberReplaceMode] = useState(false);
   const [memberValidation, setMemberValidation] = useState(null);
+  const [dateOrderOverride, setDateOrderOverride] = useState(null); // null = use auto-detected
   const [sheetUrl, setSheetUrl] = useState("");
   const [sheetLoading, setSheetLoading] = useState(false);
+
+  // Auto-detect DD/MM vs MM/DD from this file's date columns; the admin can override.
+  const dateDetect = useMemo(() => {
+    const cols = ["dob", "join_date", "anniversary"];
+    const raw = [];
+    memberRows.forEach(row => cols.forEach(c => { if (memberMapping[c]) raw.push(row[memberMapping[c]]); }));
+    return detectDateOrder(raw);
+  }, [memberRows, memberMapping]);
+  const dateOrder = dateOrderOverride || dateDetect.order;
 
   // Attendance import state
   const [attFile, setAttFile] = useState(null);
@@ -262,9 +301,9 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
     const first = get("first_name"), last = get("last_name");
     const email = get("email"), phone = get("phone");
     const ph = normalizePhone(phone);
-    const dob = convertDate(get("dob"));
-    const anniversary = convertDate(get("anniversary"));
-    const joinDate = convertDate(get("join_date"));
+    const dob = convertDate(get("dob"), dateOrder);
+    const anniversary = convertDate(get("anniversary"), dateOrder);
+    const joinDate = convertDate(get("join_date"), dateOrder);
     const sex = get("sex"), marital = get("marital_status");
     const issues = [], warnings = [];
 
@@ -280,7 +319,14 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
     if (phone && ph.ok && !ph.empty && ph.value !== phone) {
       warnings.push({ field: "phone", msg: `Phone "${phone}" will be stored as "${ph.value}"` });
     }
-    if (get("dob") && (!dob || dob > today)) issues.push({ field: "dob", msg: `Invalid or future date of birth: "${get("dob")}"` });
+    if (get("dob")) {
+      if (!dob || dob > today) issues.push({ field: "dob", msg: `Invalid or future date of birth: "${get("dob")}"` });
+      else {
+        const age = ageFromISO(dob);
+        if (age > 120) issues.push({ field: "dob", msg: `Date of birth implies an age over 120: "${get("dob")}"` });
+        else if (age < 2) warnings.push({ field: "dob", msg: `Date of birth "${get("dob")}" implies an age under 2 — check the year (a common "Include year" form slip)` });
+      }
+    }
     if (get("anniversary") && !anniversary) issues.push({ field: "anniversary", msg: `Invalid anniversary date: "${get("anniversary")}"` });
     if (get("join_date") && joinDate && joinDate > today) issues.push({ field: "join_date", msg: `Join date cannot be in the future` });
     if (sex && !["Male","Female"].includes(sex)) issues.push({ field: "sex", msg: `Sex must be "Male" or "Female", got "${sex}"` });
@@ -318,11 +364,11 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
 
   async function importMembers() {
     setMemberImporting(true); setMemberError(""); setMemberResult(null);
-    let added = 0, updated = 0, duplicates = 0, errorSkipped = 0, nameSkipped = 0, emptySkipped = 0;
-    const errors = [], addedList = [], updatedList = [], log = [];
+    let errorSkipped = 0, nameSkipped = 0, emptySkipped = 0;
+    const log = [];
 
-    // De-duplicate the sheet on first+middle+last, keeping the LAST occurrence
-    // (Google Forms appends newest responses at the bottom, so last = newest).
+    // 1) De-duplicate the sheet on first+middle+last, keeping the LAST occurrence
+    //    (Google Forms appends newest responses at the bottom, so last = newest).
     const dedupeMap = new Map();
     memberRows.forEach((row, i) => {
       const get = col => memberMapping[col] ? (row[memberMapping[col]] || "").trim() : "";
@@ -340,6 +386,9 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
     const importRows = Array.from(dedupeMap.values());
     const dedupedAway = log.filter(l => l.outcome === "collapsed").length;
 
+    // 2) Validate each surviving row and normalise it. Bad rows are skipped here so the
+    //    atomic import only ever receives clean data (one broken row can't abort it).
+    const records = [];
     for (const { row, rowNum, first, last } of importRows) {
       const get = col => memberMapping[col] ? (row[memberMapping[col]] || "").trim() : "";
       const name = `${first} ${last}`.trim();
@@ -349,82 +398,56 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
         log.push({ row: rowNum, name, outcome: "skipped", reason: issues.map(x => x.msg).join("; ") });
         continue;
       }
-
-      try {
-        const memberData = {
-          first_name: first, last_name: last,
-          middle_name: get("middle_name") || null,
-          email: get("email") || null,
-          phone: normalizePhone(get("phone")).value,   // stored canonically as "943-4893"
-          dob: convertDate(get("dob")) || null,
-          sex: get("sex") || null,
-          marital_status: get("marital_status") || null,
-          address: get("address") || null,
-          join_date: convertDate(get("join_date")) || null,
-          anniversary: convertDate(get("anniversary")) || null,
-          // The Google Form asks for three skills in three independent questions, so
-          // people routinely pick the same one twice. Collapse repeats here and
-          // left-pack them, otherwise the member shows up twice under one skill.
-          ...(() => {
-            const picked = [...new Set([get("skill1"), get("skill2"), get("skill3")].filter(Boolean))];
-            return { skill1: picked[0] || null, skill2: picked[1] || null, skill3: picked[2] || null };
-          })(),
-          other_skills: get("other_skills") || null,
-          instruments: get("instruments") || null,
-          city: get("city") || null,
-          notes: get("notes") || null,
-          is_active: true,
-        };
-
-        // Match existing by first + last + MIDDLE (blank matches blank).
-        const { data: candidates } = await supabase.from("members")
-          .select("id, middle_name")
-          .ilike("first_name", first)
-          .ilike("last_name", last);
-        const midNorm = get("middle_name").toLowerCase();
-        const existing = (candidates || []).find(c => (c.middle_name || "").trim().toLowerCase() === midNorm);
-
-        let memberId;
-
-        if (existing) {
-          if (memberReplaceMode) {
-            const { error: upErr } = await supabase.from("members").update(memberData).eq("id", existing.id);
-            if (upErr) throw upErr;
-            memberId = existing.id;
-            await supabase.from("member_roles").delete().eq("member_id", memberId);
-            updated++;
-            updatedList.push({ row: rowNum, name });
-            log.push({ row: rowNum, name, outcome: "updated", reason: "matched existing record — replaced" });
-          } else {
-            duplicates++;
-            log.push({ row: rowNum, name, outcome: "skipped", reason: "already in database (Replace mode off)" });
-            continue;
-          }
-        } else {
-          const { data: member, error: mErr } = await supabase.from("members").insert(memberData).select("id").single();
-          if (mErr) throw mErr;
-          memberId = member.id;
-          added++;
-          addedList.push({ row: rowNum, name });
-          log.push({ row: rowNum, name, outcome: "added", reason: "" });
-        }
-
-        const rolesStr = get("roles");
-        if (rolesStr && memberId) {
-          const roleList = rolesStr.split(/[,;]/).map(r=>r.trim()).filter(r=>ROLES.includes(r));
-          if (roleList.length) {
-            await supabase.from("member_roles").insert(roleList.map(r=>({ member_id: memberId, role_name: r })));
-          }
-        }
-      } catch(e) {
-        errors.push(`${name}: ${e.message}`);
-        log.push({ row: rowNum, name, outcome: "error", reason: e.message });
-      }
+      const skills = [...new Set([get("skill1"), get("skill2"), get("skill3")].filter(Boolean))];
+      const roles = [...new Set(get("roles").split(/[,;]/).map(r => r.trim()).filter(r => ROLES.includes(r)))];
+      records.push({
+        row: rowNum, name,
+        first_name: first, last_name: last,
+        middle_name: get("middle_name") || "",
+        email: get("email") || "",
+        phone: normalizePhone(get("phone")).value || "",   // canonical "943-4893"
+        dob: convertDate(get("dob"), dateOrder) || "",
+        sex: get("sex") || "",
+        marital_status: get("marital_status") || "",
+        address: get("address") || "",
+        join_date: convertDate(get("join_date"), dateOrder) || "",
+        anniversary: convertDate(get("anniversary"), dateOrder) || "",
+        skill1: skills[0] || "", skill2: skills[1] || "", skill3: skills[2] || "",
+        other_skills: get("other_skills") || "",
+        instruments: get("instruments") || "",
+        city: get("city") || "",
+        notes: get("notes") || "",
+        roles,
+      });
     }
 
-    log.sort((a,b) => a.row - b.row);
-    const result = { added, updated, duplicates, deduped: dedupedAway, errorSkipped, nameSkipped, emptySkipped, addedList, updatedList, log, errors: errors.slice(0, 10), replaced: memberReplaceMode };
-    // Log the import action
+    // 3) One atomic call — every row commits, or none do and nothing is left half-saved.
+    let added = 0, updated = 0, duplicates = 0;
+    const addedList = [], updatedList = [];
+    if (records.length) {
+      const { data, error } = await supabase.rpc("import_members", {
+        p_rows: records, p_replace: memberReplaceMode,
+      });
+      if (error) {
+        setMemberImporting(false);
+        setMemberError(/import_members/i.test(error.message) || /function .*does not exist/i.test(error.message)
+          ? "The import needs a one-time setup: run supabase_migration_import_members.sql in the Supabase SQL editor, then try again."
+          : `Import failed — nothing was saved. ${error.message}`);
+        return;
+      }
+      added = data.added || 0;
+      updated = data.updated || 0;
+      duplicates = data.skipped || 0;
+      (data.results || []).forEach(r => {
+        const entry = { row: Number(r.row), name: r.name, outcome: r.outcome, reason: r.reason || "" };
+        log.push(entry);
+        if (r.outcome === "added") addedList.push({ row: entry.row, name: entry.name });
+        if (r.outcome === "updated") updatedList.push({ row: entry.row, name: entry.name });
+      });
+    }
+
+    log.sort((a, b) => a.row - b.row);
+    const result = { added, updated, duplicates, deduped: dedupedAway, errorSkipped, nameSkipped, emptySkipped, addedList, updatedList, log, errors: [], replaced: memberReplaceMode };
     if (added > 0 || updated > 0) {
       const desc = memberReplaceMode
         ? `Imported members: ${added} added, ${updated} updated`
@@ -435,10 +458,7 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
     setMemberImporting(false);
     if (added > 0 || updated > 0) {
       setMemberSuccess(true);
-      setTimeout(() => {
-        setMemberSuccess(false);
-        onImportComplete();
-      }, 3000);
+      setTimeout(() => { setMemberSuccess(false); onImportComplete(); }, 3000);
     }
   }
 
@@ -848,6 +868,24 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
                   </div>
                 ))}
               </div>
+              {/* Date format — auto-detected, overridable. Wrong order silently swaps
+                  day and month, so make it explicit before importing. */}
+              <div style={{marginTop:16, background:"#f7f9fb", border:"1px solid #e4e9f5", borderRadius:8, padding:"11px 14px", display:"flex", flexWrap:"wrap", alignItems:"center", gap:10}}>
+                <span style={{fontSize:12, fontWeight:700, color:"#374151"}}>Dates in this file are</span>
+                <select value={dateOrder} onChange={e=>setDateOrderOverride(e.target.value)} style={{fontSize:12, padding:"5px 8px", width:"auto"}}>
+                  <option value="DMY">DD/MM/YYYY (day first)</option>
+                  <option value="MDY">MM/DD/YYYY (month first — US)</option>
+                </select>
+                <span style={{fontSize:11, color: dateDetect.confident ? "#2a8a50" : "#c06010"}}>
+                  {dateDetect.confident
+                    ? `Auto-detected from the data${dateOrderOverride ? " (overridden)" : ""}.`
+                    : "Couldn't tell from the data — ISO yyyy-mm-dd values are always safe. Check this is right."}
+                </span>
+                <span style={{fontSize:11, color:"#9ca3af", width:"100%"}}>
+                  e.g. <code>04/03/2020</code> → {convertDate("04/03/2020", dateOrder)}
+                </span>
+              </div>
+
               <div style={{marginTop:16}}>
                 {/* Validate button */}
                 <div style={{display:"flex", gap:8, marginBottom:12}}>

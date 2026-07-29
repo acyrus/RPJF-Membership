@@ -130,7 +130,9 @@ is run, disabling shows a "run the migration" message. **Reset Password** uses
 `resetPasswordForEmail(email, { redirectTo: origin })` — the old call had no `redirectTo` (link
 didn't return to the app) and swallowed the error in a `try/catch` (supabase-js resolves, not
 throws), so it falsely reported success. Needs email/SMTP configured in Supabase to actually
-deliver.
+deliver. Also, `user_profiles_with_login` didn't select the email, so `user.email` was
+undefined and reset had nothing to send to — `supabase_migration_user_email.sql` adds
+`u.email` to that view (staff account emails, not member PII).
 
 **Photo review is function-gated, not policy-gated.** Ushers can reach the Photos tab, but
 `photo_submissions` UPDATE and `members` UPDATE are both still admin-only. Approving calls
@@ -158,9 +160,20 @@ Three tabs: Import Members, Import Attendance, Roster Check.
 - **CSV parsing** uses `parseCSVRows()`, a proper RFC 4180 character scanner. Do NOT
   reintroduce `text.split("\n")` — addresses and notes contain quoted line breaks, which
   split one member into two bogus rows.
-- **Dates**: `convertDate()` expects **DD/MM/YYYY** or ISO. The linked Google Sheet renders
-  US MM/DD/YYYY by default — format the sheet's date columns as `yyyy-mm-dd` so imports are
-  unambiguous.
+- **Dates**: `convertDate(raw, order)` takes `"DMY"` or `"MDY"`; ISO `yyyy-mm-dd` is always
+  unambiguous. The member import **auto-detects** the order (`detectDateOrder` — finds a value
+  where one part is >12, which can only be the day) and shows a DD/MM vs MM/DD picker the admin
+  can override. Wrong order silently swaps day/month for any date where both parts are ≤12, so
+  keep the detector and the picker. DOB validation blocks future/over-120 and warns on age <2
+  (the "Include year off" Google-Forms slip that produced 2026 birthdays). Attendance import
+  still uses the default DMY.
+- **Member import is atomic** (`supabase_migration_import_members.sql`). The client dedupes the
+  sheet, validates/normalises each row, then sends the clean rows to `import_members(jsonb,
+  boolean)` — a `SECURITY DEFINER` function that inserts/updates every row and its
+  `member_roles` in **one transaction**. All rows commit or none do; no more half-finished
+  imports from a mid-loop failure. Matching rule (first+last+middle, case-insensitive, blank=
+  blank) lives in the SQL now — keep it in step with the client dedup key. Bad rows are still
+  filtered out client-side first, so the function only sees clean data.
 - **Phones**: `normalizePhone()` canonicalizes to T&T local format `943-4893`. Accepts
   `9434893`, `(868) 943-4893`, `1-868-943-4893`, etc. Only letters or <7 digits block a row.
 - **Skills are deduped on ingest.** The form asks for three skills as three independent
