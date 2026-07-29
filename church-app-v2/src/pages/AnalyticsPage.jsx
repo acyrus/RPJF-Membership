@@ -630,7 +630,7 @@ export default function AnalyticsPage({ members, services, attendance, household
         </div>
         {selectedMemberIds.length > 0 && (
           <div style={{marginTop:8,fontSize:11.5,color:"#6b7280"}}>
-            Showing {selectedMemberIds.length} hand-picked member{selectedMemberIds.length===1?"":"s"} — other member filters are applied within that group.
+            Showing {selectedMemberIds.length} hand-picked member{selectedMemberIds.length===1?"":"s"}, other member filters are applied within that group.
           </div>
         )}
       </div>
@@ -781,7 +781,7 @@ export default function AnalyticsPage({ members, services, attendance, household
           </ChartCard>
 
           <SectionTitle>Slipping Away</SectionTitle>
-          <ChartCard title="Members Who've Gone Quiet" subtitle="Previously regular members with no attendance in the last 28 days — a pastoral-care follow-up list">
+          <ChartCard title="Members Who've Gone Quiet" subtitle="Previously regular members with no attendance in the last 28 days, a pastoral-care follow-up list">
             {slippingAway.length === 0
               ? <div style={{textAlign:"center",padding:24,color:"#9ca3af",fontSize:12}}>No one is slipping away in this period</div>
               : <div style={{maxHeight:280,overflowY:"auto"}}>
@@ -1141,7 +1141,7 @@ export default function AnalyticsPage({ members, services, attendance, household
           </div>
 
           <SectionTitle>Cross-Ministry Overlap</SectionTitle>
-          <ChartCard title="Ministries That Share People" subtitle="Pairs of ministries with members serving in both — highlights overlap and over-stretched volunteers">
+          <ChartCard title="Ministries That Share People" subtitle="Pairs of ministries with members serving in both, highlights overlap and over-stretched volunteers">
             {crossMinistry.length === 0
               ? <div style={{textAlign:"center",padding:24,color:"#9ca3af",fontSize:12}}>No members currently serve in more than one ministry</div>
               : <div>
@@ -1188,7 +1188,7 @@ export default function AnalyticsPage({ members, services, attendance, household
                   <div style={{fontSize:13,fontWeight:500,color:"#111827"}}>{m.name}</div>
                   <div style={{textAlign:"right",fontSize:13,color:TEAL,fontWeight:600}}>{m.male}</div>
                   <div style={{textAlign:"right",fontSize:13,color:PINK,fontWeight:600}}>{m.female}</div>
-                  <div style={{textAlign:"right",fontSize:13,color:"#374151"}}>{m.avgAge ?? "—"}</div>
+                  <div style={{textAlign:"right",fontSize:13,color:"#374151"}}>{m.avgAge ?? "-"}</div>
                 </div>
               ))
             }

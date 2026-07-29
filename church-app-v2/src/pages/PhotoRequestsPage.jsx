@@ -45,8 +45,8 @@ export default function PhotoRequestsPage({ profile, members, setMembers, setPen
       (m.last_name || "").trim().toLowerCase() === s.last_name.trim().toLowerCase()
     );
     if (matches.length === 1) return { kind: "one", text: `Matched to ${fullName(matches[0])}` };
-    if (matches.length > 1) return { kind: "many", text: `${matches.length} members share this name — pick the right one` };
-    return { kind: "none", text: "No member with this exact name — choose manually" };
+    if (matches.length > 1) return { kind: "many", text: `${matches.length} members share this name, pick the right one` };
+    return { kind: "none", text: "No member with this exact name, choose manually" };
   }
 
   async function approve(s) {
@@ -141,7 +141,7 @@ export default function PhotoRequestsPage({ profile, members, setMembers, setPen
 
                 <label className="field-label">Attach to member</label>
                 <select value={choice[s.id] || ""} onChange={e => setChoice(c => ({ ...c, [s.id]: e.target.value }))} style={{ marginTop: 4 }}>
-                  <option value="">— Select member —</option>
+                  <option value="">Select member</option>
                   {sortedMembers.map(m => (
                     <option key={m.id} value={m.id}>{fullName(m)}{m.photo_url ? " (has a photo)" : ""}</option>
                   ))}

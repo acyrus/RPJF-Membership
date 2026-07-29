@@ -292,7 +292,7 @@ export function OnboardingFlow({ onComplete, onCancel, onPasswordSet, requirePas
             <div style={{ display:"flex", justifyContent:"center", marginTop: 6 }}><KeyRound size={30} color="#2a5357" /></div>
             <div style={{ fontSize: 17, fontWeight: 700, color: "#111827", textAlign: "center", margin: "6px 0 4px" }}>Create your password</div>
             <div style={{ fontSize: 12.5, color: "#6b7280", lineHeight: 1.6, textAlign: "center", marginBottom: 16 }}>
-              Welcome! Set a password to secure your account — you'll use it to sign in from now on.
+              Welcome! Set a password to secure your account, you'll use it to sign in from now on.
             </div>
             <PasswordInput value={pw} onChange={e => setPw(e.target.value)} placeholder="New password" autoFocus />
             <PasswordInput value={pw2} onChange={e => setPw2(e.target.value)} placeholder="Confirm new password" onEnter={savePassword} />
@@ -636,7 +636,7 @@ export function PhotoUploader({ value, onChange }) {
       const { data } = supabase.storage.from("member-photos").getPublicUrl(path);
       onChange(data.publicUrl);
     } catch (e2) {
-      setErr(e2.message?.includes("Bucket not found") ? "Storage bucket 'member-photos' not set up yet — see deployment notes." : (e2.message || "Upload failed"));
+      setErr(e2.message?.includes("Bucket not found") ? "Storage bucket 'member-photos' not set up yet, see deployment notes." : (e2.message || "Upload failed"));
     } finally { setUploading(false); }
   }
 
@@ -787,11 +787,11 @@ export function calcAge(dob) {
   return a;
 }
 export function formatDob(dob) {
-  if (!dob) return "—";
+  if (!dob) return ", ";
   return new Date(dob).toLocaleDateString("en-US",{month:"long",day:"numeric",year:"numeric",timeZone:"UTC"});
 }
 export function formatShortDate(d) {
-  if (!d) return "—";
+  if (!d) return ", ";
   return new Date(d+"T12:00:00").toLocaleDateString("en-US",{month:"long",day:"numeric"});
 }
 
@@ -850,7 +850,7 @@ export function validateMember(form) {
 
   // Duplicate skill check
   const skills = [form.skill1, form.skill2, form.skill3].filter(Boolean);
-  if (new Set(skills).size !== skills.length) errors.skills = "Please select different skills — no duplicates";
+  if (new Set(skills).size !== skills.length) errors.skills = "Please select different skills, no duplicates";
 
   return errors;
 }
@@ -1002,10 +1002,10 @@ export function MemberForm({ value, onChange, onSubmit, onCancel, submitLabel="S
         <div className="field-group">
           <label className="field-label">Spouse <span style={{color:"#d1d5db",fontWeight:400,fontSize:10}}>(links two members together)</span></label>
           <select value={value.spouse_id||""} onChange={u("spouse_id")}>
-            <option value="">— Not linked —</option>
+            <option value="">Not linked</option>
             {spouseCandidates.map(m => {
               const taken = m.spouse_id && m.spouse_id !== value.id;
-              return <option key={m.id} value={m.id}>{fullName(m)}{taken ? " — already linked" : ""}</option>;
+              return <option key={m.id} value={m.id}>{fullName(m)}{taken ? ", already linked" : ""}</option>;
             })}
           </select>
           <div style={{fontSize:11,color:"#b0b8d0",marginTop:4}}>Selecting a spouse automatically links them back to this member.</div>
@@ -1015,7 +1015,7 @@ export function MemberForm({ value, onChange, onSubmit, onCancel, submitLabel="S
       <div className="field-group">
         <label className="field-label">Household / Family <span style={{color:"#d1d5db",fontWeight:400,fontSize:10}}>(groups a whole family)</span></label>
         <select value={value.household_id||""} onChange={e=>onChange({...value, household_id:e.target.value, new_household_name: e.target.value==="__new__" ? (value.new_household_name||"") : ""})}>
-          <option value="">— No household —</option>
+          <option value="">No household</option>
           {households.slice().sort((a,b)=>a.name.localeCompare(b.name)).map(h => {
             const count = members.filter(m => m.household_id === h.id && m.id !== value.id).length + (value.household_id===h.id?1:0);
             return <option key={h.id} value={h.id}>{h.name}{count?` (${count})`:""}</option>;
@@ -1085,7 +1085,7 @@ export function MemberForm({ value, onChange, onSubmit, onCancel, submitLabel="S
       <div className="field-group">
         <label className="field-label">City</label>
         <select value={value.city||""} onChange={u("city")}>
-          <option value="">— Select City —</option>
+          <option value="">Select City</option>
           {TRINIDAD_CITIES.map(c=><option key={c} value={c}>{c}</option>)}
         </select>
       </div>

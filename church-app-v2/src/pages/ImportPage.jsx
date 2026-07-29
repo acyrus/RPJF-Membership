@@ -334,7 +334,7 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
       // network error reaching the proxy → try direct as a last resort
     }
     const direct = await fetch(csvUrl);
-    if (!direct.ok) throw new Error("Could not fetch sheet — make sure it is shared publicly (Anyone with link can view)");
+    if (!direct.ok) throw new Error("Could not fetch sheet. Make sure it is shared publicly (Anyone with link can view)");
     return await direct.text();
   }
 
@@ -356,21 +356,18 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
     if (!first) issues.push({ field: "first_name", msg: "Missing first name" });
     if (!last) issues.push({ field: "last_name", msg: "Missing last name" });
     if (email && !emailRe.test(email)) issues.push({ field: "email", msg: `Invalid email: "${email}"` });
-    // Phone: only BLOCK on clearly broken input (letters, or too few digits to be a number).
-    // Anything else imports, but odd lengths are surfaced as a warning so you can eyeball them.
-    if (phone && !ph.ok) {
-      if (ph.digits.length < 7) issues.push({ field: "phone", msg: `Invalid phone: "${phone}" — ${ph.reason}` });
-      else warnings.push({ field: "phone", msg: `Phone "${phone}" isn't a standard 7-digit local number (${ph.reason}) — importing as "${ph.value}"` });
-    }
-    if (phone && ph.ok && !ph.empty && ph.value !== phone) {
-      warnings.push({ field: "phone", msg: `Phone "${phone}" will be stored as "${ph.value}"` });
+    // Block only clearly broken phone input (letters, or too few digits to be a number).
+    // Standardisation to the local format happens silently — no warning for a valid number
+    // simply being reformatted.
+    if (phone && !ph.ok && ph.digits.length < 7) {
+      issues.push({ field: "phone", msg: `Invalid phone "${phone}": ${ph.reason}` });
     }
     if (get("dob")) {
       if (!dob || dob > today) issues.push({ field: "dob", msg: `Invalid or future date of birth: "${get("dob")}"` });
       else {
         const age = ageFromISO(dob);
         if (age > 120) issues.push({ field: "dob", msg: `Date of birth implies an age over 120: "${get("dob")}"` });
-        else if (age < 2) warnings.push({ field: "dob", msg: `Date of birth "${get("dob")}" implies an age under 2 — check the year (a common "Include year" form slip)` });
+        else if (age < 2) warnings.push({ field: "dob", msg: `Date of birth "${get("dob")}" implies an age under 2. Check the year (a common "Include year" form slip)` });
       }
     }
     if (get("anniversary") && !anniversary) issues.push({ field: "anniversary", msg: `Invalid anniversary date: "${get("anniversary")}"` });
@@ -381,9 +378,9 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
     if (email && emailRe.test(email)) {
       const domain = email.split("@")[1].toLowerCase();
       const tld = domain.split(".").pop();
-      if (!COMMON_TLDS.has(tld) || DOMAIN_TYPOS.has(domain)) warnings.push({ field: "email", msg: `Email "${email}" has an unusual domain — check for a typo` });
+      if (!COMMON_TLDS.has(tld) || DOMAIN_TYPOS.has(domain)) warnings.push({ field: "email", msg: `Email "${email}" has an unusual domain. Check for a typo` });
     }
-    if (anniversary && marital && marital !== "Married") warnings.push({ field: "anniversary", msg: `Marked "${marital}" but has a wedding anniversary — should this be Married?` });
+    if (anniversary && marital && marital !== "Married") warnings.push({ field: "anniversary", msg: `Marked "${marital}" but has a wedding anniversary. Should this be Married?` });
     return { issues, warnings };
   }
 
@@ -391,25 +388,20 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
     const issues = [], warnings = [];
     let emptyRows = 0;
     const badRowNums = new Set();
-    const nameChanges = []; // { row, from, to } when proper-casing would tidy a name
     memberRows.forEach((row, i) => {
       const rowNum = i + 2;
       const get = col => memberMapping[col] ? (row[memberMapping[col]] || "").trim() : "";
       const first = get("first_name"), last = get("last_name");
-      if (!first && !last) { emptyRows++; return; } // fully blank row → silently skipped
+      if (!first && !last) { emptyRows++; return; } // fully blank row is silently skipped
       const name = `${first} ${last}`.trim() || "(no name)";
       const { issues: ri, warnings: rw } = memberRowChecks(row);
       if (ri.length) badRowNums.add(rowNum);
       ri.forEach(x => issues.push({ row: rowNum, name, ...x }));
       rw.forEach(x => warnings.push({ row: rowNum, name, ...x }));
-      if (properCase) {
-        const tidied = `${properCaseName(first)} ${properCaseName(last)}`.trim();
-        if (tidied && tidied !== name) nameChanges.push({ row: rowNum, from: name, to: tidied });
-      }
     });
     const nonEmpty = memberRows.length - emptyRows;
     const validRows = nonEmpty - badRowNums.size;
-    setMemberValidation({ issues, warnings, validRows, badRows: badRowNums.size, emptyRows, total: memberRows.length, nameChanges });
+    setMemberValidation({ issues, warnings, validRows, badRows: badRowNums.size, emptyRows, total: memberRows.length });
     return issues.length === 0;
   }
 
@@ -486,7 +478,7 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
         setMemberImporting(false);
         setMemberError(/import_members/i.test(error.message) || /function .*does not exist/i.test(error.message)
           ? "The import needs a one-time setup: run supabase_migration_import_members.sql in the Supabase SQL editor, then try again."
-          : `Import failed — nothing was saved. ${error.message}`);
+          : `Import failed. Nothing was saved. ${error.message}`);
         return;
       }
       added = data.added || 0;
@@ -526,7 +518,7 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
     const body = memberResult.log.map(l => [l.row, l.name, l.outcome, l.reason].map(cell).join(",")).join("\n");
     const stamp = new Date().toISOString().slice(0,19).replace(/[:T]/g,"-");
     const mode = memberResult.replaced ? "replace" : "import";
-    const csv = `# Church Connect ${mode} report — ${new Date().toLocaleString()}\n# added:${memberResult.added} updated:${memberResult.updated} skipped(issues):${memberResult.errorSkipped} skipped(no name):${memberResult.nameSkipped} empty:${memberResult.emptySkipped} duplicates-in-sheet:${memberResult.deduped} db-errors:${memberResult.errors.length}\n${header}\n${body}\n`;
+    const csv = `# Church Connect ${mode} report ${new Date().toLocaleString()}\n# added:${memberResult.added} updated:${memberResult.updated} skipped(issues):${memberResult.errorSkipped} skipped(no name):${memberResult.nameSkipped} empty:${memberResult.emptySkipped} duplicates-in-sheet:${memberResult.deduped} db-errors:${memberResult.errors.length}\n${header}\n${body}\n`;
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a"); a.href = url; a.download = `import-report-${stamp}.csv`; a.click();
@@ -637,7 +629,7 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
 
       await logImportActivity(supabase, "member_added",
         `Published roster "${label}" (${rosterRows.length} names) to ushers`, profile.id, profile.name);
-      setRosterSaved(`"${label}" is now live for the ushers — ${rosterRows.length} names.`);
+      setRosterSaved(`"${label}" is now live for the ushers. ${rosterRows.length} names.`);
     } catch (e) {
       setRosterError(e.message || "Could not save the roster.");
     } finally {
@@ -656,7 +648,7 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
     noPhoto.forEach(m =>
       lines.push(["No photo", m.first_name, m.last_name, ""].map(cell).join(",")));
     const stamp = new Date().toISOString().slice(0,10);
-    const csv = `# RPJF roster check — ${new Date().toLocaleString()}\n# roster:${rosterCheck.rosterCount} app:${rosterCheck.appCount} matched:${rosterCheck.matched} missing-from-app:${rosterCheck.missingFromApp.length} not-on-roster:${rosterCheck.notOnRoster.length} no-photo:${noPhoto.length}\n${lines.join("\n")}\n`;
+    const csv = `# RPJF roster check ${new Date().toLocaleString()}\n# roster:${rosterCheck.rosterCount} app:${rosterCheck.appCount} matched:${rosterCheck.matched} missing-from-app:${rosterCheck.missingFromApp.length} not-on-roster:${rosterCheck.notOnRoster.length} no-photo:${noPhoto.length}\n${lines.join("\n")}\n`;
     const blob = new Blob([csv], { type: "text/csv" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
@@ -694,11 +686,11 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
       if (!rawDate) {
         issues.push({ row: rowNum, field: "service_date", msg: "Missing service date" });
       } else if (!convertedDate || !/^\d{4}-\d{2}-\d{2}$/.test(convertedDate)) {
-        issues.push({ row: rowNum, field: "service_date", msg: `Invalid date "${rawDate}" — use DD/MM/YYYY e.g. 15/05/2026` });
+        issues.push({ row: rowNum, field: "service_date", msg: `Invalid date "${rawDate}". Use DD/MM/YYYY e.g. 15/05/2026` });
       } else if (convertedDate > today) {
         issues.push({ row: rowNum, field: "service_date", msg: `Date ${rawDate} is in the future` });
       } else if (convertedDate === today) {
-        warnings.push({ row: rowNum, field: "service_date", msg: `Date ${rawDate} is today — double-check this is the right service date` });
+        warnings.push({ row: rowNum, field: "service_date", msg: `Date ${rawDate} is today. Double-check this is the right service date` });
       }
       if (!firstName) issues.push({ row: rowNum, field: "first_name", msg: "Missing first name" });
       if (!lastName) issues.push({ row: rowNum, field: "last_name", msg: "Missing last name" });
@@ -707,7 +699,7 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
       if (convertedDate && firstName && lastName) {
         const key = [convertedDate, firstName.toLowerCase(), lastName.toLowerCase(), (svcName || "Imported Service").toLowerCase()].join("|");
         if (seen[key]) {
-          warnings.push({ row: rowNum, field: "duplicate", msg: `Duplicate of row ${seen[key]} — ${firstName} ${lastName} on ${rawDate}${svcName ? ` (${svcName})` : ""}. It will only be imported once.` });
+          warnings.push({ row: rowNum, field: "duplicate", msg: `Duplicate of row ${seen[key]}: ${firstName} ${lastName} on ${rawDate}${svcName ? ` (${svcName})` : ""}. It will only be imported once.` });
         } else {
           seen[key] = rowNum;
         }
@@ -864,12 +856,12 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
             <div style={{display:"flex", alignItems:"center", justifyContent:"space-between"}}>
               <div>
                 <div style={{fontWeight:700, fontSize:14, color: memberReplaceMode?"#c06010":"#2a3560", marginBottom:3}}>
-                  {memberReplaceMode ? "Replace Mode — ON" : "Replace Mode"}
+                  {memberReplaceMode ? "Replace Mode: ON" : "Replace Mode"}
                 </div>
                 <div style={{fontSize:12, color:"#9ca3af", lineHeight:1.7}}>
                   {memberReplaceMode
                     ? "Existing members with matching names will be updated. New members will be added."
-                    : "Off — duplicate names will be skipped. Turn on to update existing members."}
+                    : "Off. Duplicate names will be skipped. Turn on to update existing members."}
                 </div>
               </div>
               <button onClick={()=>setMemberReplaceMode(r=>!r)} style={{
@@ -918,7 +910,7 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
                   <div key={col}>
                     <label className="field-label">{col.replace(/_/g," ")}{["first_name","last_name"].includes(col)?" *":""}</label>
                     <select value={memberMapping[col]||""} onChange={e=>setMemberMapping(prev=>({...prev,[col]:e.target.value}))}>
-                      <option value="">— skip —</option>
+                      <option value="">(skip this field)</option>
                       {memberHeaders.map(h=><option key={h} value={h}>{h}</option>)}
                     </select>
                   </div>
@@ -930,12 +922,12 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
                 <span style={{fontSize:12, fontWeight:700, color:"#374151"}}>Dates in this file are</span>
                 <select value={dateOrder} onChange={e=>setDateOrderOverride(e.target.value)} style={{fontSize:12, padding:"5px 8px", width:"auto"}}>
                   <option value="DMY">DD/MM/YYYY (day first)</option>
-                  <option value="MDY">MM/DD/YYYY (month first — US)</option>
+                  <option value="MDY">MM/DD/YYYY (month first, US)</option>
                 </select>
                 <span style={{fontSize:11, color: dateDetect.confident ? "#2a8a50" : "#c06010"}}>
                   {dateDetect.confident
                     ? `Auto-detected from the data${dateOrderOverride ? " (overridden)" : ""}.`
-                    : "Couldn't tell from the data — ISO yyyy-mm-dd values are always safe. Check this is right."}
+                    : "Couldn't tell from the data. ISO yyyy-mm-dd values are always safe. Check this is right."}
                 </span>
                 <span style={{fontSize:11, color:"#9ca3af", width:"100%"}}>
                   e.g. <code>04/03/2020</code> → {convertDate("04/03/2020", dateOrder)}
@@ -946,7 +938,7 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
               <div style={{marginTop:10, background:"#f7f9fb", border:"1px solid #e4e9f5", borderRadius:8, padding:"11px 14px"}}>
                 <label style={{display:"flex", alignItems:"center", gap:9, cursor:"pointer", fontSize:12, color:"#374151"}}>
                   <input type="checkbox" checked={properCase} onChange={e=>setProperCase(e.target.checked)} />
-                  <span><strong>Tidy name capitalisation</strong> — save <code>john smith</code> / <code>JOHN SMITH</code> as <code>John Smith</code>. Handles O'Brien, Ali-Mohammed, McDonald. Run <em>Validate Data</em> to preview the changes.</span>
+                  <span><strong>Tidy name capitalisation</strong>: save <code>john smith</code> or <code>JOHN SMITH</code> as <code>John Smith</code>. Handles O'Brien, Ali-Mohammed, McDonald.</span>
                 </label>
               </div>
 
@@ -982,7 +974,7 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
                 {memberValidation && memberValidation.warnings && memberValidation.warnings.length > 0 && (
                   <div style={{marginBottom:14, background:"#fff8ec", border:"1.5px solid #f0cf8a", borderRadius:8, padding:"12px 14px"}}>
                     <div style={{fontWeight:700, fontSize:12, color:"#8a5a10", marginBottom:6}}>
-                      {memberValidation.warnings.length} warning{memberValidation.warnings.length!==1?"s":""} — these won't block the import
+                      {memberValidation.warnings.length} warning{memberValidation.warnings.length!==1?"s":""} (these won't block the import)
                     </div>
                     <div style={{maxHeight:200, overflowY:"auto", paddingRight:4}}>
                       {memberValidation.warnings.map((w,i)=>(
@@ -992,24 +984,9 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
                   </div>
                 )}
 
-                {/* Name-tidy preview: show exactly what proper-casing will change. */}
-                {memberValidation && memberValidation.nameChanges && memberValidation.nameChanges.length > 0 && (
-                  <div style={{marginBottom:14, background:"#f0f6ff", border:"1.5px solid #b8d0f0", borderRadius:8, padding:"12px 14px"}}>
-                    <div style={{fontWeight:700, fontSize:12, color:"#2a5aa0", marginBottom:6}}>
-                      {memberValidation.nameChanges.length} name{memberValidation.nameChanges.length!==1?"s":""} will be tidied to proper case
-                    </div>
-                    <div style={{maxHeight:200, overflowY:"auto", paddingRight:4}}>
-                      {memberValidation.nameChanges.map((c,i)=>(
-                        <div key={i} style={{fontSize:12, color:"#3a6ab0", marginTop:3}}>
-                          <strong>Row {c.row}</strong> · <span style={{color:"#9ca3af"}}>{c.from}</span> → {c.to}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
 
                 {/* Count the rows that will ACTUALLY import (validated), not every parsed
-                    row — otherwise the button says "18" while the summary says "17 valid". */}
+                    row, otherwise the button says "18" while the summary says "17 valid". */}
                 <button className="btn-primary" onClick={importMembers} disabled={memberImporting}
                   style={{background: memberReplaceMode?"#e07830":""}}>
                   {(() => {
@@ -1041,7 +1018,7 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
             <div style={{background: memberResult.errors.length?"#fff8f0":"#f0fff8", border:`1.5px solid ${memberResult.errors.length?"#f5d0a0":"#b0e8c8"}`, borderRadius:10, padding:"14px 16px"}}>
               <div style={{fontWeight:700, fontSize:14, color:"#111827", marginBottom:8, display:"flex", alignItems:"center", gap:8, flexWrap:"wrap"}}>
                 {memberResult.replaced ? "Update Complete" : "Import Complete"}
-                {memberResult.replaced && <span style={{fontSize:10, fontWeight:700, background:"#fbe4d0", color:"#b5581a", padding:"2px 9px", borderRadius:20, textTransform:"uppercase", letterSpacing:0.4}}>Replace mode — existing records overwritten</span>}
+                {memberResult.replaced && <span style={{fontSize:10, fontWeight:700, background:"#fbe4d0", color:"#b5581a", padding:"2px 9px", borderRadius:20, textTransform:"uppercase", letterSpacing:0.4}}>Replace mode: existing records overwritten</span>}
               </div>
               {memberResult.added > 0 && (
                 <div style={{fontSize:14, color:"#4caf82", marginBottom:4}}>{memberResult.added} new member{memberResult.added!==1?"s":""} added</div>
@@ -1066,15 +1043,15 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
                   ))}
                 </div>
               )}
-              {memberResult.duplicates > 0 && !memberResult.replaced && (
-                <div style={{fontSize:12, color:"#9ca3af", marginBottom:4}}>ℹ {memberResult.duplicates} duplicate{memberResult.duplicates!==1?"s":""} skipped (already in database) — turn on Replace Mode to update them</div>
-              )}
-              {/* People added who share an email with someone already in the app — could be
+              {/* People already captured (matched by name, Replace mode off) are intentionally
+                  NOT listed here, they add nothing for the admin to act on. They're still in
+                  the downloadable report if a full record is ever needed. */}
+              {/* People added who share an email with someone already in the app: could be
                   a corrected name or a family sharing one address. Added, but flagged. */}
               {memberResult.emailFlags && memberResult.emailFlags.length > 0 && (
                 <div style={{marginTop:8, marginBottom:6, background:"#f0f6ff", border:"1.5px solid #b8d0f0", borderRadius:8, padding:"10px 12px"}}>
                   <div style={{fontSize:12, fontWeight:700, color:"#2a5aa0", marginBottom:5}}>
-                    {memberResult.emailFlags.length} added but sharing an email — worth a check
+                    {memberResult.emailFlags.length} added but sharing an email, worth a check
                   </div>
                   <div style={{fontSize:11, color:"#4a6a90", marginBottom:6, lineHeight:1.5}}>
                     These were added as new people, but their email is already on another member. If it's the same person (a corrected name), delete one; if it's a family sharing an address, leave both.
@@ -1135,11 +1112,11 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
             <div style={{fontWeight:700, fontSize:14, color:"#111827", marginBottom:4}}>Check the Ushers' Roster</div>
             <div style={{fontSize:12, color:"#9ca3af", marginBottom:12, lineHeight:1.7}}>
               Upload the printed attendance list as a CSV (columns <code style={{background:"#f4f6ff",padding:"1px 5px",borderRadius:4,fontSize:11}}>FIRST NAME, LAST NAME</code>).
-              Nothing is written to the database — this only compares the list against your members and shows the gaps.
+              Nothing is written to the database. This only compares the list against your members and shows the gaps.
               In Excel: <strong>File → Save As → CSV</strong>.
             </div>
             <input type="file" accept=".csv,.txt" onChange={handleRosterFile} style={{fontSize:12}} />
-            {rosterFileName && <div style={{fontSize:12, color:"#6b7280", marginTop:8}}>Loaded: <strong>{rosterFileName}</strong> — {rosterRows.length} names</div>}
+            {rosterFileName && <div style={{fontSize:12, color:"#6b7280", marginTop:8}}>Loaded: <strong>{rosterFileName}</strong>, {rosterRows.length} names</div>}
           </div>
 
           {/* What the ushers can see right now */}
@@ -1147,7 +1124,7 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
             <div style={{fontSize:12, fontWeight:700, color:"#1f4e4a", marginBottom:3}}>Live for ushers</div>
             <div style={{fontSize:12, color:"#5a7a76", lineHeight:1.7}}>
               {currentRoster
-                ? <>Ushers currently see <strong>{currentRoster.label}</strong> — {currentRoster.name_count} names, uploaded {new Date(currentRoster.created_at).toLocaleDateString()}.</>
+                ? <>Ushers currently see <strong>{currentRoster.label}</strong>, {currentRoster.name_count} names, uploaded {new Date(currentRoster.created_at).toLocaleDateString()}.</>
                 : <>No roster published yet. Upload one below and the ushers' Uncaptured Members tab will be empty until you do.</>}
             </div>
             {rosterHistory.length > 0 && (
@@ -1162,10 +1139,10 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
             <div className="card" style={{padding:20, marginBottom:16}}>
               <div style={{fontWeight:700, fontSize:14, color:"#111827", marginBottom:4}}>Publish this list to the ushers</div>
               <div style={{fontSize:12, color:"#9ca3af", marginBottom:12, lineHeight:1.7}}>
-                Saves the list into the app so ushers can open it on their phones. It replaces the current list — the old one is kept as history, not deleted.
+                Saves the list into the app so ushers can open it on their phones. It replaces the current list. The old one is kept as history, not deleted.
               </div>
               <div style={{display:"flex", gap:8}}>
-                <input placeholder="Label — e.g. July 2026" value={rosterLabel}
+                <input placeholder="Label, e.g. July 2026" value={rosterLabel}
                   onChange={e=>setRosterLabel(e.target.value)} style={{flex:1}} />
                 <button className="btn-primary" onClick={publishRoster} disabled={rosterSaving}>
                   {rosterSaving ? "Publishing…" : `Publish ${rosterRows.length} Names`}
@@ -1218,7 +1195,7 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
                 </div>
               </div>
               <div style={{fontSize:12, color:"#9ca3af", marginBottom:12, lineHeight:1.7}}>
-                These names are on the ushers' sheet but have no member record. Add them via Import Members, or check the suggested matches below — they may be spelling differences or nicknames.
+                These names are on the ushers' sheet but have no member record. Add them via Import Members, or check the suggested matches below. They may be spelling differences or nicknames.
               </div>
               <div style={{maxHeight:340, overflowY:"auto"}}>
                 {rosterCheck.missingFromApp.map((r,i)=>(
@@ -1245,7 +1222,7 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
                 </div>
               </div>
               <div style={{fontSize:12, color:"#9ca3af", marginBottom:12, lineHeight:1.7}}>
-                These members exist in the app but the ushers can't mark them present — add them to next month's printed sheet.
+                These members exist in the app but the ushers can't mark them present. Add them to next month's printed sheet.
               </div>
               <div style={{maxHeight:340, overflowY:"auto"}}>
                 {rosterCheck.notOnRoster.map(m=>(
@@ -1310,7 +1287,7 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
             <div style={{display:"flex", alignItems:"center", justifyContent:"space-between"}}>
               <div>
                 <div style={{fontWeight:700, fontSize:14, color: replaceMode?"#c06010":"#2a3560", marginBottom:3}}>
-                  {replaceMode ? "Replace Mode — ON" : "Replace Mode"}
+                  {replaceMode ? "Replace Mode: ON" : "Replace Mode"}
                 </div>
                 <div style={{fontSize:12, color:"#9ca3af", lineHeight:1.7}}>
                   {replaceMode

@@ -332,7 +332,7 @@ export default function MembersPage({ profile, members, setMembers, households =
       {selected && <div className="mobile-backdrop" style={{display:"none"}} onClick={()=>setSelected(null)} />}
       {/* Right: Detail Panel.
           On mobile the panel and the modals are both full-width bottom sheets, so if a
-          modal is open the panel behind it is pure interference — it was rendering over
+          modal is open the panel behind it is pure interference, it was rendering over
           the edit form. Raising .modal-bg above .detail-panel in the stylesheet fixes the
           stacking, but this makes the overlap impossible regardless of how the two
           stacking contexts resolve on a given browser. Desktop is untouched: there the
@@ -349,7 +349,7 @@ export default function MembersPage({ profile, members, setMembers, households =
             </div>
             <div style={{fontFamily:"'Inter',sans-serif",fontSize:16,color:"#111827",marginTop:12,fontWeight:600}}>{fullNameFull(selected)}</div>
             <div style={{fontSize:12,color:"#9ca3af",marginTop:4}}>
-              Member since {selected.join_date ? new Date(selected.join_date+"T12:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}) : "—"}
+              Member since {selected.join_date ? new Date(selected.join_date+"T12:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}) : "-"}
             </div>
             <div style={{display:"flex",gap:6,justifyContent:"center",marginTop:8,flexWrap:"wrap"}}>
               {selected.sex && <SexBadge sex={selected.sex} />}

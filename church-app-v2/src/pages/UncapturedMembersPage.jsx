@@ -87,7 +87,7 @@ function AssignmentEditor({ row, ushers, saving, onSave, onClose }) {
         <div className="field-group">
           <label className="field-label">Assigned usher</label>
           <select value={usherId} onChange={e=>setUsherId(e.target.value)}>
-            <option value="">— Unassigned —</option>
+            <option value="">Unassigned</option>
             {ushers.map(u => <option key={u.id} value={u.id}>{fullName(u)}</option>)}
           </select>
           {ushers.length === 0 && (
@@ -107,7 +107,7 @@ function AssignmentEditor({ row, ushers, saving, onSave, onClose }) {
 
         <label style={{display:"flex", alignItems:"flex-start", gap:9, cursor:"pointer", padding:"4px 0 2px", fontSize:13, color:"#374151", lineHeight:1.5}}>
           <input type="checkbox" checked={inactive} onChange={e=>setInactive(e.target.checked)} style={{marginTop:3}} />
-          <span><strong>Remove from the list</strong> — for names you don't need to capture
+          <span><strong>Remove from the list</strong>, for names you don't need to capture
             (visitors, moved away, duplicates). It drops out of the “to capture” target and the
             completion count. You can restore it anytime with the <em>Inactive</em> status filter.</span>
         </label>
@@ -490,7 +490,7 @@ export default function UncapturedMembersPage({ members = [] }) {
                   <Chip label="Pic"><YesNo yes={n.hasPic} /></Chip>
                   <Chip label="Usher">
                     <span style={{fontSize:12, fontWeight:600, color: n.assigned_usher_id ? "#2a5357" : "#c0c8d8"}}>
-                      {n.assigned_usher_id ? (usherLabel(n.assigned_usher_id) || "unknown") : "—"}
+                      {n.assigned_usher_id ? (usherLabel(n.assigned_usher_id) || "unknown") : "-"}
                     </span>
                   </Chip>
                 </div>
@@ -552,12 +552,12 @@ export default function UncapturedMembersPage({ members = [] }) {
                 <span style={{fontSize:12, color: n.assigned_usher_id ? "#2a5357" : "#c0c8d8", fontWeight:600, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap"}}>
                   {n.assigned_usher_id
                     ? (usherLabel(n.assigned_usher_id) || <span style={{color:"#c06010"}}>unknown</span>)
-                    : "—"}
+                    : "-"}
                 </span>
                 <span title={n.note || ""} style={{display:"flex", alignItems:"center", gap:5, minWidth:0, fontSize:12, color: n.note ? "#5a6a7a" : "#c0c8d8"}}>
                   {n.note
                     ? <><StickyNote size={12} color="#c9a227" style={{flexShrink:0}} /><span style={{overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap"}}>{n.note}</span></>
-                    : "—"}
+                    : "-"}
                 </span>
               </div>
             ))}
@@ -566,7 +566,7 @@ export default function UncapturedMembersPage({ members = [] }) {
 
       <div style={{fontSize:11, color:"#9ca3af", marginTop:12, lineHeight:1.7}}>
         Showing {rows.length} of {linked.length} names. Tap any name to assign an usher, add a note, or flag it inactive.
-        The published list itself is read-only — ask an admin to publish an updated list to change the names.
+        The published list itself is read-only, ask an admin to publish an updated list to change the names.
       </div>
 
       {editing && (

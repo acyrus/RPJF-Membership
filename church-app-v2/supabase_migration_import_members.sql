@@ -94,7 +94,7 @@ begin
       v_updated := v_updated + 1;
       v_results := v_results || jsonb_build_object(
         'row', rec->>'row', 'name', rec->>'name',
-        'outcome', 'updated', 'reason', 'matched existing record by name — replaced');
+        'outcome', 'updated', 'reason', 'matched existing record by name, replaced');
     else
       -- New person (no name match). If their email is already on a DIFFERENT member,
       -- flag it — could be a corrected name (same person) or a shared family email.
@@ -122,7 +122,7 @@ begin
       v_results := v_results || jsonb_build_object(
         'row', rec->>'row', 'name', rec->>'name', 'outcome', 'added',
         'reason', case when v_flag is not null
-                       then 'added — shares an email with existing member "' || v_flag || '"; check they aren''t the same person'
+                       then 'shares an email with existing member "' || v_flag || '", check they aren''t the same person'
                        else '' end,
         'flag', v_flag is not null);
     end if;
