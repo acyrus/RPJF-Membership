@@ -82,7 +82,13 @@ plus Login and SubmitPhoto (the public photo-submission page, outside the tab sh
   session). supabase-js re-fires `SIGNED_IN` on tab focus and token refresh with the same uid,
   and reload fires `INITIAL_SESSION` — without the uid guard the older device kept re-claiming
   and stealing the slot back from the newest login (symptom: the newest device got booted
-  instead of the oldest). `USER_UPDATED` is still ignored entirely. **All three `signOut` calls use `{ scope: "local" }`** (boot-self,
+  instead of the oldest). `USER_UPDATED` is still ignored entirely. **A 15s grace window
+  (`lastClaimAt`) stops a device booting itself right after it claims** — its own
+  `claim_session` write may not have landed when the watcher's first check runs, so without
+  the grace it would read the previous device's id and sign the just-logged-in device out
+  (symptom: the newest device logs in fine, then drops itself seconds later). An older device
+  claimed long ago, so its grace is expired and it still boots correctly when a newer login
+  wins. **All three `signOut` calls use `{ scope: "local" }`** (boot-self,
   idle timeout, manual logout). The default is *global*, which revokes the account's tokens on
   every device — so a booted phone would also drop the computer that just claimed the session.
   Local signs out only the calling device. Don't drop the scope.
