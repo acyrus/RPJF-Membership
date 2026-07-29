@@ -176,6 +176,12 @@ Three tabs: Import Members, Import Attendance, Roster Check.
   filtered out client-side first, so the function only sees clean data.
 - **Phones**: `normalizePhone()` canonicalizes to T&T local format `943-4893`. Accepts
   `9434893`, `(868) 943-4893`, `1-868-943-4893`, etc. Only letters or <7 digits block a row.
+- **With Replace Mode off, the Validate preview hides rows already in the app.** Those get
+  skipped on import anyway, so `validateMemberRows` matches each row against `existingKeys`
+  (built from the `members` prop, same first+last+middle key as `import_members`) and drops
+  matches from the issues/warnings/counts, showing only a "{n} already in the app (not shown)"
+  reconciliation line. Only applies when `!memberReplaceMode`. The `validRows` count (and the
+  Import button label) then reflects new people only.
 - **Names are proper-cased on import** (`properCaseName`, on by default, toggle + preview in
   Validate Data). Handles hyphens, apostrophes, the Mc prefix, and lowercase particles (de,
   van…); Mac is intentionally left alone (Machado/Mack false positives). Casing is applied to
