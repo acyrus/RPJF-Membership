@@ -33,6 +33,7 @@ export default function App() {
   const [warningVisible, setWarningVisible] = useState(false);
   const inactivityTimer = useRef(null);
   const warningTimer = useRef(null);
+  const prevUserId = useRef(null); // tracks who we're signed in as, to spot a GENUINE new login
   const TIMEOUT_MS = 15 * 60 * 1000;  // 15 minutes
   const WARNING_MS = 13 * 60 * 1000;  // warn at 13 minutes (2 min before)
 
@@ -89,11 +90,18 @@ export default function App() {
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
+      prevUserId.current = session?.user?.id || null; // seed so a restored session isn't seen as a new login
       proceedAfterAuth(session);
     });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session);
-      if (event === "SIGNED_IN") claimSession(); // this device becomes the one active session
+      const uid = session?.user?.id || null;
+      // Claim the single-session slot ONLY on a genuine new login: SIGNED_IN for a user we
+      // weren't already signed in as. supabase-js also re-fires SIGNED_IN on tab focus and
+      // token refresh (same uid), and a reload fires INITIAL_SESSION — none of those should
+      // re-claim, or an older device would keep stealing the slot back from the newest login.
+      if (event === "SIGNED_IN" && uid && uid !== prevUserId.current) claimSession();
+      prevUserId.current = uid;
       if (event === "PASSWORD_RECOVERY") { setRecovery(true); setLoading(false); return; }
       // A password change (updateUser) fires USER_UPDATED for the SAME account. Re-running
       // the full post-auth load here flips `loading` on and remounts the onboarding flow

@@ -77,9 +77,12 @@ plus Login and SubmitPhoto (the public photo-submission page, outside the tab sh
   login screen. Same browser (two tabs) shares the localStorage id, so it never kicks itself;
   a genuinely different device gets a new id and wins. Backed by
   `supabase_migration_single_session.sql` (already run). Boot isn't instant — up to 30s, or
-  immediately when the older tab regains focus. `claimSession` runs only on `SIGNED_IN`, not
-  `USER_UPDATED` (which is ignored) or reload's `INITIAL_SESSION`, so a password change or a
-  refresh never re-claims. **All three `signOut` calls use `{ scope: "local" }`** (boot-self,
+  immediately when the older tab regains focus. **`claimSession` fires only on a GENUINE new
+  login**: `SIGNED_IN` where the uid differs from `prevUserId` (a ref seeded from the restored
+  session). supabase-js re-fires `SIGNED_IN` on tab focus and token refresh with the same uid,
+  and reload fires `INITIAL_SESSION` — without the uid guard the older device kept re-claiming
+  and stealing the slot back from the newest login (symptom: the newest device got booted
+  instead of the oldest). `USER_UPDATED` is still ignored entirely. **All three `signOut` calls use `{ scope: "local" }`** (boot-self,
   idle timeout, manual logout). The default is *global*, which revokes the account's tokens on
   every device — so a booted phone would also drop the computer that just claimed the session.
   Local signs out only the calling device. Don't drop the scope.
