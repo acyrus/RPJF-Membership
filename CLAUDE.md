@@ -184,8 +184,20 @@ Three tabs: Import Members, Import Attendance, Roster Check.
 - **Skills are deduped on ingest.** The form asks for three skills as three independent
   questions, so people pick the same one twice. The importer collapses repeats and
   left-packs `skill1..3`.
-- **Google Sheets import** fetches the CSV export URL client-side. It is CORS-fragile; if it
-  breaks again the fix is a server-side proxy, not a retry.
+- **Member import matches by NAME only; email is a flag, not a match key.** Families share
+  one email, so matching on it would silently merge a spouse/child onto someone else's record.
+  `import_members` matches first+last+middle; when a brand-new person's email is already on a
+  *different* member, the row is still **added** and returned with `flag: true` + a `flagged`
+  count, surfaced in the result as "added but sharing an email — worth a check." Nothing is
+  ever dropped or overwritten on an email collision. (Tradeoff: a genuinely corrected name can
+  still produce a duplicate, but that's visible and fixable, unlike silent family-data loss.)
+- **Google Sheets import goes through `/api/sheet`** (`church-app-v2/api/sheet.js`), a Vercel
+  serverless function that fetches the CSV server-side — no CORS. SSRF-guarded to
+  `docs.google.com/spreadsheets` only, and it detects an HTML sign-in page (sheet not public)
+  vs real CSV. `vercel.json` rewrite is `/((?!api/).*)` so the SPA catch-all doesn't swallow
+  the function. Client falls back to a direct browser fetch only on a genuine 404 (proxy not
+  deployed), so it still degrades gracefully. Needs Vercel functions enabled (root dir =
+  `church-app-v2`); they deploy automatically from `/api`.
 
 ## Roster feature
 
