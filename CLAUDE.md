@@ -79,7 +79,10 @@ plus Login and SubmitPhoto (the public photo-submission page, outside the tab sh
   `supabase_migration_single_session.sql` (already run). Boot isn't instant — up to 30s, or
   immediately when the older tab regains focus. `claimSession` runs only on `SIGNED_IN`, not
   `USER_UPDATED` (which is ignored) or reload's `INITIAL_SESSION`, so a password change or a
-  refresh never re-claims.
+  refresh never re-claims. **All three `signOut` calls use `{ scope: "local" }`** (boot-self,
+  idle timeout, manual logout). The default is *global*, which revokes the account's tokens on
+  every device — so a booted phone would also drop the computer that just claimed the session.
+  Local signs out only the calling device. Don't drop the scope.
 - **15-minute idle auto-logout still applies** (warning at 13 min) — that's separate from
   the session work above and was not touched.
 - **Changing a password (signed in, `SecurityModal`) requires the current password.** It's

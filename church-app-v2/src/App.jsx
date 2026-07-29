@@ -54,7 +54,7 @@ export default function App() {
     if (!session) return;
     warningTimer.current = setTimeout(() => setWarningVisible(true), WARNING_MS);
     inactivityTimer.current = setTimeout(() => {
-      supabase.auth.signOut();
+      supabase.auth.signOut({ scope: "local" }); // this device only, don't revoke other sessions
       setWarningVisible(false);
     }, TIMEOUT_MS);
   }, [session, TIMEOUT_MS, WARNING_MS]);
@@ -142,7 +142,10 @@ export default function App() {
       if (data.active_session && data.active_session !== localId) {
         localStorage.removeItem(SESSION_KEY);
         setBootedElsewhere(true);
-        await supabase.auth.signOut();
+        // LOCAL scope is essential: a global signOut here revokes the account's tokens on
+        // EVERY device, so this booted device would also drop the newer login that just
+        // claimed the session. Local signs out only this (older) device.
+        await supabase.auth.signOut({ scope: "local" });
       }
     } catch (e) { /* best effort */ }
   }
@@ -254,7 +257,7 @@ export default function App() {
 
   async function logout() {
     localStorage.removeItem(SESSION_KEY); // deliberate sign-out shouldn't leave a stale claim
-    await supabase.auth.signOut();
+    await supabase.auth.signOut({ scope: "local" }); // sign out this device only, not every session
     setTab("members"); setMembers([]); setServices([]); setAttendance([]);
   }
 
