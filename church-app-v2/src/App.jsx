@@ -34,6 +34,7 @@ export default function App() {
   const inactivityTimer = useRef(null);
   const warningTimer = useRef(null);
   const prevUserId = useRef(null); // tracks who we're signed in as, to spot a GENUINE new login
+  const lastClaimAt = useRef(0);   // when this device last claimed the session, for the boot grace window
   const TIMEOUT_MS = 15 * 60 * 1000;  // 15 minutes
   const WARNING_MS = 13 * 60 * 1000;  // warn at 13 minutes (2 min before)
 
@@ -133,6 +134,7 @@ export default function App() {
         id = (crypto.randomUUID && crypto.randomUUID()) || String(Date.now()) + Math.random();
         localStorage.setItem(SESSION_KEY, id);
       }
+      lastClaimAt.current = Date.now(); // open the grace window from the moment we start claiming
       await supabase.rpc("claim_session", { p_session: id });
     } catch (e) { /* if the column/function isn't present, silently no-op */ }
   }
@@ -141,6 +143,11 @@ export default function App() {
   // account, sign this one out and flag it so the login screen can explain why.
   async function checkActiveSession() {
     try {
+      // Never boot ourselves right after our own claim: the claim_session write may not
+      // have landed yet, so a check that races it would read the PREVIOUS device's id and
+      // sign this (newly-logged-in) device out. An older device claimed long ago, so its
+      // grace window is well expired and it still boots correctly when a newer login wins.
+      if (Date.now() - lastClaimAt.current < 15000) return;
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
       const localId = localStorage.getItem(SESSION_KEY);
