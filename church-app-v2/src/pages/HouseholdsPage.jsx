@@ -54,7 +54,7 @@ export default function HouseholdsPage({ profile, members, setMembers, household
   }
 
   async function deleteHousehold(id) {
-    if (!confirm("Delete this household? The members stay — they just won't be grouped any more.")) return;
+    if (!confirm("Delete this household? The members stay, they just won't be grouped any more.")) return;
     setError("");
     const { error: e } = await supabase.from("households").delete().eq("id", id);
     if (e) { setError(e.message); return; }
@@ -101,7 +101,7 @@ export default function HouseholdsPage({ profile, members, setMembers, household
       </div>
 
       <div style={{ background: "#eef6f6", border: "1.5px solid #c9e3e1", borderRadius: 10, padding: "10px 14px", fontSize: 12, color: "#2a5357", marginBottom: 18, lineHeight: 1.6 }}>
-        To build a family from scratch: create the household above, then add each member to it below — even the very first person can be added before anyone else exists.
+        To build a family from scratch: create the household above, then add each member to it below, even the very first person can be added before anyone else exists.
       </div>
 
       {error && <div className="error-msg" style={{ marginBottom: 14 }}>{error}</div>}
@@ -172,7 +172,7 @@ export default function HouseholdsPage({ profile, members, setMembers, household
                   <option value="">+ Add member to this household…</option>
                   {addable.map(m => (
                     <option key={m.id} value={m.id}>
-                      {fullName(m)}{m.household_id ? ` — currently in ${householdName(m.household_id) || "another household"}` : ""}
+                      {fullName(m)}{m.household_id ? `, currently in ${householdName(m.household_id) || "another household"}` : ""}
                     </option>
                   ))}
                 </select>

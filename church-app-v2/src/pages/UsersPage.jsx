@@ -43,7 +43,7 @@ function TabAccessModal({ user, onSave, onReset, onClose, saving }) {
   return (
     <div className="modal-bg" onClick={onClose}>
       <div className="modal fade-in" onClick={e=>e.stopPropagation()}>
-        <h2>TAB ACCESS — {user.name.toUpperCase()}</h2>
+        <h2>TAB ACCESS: {user.name.toUpperCase()}</h2>
         <div style={{fontSize:12, color:"#6b7280", marginBottom:14, lineHeight:1.7}}>
           Tick the tabs <strong style={{color:"#111827"}}>{user.name}</strong> should see.
           Leave them on the role default unless there's a reason not to.
@@ -76,7 +76,7 @@ function TabAccessModal({ user, onSave, onReset, onClose, saving }) {
 
         <div style={{fontSize:11, color:"#9ca3af", marginBottom:14}}>
           {picked.size === 0
-            ? "No tabs selected — this user won't be able to see anything."
+            ? "No tabs selected, this user won't be able to see anything."
             : matchesRole
               ? `Matches the ${user.role} default.`
               : `${picked.size} tab${picked.size!==1?"s":""} selected · differs from the ${user.role} default.`}
@@ -269,7 +269,7 @@ export default function UsersPage({ currentProfile }) {
       </div>
       <div style={{fontSize:11, color:"#9ca3af", marginTop:-16, marginBottom:22, lineHeight:1.7}}>
         These are the defaults for each role. Use <strong>Tabs</strong> on any user to give
-        them a different set — anyone customised is flagged in their row.
+        them a different set, anyone customised is flagged in their row.
       </div>
 
       {/* Users grouped by role */}

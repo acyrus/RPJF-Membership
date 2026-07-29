@@ -185,7 +185,7 @@ export default function DashboardPage({ profile, members, services, attendance, 
       <SectionTitle>Attendance</SectionTitle>
       <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
         <StatCard icon={<Calendar size={22} />} label="Last Service"
-          value={stats.lastSvc ? `${stats.lastAtt}` : "—"}
+          value={stats.lastSvc ? `${stats.lastAtt}` : "-"}
           sub={stats.lastSvc ? `${stats.lastSvc.name} · ${stats.lastSvc.service_date.split("-").reverse().join("/")}` : "No services yet"}
           color="#4caf82" />
       </div>

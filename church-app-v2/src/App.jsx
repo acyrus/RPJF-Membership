@@ -303,11 +303,11 @@ export default function App() {
           color: isLeadership?"#6020a0":isUsher?"#2a7a50":isCelebrations?"#a05010":"#5a6a8a",
         }}>
           {/* Derived from the tabs this account actually has, so it can't drift out of
-              date the way the hand-written usher line did — that still promised only
+              date the way the hand-written usher line did, that still promised only
               attendance, households and celebrations after Uncaptured Members and Photos were added. */}
-          {isLeadership && "Leadership access — "}
-          {isUsher && "Usher access — "}
-          {isCelebrations && "Celebrations access — "}
+          {isLeadership && "Leadership access, "}
+          {isUsher && "Usher access, "}
+          {isCelebrations && "Celebrations access, "}
           {`you can reach ${allowedTabs.map(t => TAB_LABELS[t]).join(", ")}.`}
         </div>
       )}
@@ -361,8 +361,8 @@ export default function App() {
         )}
         {/* These four were gated on isAdmin while every other tab checks allowedTabs.
             That made the nav and the page disagree: an usher given Photos saw the tab
-            and the pending badge, then a blank page. Any tab reachable from the nav —
-            role default or per-user override — must render here, so the gate has to be
+            and the pending badge, then a blank page. Any tab reachable from the nav, 
+            role default or per-user override, must render here, so the gate has to be
             the same list the nav is built from. Writes are still governed by RLS. */}
         {tab==="users" && allowedTabs.includes("users") && <UsersPage currentProfile={profile} />}
         {tab==="photos" && allowedTabs.includes("photos") && <PhotoRequestsPage profile={profile} members={members} setMembers={setMembers} setPendingPhotos={setPendingPhotos} />}

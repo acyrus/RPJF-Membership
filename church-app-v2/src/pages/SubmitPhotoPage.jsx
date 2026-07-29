@@ -115,7 +115,7 @@ export default function SubmitPhotoPage() {
             </div>
           </div>
           <div style={{ fontSize: 12, color: "#9ca3af", marginTop: 6, lineHeight: 1.5 }}>
-            Used only to match you to your record — never shown publicly.
+            Used only to match you to your record, never shown publicly.
           </div>
 
           {/* Step 2 — photo */}

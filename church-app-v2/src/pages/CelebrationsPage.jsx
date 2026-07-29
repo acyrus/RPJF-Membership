@@ -259,7 +259,7 @@ export default function CelebrationsPage({ members, onMemberClick }) {
           {currentMonth === 0 ? (
             <div style={{textAlign:"center",padding:"48px 20px",color:"#d1d5db"}}>
               <div style={{marginBottom:12,display:"flex",justifyContent:"center"}}><CalendarDays size={36} color="#8a96b8" /></div>
-              <div style={{fontWeight:600,color:"#6b7280",marginBottom:6}}>No past {subtab} — it's January!</div>
+              <div style={{fontWeight:600,color:"#6b7280",marginBottom:6}}>No past {subtab}, it's January!</div>
               <div style={{fontSize:12}}>Past {subtab} will appear here as the year progresses.</div>
             </div>
           ) : pastTotal === 0 ? (
