@@ -176,6 +176,11 @@ Three tabs: Import Members, Import Attendance, Roster Check.
   filtered out client-side first, so the function only sees clean data.
 - **Phones**: `normalizePhone()` canonicalizes to T&T local format `943-4893`. Accepts
   `9434893`, `(868) 943-4893`, `1-868-943-4893`, etc. Only letters or <7 digits block a row.
+- **Names are proper-cased on import** (`properCaseName`, on by default, toggle + preview in
+  Validate Data). Handles hyphens, apostrophes, the Mc prefix, and lowercase particles (de,
+  van…); Mac is intentionally left alone (Machado/Mack false positives). Casing is applied to
+  the STORED value only — dedup and the RPC match on the lowercased originals, so tidying
+  capitalisation never changes who a row matches.
 - **Skills are deduped on ingest.** The form asks for three skills as three independent
   questions, so people pick the same one twice. The importer collapses repeats and
   left-packs `skill1..3`.
