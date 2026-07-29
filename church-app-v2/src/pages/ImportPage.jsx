@@ -63,6 +63,30 @@ function ageFromISO(iso) {
   return (Date.now() - new Date(iso + "T00:00:00Z").getTime()) / (365.25 * 24 * 3600 * 1000);
 }
 
+// Proper-case a personal name. Handles hyphens (Ali-Mohammed), apostrophes (O'Brien),
+// the Mc prefix (McDonald), and keeps lowercase particles (de, van, der...) mid-name.
+// Mac is deliberately NOT auto-capitalised — too many false positives (Machado, Mack).
+// Not perfect for every surname, but far better than storing "JOHN SMITH" or "john smith";
+// the import previews the changes and can be turned off per-import.
+const NAME_PARTICLES = new Set(["de","del","der","van","von","da","di","la","le","du","dos","das","bin","al"]);
+function properCaseName(raw) {
+  const s = String(raw || "").trim().replace(/\s+/g, " ");
+  if (!s) return s;
+  const capToken = tok =>
+    tok.replace(/[A-Za-zÀ-ÿ]+/g, word => {
+      const w = word.toLowerCase();
+      let cap = w.charAt(0).toUpperCase() + w.slice(1);
+      if (/^mc[a-zà-ÿ]{2,}$/.test(w)) cap = "Mc" + w.charAt(2).toUpperCase() + w.slice(3);
+      return cap;
+    });
+  const words = s.split(" ");
+  return words.map((word, i) => {
+    const lower = word.toLowerCase();
+    if (i !== 0 && i !== words.length - 1 && NAME_PARTICLES.has(lower)) return lower;
+    return capToken(word);
+  }).join(" ");
+}
+
 // Normalize any way a member might type a Trinidad & Tobago phone number into the
 // canonical local format "943-4893". Accepts: 9434893, 943 4893, 943-4893,
 // (868) 943-4893, 868-943-4893, 1-868-943-4893, +1 868 943 4893.
@@ -226,6 +250,7 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
   const [memberReplaceMode, setMemberReplaceMode] = useState(false);
   const [memberValidation, setMemberValidation] = useState(null);
   const [dateOrderOverride, setDateOrderOverride] = useState(null); // null = use auto-detected
+  const [properCase, setProperCase] = useState(true); // tidy name capitalisation on import
   const [sheetUrl, setSheetUrl] = useState("");
   const [sheetLoading, setSheetLoading] = useState(false);
 
@@ -345,6 +370,7 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
     const issues = [], warnings = [];
     let emptyRows = 0;
     const badRowNums = new Set();
+    const nameChanges = []; // { row, from, to } when proper-casing would tidy a name
     memberRows.forEach((row, i) => {
       const rowNum = i + 2;
       const get = col => memberMapping[col] ? (row[memberMapping[col]] || "").trim() : "";
@@ -355,10 +381,14 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
       if (ri.length) badRowNums.add(rowNum);
       ri.forEach(x => issues.push({ row: rowNum, name, ...x }));
       rw.forEach(x => warnings.push({ row: rowNum, name, ...x }));
+      if (properCase) {
+        const tidied = `${properCaseName(first)} ${properCaseName(last)}`.trim();
+        if (tidied && tidied !== name) nameChanges.push({ row: rowNum, from: name, to: tidied });
+      }
     });
     const nonEmpty = memberRows.length - emptyRows;
     const validRows = nonEmpty - badRowNums.size;
-    setMemberValidation({ issues, warnings, validRows, badRows: badRowNums.size, emptyRows, total: memberRows.length });
+    setMemberValidation({ issues, warnings, validRows, badRows: badRowNums.size, emptyRows, total: memberRows.length, nameChanges });
     return issues.length === 0;
   }
 
@@ -400,10 +430,13 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
       }
       const skills = [...new Set([get("skill1"), get("skill2"), get("skill3")].filter(Boolean))];
       const roles = [...new Set(get("roles").split(/[,;]/).map(r => r.trim()).filter(r => ROLES.includes(r)))];
+      // Case names for STORAGE only. Matching/dedup still uses the lowercased originals,
+      // so tidying capitalisation never changes who a row matches.
+      const cn = v => properCase ? properCaseName(v) : v;
       records.push({
-        row: rowNum, name,
-        first_name: first, last_name: last,
-        middle_name: get("middle_name") || "",
+        row: rowNum, name: `${cn(first)} ${cn(last)}`.trim(),
+        first_name: cn(first), last_name: cn(last),
+        middle_name: cn(get("middle_name")) || "",
         email: get("email") || "",
         phone: normalizePhone(get("phone")).value || "",   // canonical "943-4893"
         dob: convertDate(get("dob"), dateOrder) || "",
@@ -886,6 +919,14 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
                 </span>
               </div>
 
+              {/* Proper-case names on import (previewed in Validate Data). */}
+              <div style={{marginTop:10, background:"#f7f9fb", border:"1px solid #e4e9f5", borderRadius:8, padding:"11px 14px"}}>
+                <label style={{display:"flex", alignItems:"center", gap:9, cursor:"pointer", fontSize:12, color:"#374151"}}>
+                  <input type="checkbox" checked={properCase} onChange={e=>setProperCase(e.target.checked)} />
+                  <span><strong>Tidy name capitalisation</strong> — save <code>john smith</code> / <code>JOHN SMITH</code> as <code>John Smith</code>. Handles O'Brien, Ali-Mohammed, McDonald. Run <em>Validate Data</em> to preview the changes.</span>
+                </label>
+              </div>
+
               <div style={{marginTop:16}}>
                 {/* Validate button */}
                 <div style={{display:"flex", gap:8, marginBottom:12}}>
@@ -923,6 +964,22 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
                     <div style={{maxHeight:200, overflowY:"auto", paddingRight:4}}>
                       {memberValidation.warnings.map((w,i)=>(
                         <div key={i} style={{fontSize:12, color:"#a06a10", marginTop:3}}><strong>Row {w.row}</strong> · {w.name} · {w.msg}</div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Name-tidy preview: show exactly what proper-casing will change. */}
+                {memberValidation && memberValidation.nameChanges && memberValidation.nameChanges.length > 0 && (
+                  <div style={{marginBottom:14, background:"#f0f6ff", border:"1.5px solid #b8d0f0", borderRadius:8, padding:"12px 14px"}}>
+                    <div style={{fontWeight:700, fontSize:12, color:"#2a5aa0", marginBottom:6}}>
+                      {memberValidation.nameChanges.length} name{memberValidation.nameChanges.length!==1?"s":""} will be tidied to proper case
+                    </div>
+                    <div style={{maxHeight:200, overflowY:"auto", paddingRight:4}}>
+                      {memberValidation.nameChanges.map((c,i)=>(
+                        <div key={i} style={{fontSize:12, color:"#3a6ab0", marginTop:3}}>
+                          <strong>Row {c.row}</strong> · <span style={{color:"#9ca3af"}}>{c.from}</span> → {c.to}
+                        </div>
                       ))}
                     </div>
                   </div>
