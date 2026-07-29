@@ -9,9 +9,13 @@
 -- call, inside a single transaction: all rows succeed or none do.
 --
 -- The client sends already-normalised rows (dates as ISO yyyy-mm-dd, phone
--- canonicalised, skills de-duplicated, roles validated). Matching is first + last +
--- middle, case-insensitive, blank matches blank — same rule the per-row loop used.
--- p_replace = false skips rows that already exist; true overwrites them.
+-- canonicalised, skills de-duplicated, roles validated).
+--
+-- MATCHING is email-first, then name: if the row carries an email that an existing
+-- member already has, it's treated as the SAME person even when the name was corrected
+-- in the sheet — so a re-import updates them instead of inserting a duplicate. Only when
+-- there's no email match does it fall back to first + last + middle (case-insensitive,
+-- blank = blank). p_replace = false skips rows that already exist; true overwrites them.
 -- ============================================================
 
 create or replace function import_members(p_rows jsonb, p_replace boolean default false)
@@ -21,14 +25,16 @@ security definer
 set search_path = public
 as $$
 declare
-  rec       jsonb;
-  v_existing uuid;
-  v_id      uuid;
-  v_added   int := 0;
-  v_updated int := 0;
-  v_skipped int := 0;
-  v_results jsonb := '[]'::jsonb;
-  v_role    text;
+  rec         jsonb;
+  v_existing  uuid;
+  v_id        uuid;
+  v_email     text;
+  v_matched_by text;
+  v_added     int := 0;
+  v_updated   int := 0;
+  v_skipped   int := 0;
+  v_results   jsonb := '[]'::jsonb;
+  v_role      text;
 begin
   if get_my_role() <> 'admin' then
     raise exception 'Only admins can import members';
@@ -36,19 +42,32 @@ begin
 
   for rec in select value from jsonb_array_elements(p_rows) as t(value)
   loop
-    -- Match existing member: first + last + middle, case-insensitive, blank = blank.
-    select id into v_existing
-      from members m
-     where lower(trim(m.first_name)) = lower(trim(rec->>'first_name'))
-       and lower(trim(m.last_name))  = lower(trim(rec->>'last_name'))
-       and coalesce(lower(trim(m.middle_name)), '') = coalesce(lower(trim(rec->>'middle_name')), '')
-     limit 1;
+    v_existing := null;
+    v_matched_by := null;
+    v_email := nullif(lower(trim(rec->>'email')), '');
+
+    -- 1) Stable key: email, when the row has one. A corrected name still matches the
+    --    same person, so a re-import updates rather than inserting a duplicate.
+    if v_email is not null then
+      select id into v_existing from members where lower(trim(email)) = v_email limit 1;
+      if v_existing is not null then v_matched_by := ' by email'; end if;
+    end if;
+
+    -- 2) Fall back to name: first + last + middle, case-insensitive, blank = blank.
+    if v_existing is null then
+      select id into v_existing
+        from members m
+       where lower(trim(m.first_name)) = lower(trim(rec->>'first_name'))
+         and lower(trim(m.last_name))  = lower(trim(rec->>'last_name'))
+         and coalesce(lower(trim(m.middle_name)), '') = coalesce(lower(trim(rec->>'middle_name')), '')
+       limit 1;
+    end if;
 
     if v_existing is not null and not p_replace then
       v_skipped := v_skipped + 1;
       v_results := v_results || jsonb_build_object(
         'row', rec->>'row', 'name', rec->>'name',
-        'outcome', 'skipped', 'reason', 'already in database (Replace mode off)');
+        'outcome', 'skipped', 'reason', 'already in database' || coalesce(v_matched_by, '') || ' (Replace mode off)');
       continue;
     end if;
 
@@ -79,7 +98,7 @@ begin
       v_updated := v_updated + 1;
       v_results := v_results || jsonb_build_object(
         'row', rec->>'row', 'name', rec->>'name',
-        'outcome', 'updated', 'reason', 'matched existing record — replaced');
+        'outcome', 'updated', 'reason', 'matched existing record' || coalesce(v_matched_by, ' by name') || ' — replaced');
     else
       insert into members (
         first_name, last_name, middle_name, email, phone, dob, sex, marital_status,

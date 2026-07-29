@@ -304,9 +304,10 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
         const id = match[1];
         csvUrl = `https://docs.google.com/spreadsheets/d/${id}/export?format=csv`;
       }
-      const res = await fetch(csvUrl);
-      if (!res.ok) throw new Error("Could not fetch sheet — make sure it is shared publicly (Anyone with link can view)");
-      const text = await res.text();
+      // Fetch through our own /api/sheet proxy (server-side, no CORS). If that route
+      // isn't deployed (e.g. a preview without functions), fall back to a direct fetch —
+      // the old CORS-fragile path — so the feature still works where it can.
+      const text = await fetchSheetCsv(csvUrl);
       const rows = parseCSV(text);
       if (!rows.length) throw new Error("No data found in sheet");
       setMemberRows(rows);
@@ -315,6 +316,26 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
       setMemberMapping(autoMapHeaders(headers));
     } catch(e) { setMemberError(e.message); }
     finally { setSheetLoading(false); }
+  }
+
+  // Prefer the server proxy; fall back to a direct browser fetch only if the proxy
+  // route is genuinely absent (404), not when Google itself refuses the sheet.
+  async function fetchSheetCsv(csvUrl) {
+    try {
+      const res = await fetch(`/api/sheet?url=${encodeURIComponent(csvUrl)}`);
+      if (res.ok) return await res.text();
+      if (res.status !== 404) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || "Could not fetch the sheet.");
+      }
+      // 404 → proxy not deployed; fall through to a direct attempt.
+    } catch (e) {
+      if (e.message && !/failed to fetch|networkerror/i.test(e.message)) throw e;
+      // network error reaching the proxy → try direct as a last resort
+    }
+    const direct = await fetch(csvUrl);
+    if (!direct.ok) throw new Error("Could not fetch sheet — make sure it is shared publicly (Anyone with link can view)");
+    return await direct.text();
   }
 
   // Per-row validation, reused by both the validation summary and the import loop.
