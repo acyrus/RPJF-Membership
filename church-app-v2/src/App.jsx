@@ -29,6 +29,7 @@ export default function App() {
   const [recovery, setRecovery] = useState(false); // arrived via password-reset link
   const [passwordSet, setPasswordSet] = useState(false); // just set a password this session (invite/reset)
   const [needs2fa, setNeeds2fa] = useState(false); // logged in but no 2FA factor enrolled
+  const [bootedElsewhere, setBootedElsewhere] = useState(false); // signed out because the account logged in on another device
   const [warningVisible, setWarningVisible] = useState(false);
   const inactivityTimer = useRef(null);
   const warningTimer = useRef(null);
@@ -92,6 +93,7 @@ export default function App() {
     });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session);
+      if (event === "SIGNED_IN") claimSession(); // this device becomes the one active session
       if (event === "PASSWORD_RECOVERY") { setRecovery(true); setLoading(false); return; }
       // A password change (updateUser) fires USER_UPDATED for the SAME account. Re-running
       // the full post-auth load here flips `loading` on and remounts the onboarding flow
@@ -104,12 +106,57 @@ export default function App() {
     return () => subscription.unsubscribe();
   }, []);
 
-  // ---- Concurrent logins ----
-  // Single-session enforcement ("last login wins") was removed deliberately: the same
-  // account may now be signed in on several devices at once. The DB side is still
-  // there but unused — profiles.active_session and the claim_session() function from
-  // supabase_migration_single_session.sql were left in place, so switching this back
-  // on is a code change only, no SQL. Auto-logout on 15 minutes idle still applies.
+  // ---- Single active session ("last login wins") ----
+  // Each device stores a random session id and records it as the account's active_session
+  // on login (claim_session). A watcher then compares this device's id against the DB; if a
+  // newer login has claimed the account, this (older) device signs itself out. Backed by
+  // profiles.active_session + claim_session() from supabase_migration_single_session.sql.
+  const SESSION_KEY = "rpjf_active_session";
+
+  // Claim this device as the one active session for the account.
+  async function claimSession() {
+    try {
+      setBootedElsewhere(false);
+      // Reuse this browser's existing id across reloads/re-logins so the same user on the
+      // same device never kicks themselves; only mint one the first time. A genuinely
+      // different device has no stored id, generates a new one, and wins.
+      let id = localStorage.getItem(SESSION_KEY);
+      if (!id) {
+        id = (crypto.randomUUID && crypto.randomUUID()) || String(Date.now()) + Math.random();
+        localStorage.setItem(SESSION_KEY, id);
+      }
+      await supabase.rpc("claim_session", { p_session: id });
+    } catch (e) { /* if the column/function isn't present, silently no-op */ }
+  }
+
+  // Compare this device's stored id against the DB. If another device has since claimed the
+  // account, sign this one out and flag it so the login screen can explain why.
+  async function checkActiveSession() {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      const localId = localStorage.getItem(SESSION_KEY);
+      if (!localId) return; // nothing to compare against yet
+      const { data, error } = await supabase.from("profiles").select("active_session").eq("id", session.user.id).single();
+      if (error || !data) return;
+      if (data.active_session && data.active_session !== localId) {
+        localStorage.removeItem(SESSION_KEY);
+        setBootedElsewhere(true);
+        await supabase.auth.signOut();
+      }
+    } catch (e) { /* best effort */ }
+  }
+
+  // Watcher: check on mount, when the tab regains focus, and every ~30s.
+  useEffect(() => {
+    if (!profile) return;
+    checkActiveSession();
+    const onVis = () => { if (document.visibilityState === "visible") checkActiveSession(); };
+    document.addEventListener("visibilitychange", onVis);
+    const iv = setInterval(checkActiveSession, 30000);
+    return () => { document.removeEventListener("visibilitychange", onVis); clearInterval(iv); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profile]);
 
   // After a session exists, check whether the account still owes a 2FA step.
   // currentLevel aal1 + nextLevel aal2 means: has 2FA enabled but hasn't verified yet.
@@ -206,13 +253,23 @@ export default function App() {
   }
 
   async function logout() {
+    localStorage.removeItem(SESSION_KEY); // deliberate sign-out shouldn't leave a stale claim
     await supabase.auth.signOut();
     setTab("members"); setMembers([]); setServices([]); setAttendance([]);
   }
 
   if (loading) return <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"#f4f6fa"}}><Spinner /></div>;
   if (recovery) return <SetPasswordScreen onDone={handlePasswordSet} onCancel={logout} />;
-  if (!session) return <LoginPage />;
+  if (!session) return (
+    <>
+      {bootedElsewhere && (
+        <div style={{position:"fixed",top:0,left:0,right:0,zIndex:100,background:"#fbeaea",color:"#a12b2b",borderBottom:"1.5px solid #eecccc",padding:"10px 16px",fontSize:13,textAlign:"center",fontWeight:600}}>
+          You were signed out because this account was used to sign in on another device.
+        </div>
+      )}
+      <LoginPage />
+    </>
+  );
   if (mfaStatus === "required") return <MfaChallenge onVerified={handleMfaVerified} onCancel={logout} />;
   if (!profile) return (
     <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:12,color:"#6b7280",padding:20,textAlign:"center",background:"#f4f6fa"}}>
