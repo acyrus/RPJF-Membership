@@ -69,12 +69,17 @@ plus Login and SubmitPhoto (the public photo-submission page, outside the tab sh
 
 - **2FA** is enrolled at login and enforced per account via `profiles.require_2fa`
   (defaults true). `supabase_migration_require_2fa.sql`. Set it false to exempt an account.
-- **Concurrent logins are allowed.** Single-session enforcement ("last login wins") was
-  removed from `App.jsx` in Jul 2026 — no claim call, no 45s poll, no visibilitychange
-  check, no "signed out on another device" banner. The DB side was deliberately left in
-  place (`profiles.active_session` + `claim_session()` from
-  `supabase_migration_single_session.sql`), unused, so re-enabling is a code change with no
-  SQL. Don't "tidy up" that migration expecting it to be dead.
+- **Single active session, last login wins (re-enabled Jul 2026).** Each device stores a
+  random id in `localStorage` (`rpjf_active_session`) and records it via `claim_session()` on
+  `SIGNED_IN`. A watcher (`checkActiveSession`, on mount + visibilitychange + 30s poll)
+  compares it to `profiles.active_session`; if a newer login has claimed the account, the
+  older device signs itself out and shows the "signed out on another device" banner on the
+  login screen. Same browser (two tabs) shares the localStorage id, so it never kicks itself;
+  a genuinely different device gets a new id and wins. Backed by
+  `supabase_migration_single_session.sql` (already run). Boot isn't instant — up to 30s, or
+  immediately when the older tab regains focus. `claimSession` runs only on `SIGNED_IN`, not
+  `USER_UPDATED` (which is ignored) or reload's `INITIAL_SESSION`, so a password change or a
+  refresh never re-claims.
 - **15-minute idle auto-logout still applies** (warning at 13 min) — that's separate from
   the session work above and was not touched.
 - **Changing a password (signed in, `SecurityModal`) requires the current password.** It's
