@@ -720,6 +720,7 @@ export const hasCustomTabs = profile =>
 
 export const MARITAL_OPTIONS = ["Single","Married"];
 export const SEX_OPTIONS = ["Male","Female"];
+export const INTERACTION_OPTIONS = ["In Person","Online","Both"];
 
 export const TRINIDAD_CITIES = [
   "Arima","Barataria","Bon Accord","Carapachiama","Caroni","Chaguanas",
@@ -760,7 +761,7 @@ export const INSTRUMENTS = ["Acoustic Guitar","Electric Guitar","Keyboard/Piano"
 
 export const BLANK_MEMBER = {
   first_name:"", middle_name:"", last_name:"",
-  phone:"", email:"", dob:"", sex:"", marital_status:"",
+  phone:"", email:"", dob:"", sex:"", marital_status:"", interaction_type:"",
   address:"", city:"", anniversary:"", skill1:"", skill2:"", skill3:"", other_skills:"", instruments:"", is_active: true,
   join_date:"", notes:"", roles:[], spouse_id:"", household_id:"", new_household_name:"", photo_url:""
 };
@@ -1011,6 +1012,17 @@ export function MemberForm({ value, onChange, onSubmit, onCancel, submitLabel="S
           <div style={{fontSize:11,color:"#b0b8d0",marginTop:4}}>Selecting a spouse automatically links them back to this member.</div>
         </div>
       )}
+
+      <div className="field-group">
+        <label className="field-label">How do they attend services?</label>
+        <div style={{display:"flex",gap:8,marginTop:4}}>
+          {INTERACTION_OPTIONS.map(opt=>(
+            <button key={opt} className={`marital-btn ${value.interaction_type===opt?"on":""}`}
+              onClick={()=>onChange({...value, interaction_type: value.interaction_type===opt?"":opt})}
+              style={{flex:1}}>{opt}</button>
+          ))}
+        </div>
+      </div>
 
       <div className="field-group">
         <label className="field-label">Household / Family <span style={{color:"#d1d5db",fontWeight:400,fontSize:10}}>(groups a whole family)</span></label>

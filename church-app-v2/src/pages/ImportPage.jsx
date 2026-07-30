@@ -107,7 +107,7 @@ function normalizePhone(raw) {
   return { value: d || s, digits: d, ok: false, reason: `expected 7 digits, got ${d.length}` };
 }
 
-const MEMBER_COLUMNS = ["first_name","last_name","middle_name","email","phone","dob","sex","marital_status","city","address","join_date","anniversary","skill1","skill2","skill3","other_skills","instruments","notes","roles"];
+const MEMBER_COLUMNS = ["first_name","last_name","middle_name","email","phone","dob","sex","marital_status","interaction_type","city","address","join_date","anniversary","skill1","skill2","skill3","other_skills","instruments","notes","roles"];
 
 // Accept friendly header aliases so app-exported CSVs (which use "Gender") still auto-map
 const COLUMN_ALIASES = { sex: ["gender"], marital_status: ["marital"], instruments: ["instrument"] };
@@ -123,6 +123,7 @@ const HEADER_HINTS = {
   first_name:["first name"], last_name:["last name"], middle_name:["middle name"],
   email:["email"], phone:["phone"], dob:["date of birth","birth"],
   sex:["gender","sex"], marital_status:["marital"], city:["city"],
+  interaction_type:["interaction","in person","online","attend"],
   address:["home address"], join_date:["church join","join date"], anniversary:["anniversary"],
   skill1:["primary skill"], skill2:["secondary skill"], skill3:["tertiary skill"],
   other_skills:["additional skill","other skill"], instruments:["instrument"],
@@ -470,6 +471,7 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
         dob: convertDate(get("dob"), dateOrder) || "",
         sex: get("sex") || "",
         marital_status: get("marital_status") || "",
+        interaction_type: get("interaction_type") || "",
         address: get("address") || "",
         join_date: convertDate(get("join_date"), dateOrder) || "",
         anniversary: convertDate(get("anniversary"), dateOrder) || "",
