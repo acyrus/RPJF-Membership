@@ -9,16 +9,15 @@ builds, with the most complex left for last.
 2. Enable duplicate session block (single active session, last login wins)
 3. Redefine data intake pull for membership
 4. Change name of Roster to Uncaptured Members
+5. Code standardization for replication and GitHub protection (`.gitattributes` + line-endings
+   fix, `.editorconfig`, `.gitignore`, README, and branch protection on `main`)
+6. Additional membership info: interaction type (In Person / Online / Both). Nationality was
+   considered and dropped. (Field is built; run `member_info.sql` then re-run
+   `import_members.sql` in Supabase to activate.)
 
 ## In priority order
 
-5. **Code standardization for replication and GitHub protection.** Do first. A one-time
-   line-endings fix (`.gitattributes`) and branch protection rules protect production and
-   stop the "whole tree looks modified" problem before more code piles on.
-6. **Additional membership info: interaction type (In Person / Online / Both).** Done.
-   Quick field, immediate value while onboarding is still active. (Nationality was considered
-   and dropped.)
-7. **A section for church position.** Another quick data addition on the member record.
+7. **A section for church position.** A quick data addition on the member record.
 8. **Standardize styling between light and dark mode.** Cleaner to settle before more pages
    are built. **Bundle white-label branding here:** pull church name, tagline, logo, and
    theme colors into one config file, plus a README section telling a new church what to

@@ -38,6 +38,16 @@ React 18 + Vite 5 + Supabase, deployed on Vercel. Deps: `@supabase/supabase-js`,
   hand-written usher line went stale the moment Roster and Photos were added.
 - Roles (`member_roles.role_name`) are unconstrained text in the DB — adding a ministry means
   editing `ROLES` + `ROLE_COLORS` in `components.jsx`, no migration needed.
+- **Leadership position lives on `member_roles.position`** ("Leader" / "Co-Leader" / null),
+  not on the member — authority is always over a specific ministry
+  (`supabase_migration_ministry_position.sql`). Set in `MemberForm` (a per-ministry picker
+  appears once a role is toggled on) and admin-only via RLS; NOT on the public form. Members
+  carry `roles` (array, unchanged) plus `rolePositions` ({role: position}) built in
+  `loadAll`. The Ministries page sorts leaders first and badges them; the member detail
+  badges the position beside each role. **Import preserves positions:** `import_members`
+  rebuilds `member_roles` from the sheet (no position data there), so it captures existing
+  positions into `v_positions` before the delete and re-applies them, or a routine re-import
+  would wipe leadership.
 - Supabase RLS: `get_my_role()` gates writes. Account roles are `admin`, `leadership`,
   `usher`, `celebrations`. Role **defaults**:
   - **admin** — everything (13 tabs), lands on Home

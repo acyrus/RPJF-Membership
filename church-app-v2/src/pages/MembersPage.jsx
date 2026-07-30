@@ -167,10 +167,10 @@ export default function MembersPage({ profile, members, setMembers, households =
       }).select().single();
       if (mErr) throw mErr;
       if (form.roles.length) {
-        await supabase.from("member_roles").insert(form.roles.map(r => ({ member_id: member.id, role_name: r })));
+        await supabase.from("member_roles").insert(form.roles.map(r => ({ member_id: member.id, role_name: r, position: (form.rolePositions||{})[r] || null })));
       }
       const changes = await syncSpouse(member.id, spouseId, null);
-      const newMember = { ...member, roles: form.roles, spouse_id: spouseId, household_id: householdId };
+      const newMember = { ...member, roles: form.roles, rolePositions: form.rolePositions||{}, spouse_id: spouseId, household_id: householdId };
       setMembers(prev => {
         const patched = prev.map(m => changes[m.id] !== undefined ? { ...m, spouse_id: changes[m.id] } : m);
         return [...patched, newMember].sort((a,b)=>fullName(a).localeCompare(fullName(b)));
@@ -217,10 +217,10 @@ export default function MembersPage({ profile, members, setMembers, households =
       if (mErr) throw mErr;
       await supabase.from("member_roles").delete().eq("member_id", editData.id);
       if (editData.roles.length) {
-        await supabase.from("member_roles").insert(editData.roles.map(r => ({ member_id: editData.id, role_name: r })));
+        await supabase.from("member_roles").insert(editData.roles.map(r => ({ member_id: editData.id, role_name: r, position: (editData.rolePositions||{})[r] || null })));
       }
       const changes = await syncSpouse(editData.id, spouseId, prevSpouseId);
-      const updated = { ...editData, spouse_id: spouseId, household_id: householdId };
+      const updated = { ...editData, rolePositions: editData.rolePositions||{}, spouse_id: spouseId, household_id: householdId };
       setMembers(prev => prev.map(m => {
         if (m.id === editData.id) return updated;
         if (changes[m.id] !== undefined) return { ...m, spouse_id: changes[m.id] };
@@ -409,9 +409,17 @@ export default function MembersPage({ profile, members, setMembers, households =
           {/* Roles */}
           <div style={{marginBottom:14}}>
             <div style={{fontSize:11,color:"#9ca3af",letterSpacing:0.8,textTransform:"uppercase",fontWeight:700,marginBottom:8}}>Roles & Ministries</div>
-            <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
+            <div style={{display:"flex",flexWrap:"wrap",gap:5,alignItems:"center"}}>
               {(selected.roles||[]).length
-                ? (selected.roles||[]).map(r=><RoleBadge key={r} role={r} />)
+                ? (selected.roles||[]).map(r=>{
+                    const pos = (selected.rolePositions||{})[r];
+                    return (
+                      <span key={r} style={{display:"inline-flex",alignItems:"center",gap:4}}>
+                        <RoleBadge role={r} />
+                        {pos && <span style={{fontSize:10,fontWeight:700,color:"#7a4bd0",background:"#f0eaff",border:"1px solid #d9c9f5",borderRadius:20,padding:"1px 7px"}}>{pos}</span>}
+                      </span>
+                    );
+                  })
                 : <span style={{color:"#d1d5db",fontSize:12}}>No roles assigned</span>}
             </div>
           </div>
@@ -472,7 +480,7 @@ export default function MembersPage({ profile, members, setMembers, households =
           {isAdmin && (
             <div style={{display:"flex",gap:8,marginTop:4}}>
               <button className="btn-primary" style={{flex:1,fontSize:12}}
-                onClick={()=>{setEditData({...selected,dob:selected.dob?selected.dob.slice(0,10):"",join_date:selected.join_date?selected.join_date.slice(0,10):"",anniversary:selected.anniversary?selected.anniversary.slice(0,10):"",other_skills:selected.other_skills||"",instruments:selected.instruments||"",city:selected.city||"",spouse_id:selected.spouse_id||"",household_id:selected.household_id||"",new_household_name:"",photo_url:selected.photo_url||"",is_active:selected.is_active!==false,roles:selected.roles||[]});setError("");}}>
+                onClick={()=>{setEditData({...selected,dob:selected.dob?selected.dob.slice(0,10):"",join_date:selected.join_date?selected.join_date.slice(0,10):"",anniversary:selected.anniversary?selected.anniversary.slice(0,10):"",other_skills:selected.other_skills||"",instruments:selected.instruments||"",city:selected.city||"",spouse_id:selected.spouse_id||"",household_id:selected.household_id||"",new_household_name:"",photo_url:selected.photo_url||"",is_active:selected.is_active!==false,roles:selected.roles||[],rolePositions:selected.rolePositions||{}});setError("");}}>
                 Edit
               </button>
               <button className="btn-danger" style={{fontSize:12}} onClick={()=>handleDelete(selected.id)}>Delete</button>
