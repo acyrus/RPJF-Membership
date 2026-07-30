@@ -65,6 +65,16 @@ Dashboard, Members, Attendance, Roster, PhotoRequests, Roles (labelled "Ministri
 Households, Celebrations, Skills, Analytics, Users, Changelog ("Log"), Import,
 plus Login and SubmitPhoto (the public photo-submission page, outside the tab shell).
 
+## Member fields
+
+- **Interaction type** (`supabase_migration_member_info.sql`; also in `supabase_setup.sql`).
+  `members.interaction_type` is "In Person" / "Online" / "Both" (`INTERACTION_OPTIONS`),
+  rendered as button pills like sex/marital under the label "How do they attend services?".
+  Plain text (no DB constraint), optional, shown in the Members detail panel ("Attends"),
+  included in CSV export, and wired through the import (column, header hints, and the
+  `import_members` insert/update). Good candidate for Analytics (item 10). Nationality was
+  considered and removed before launch.
+
 ## Auth
 
 - **2FA** is enrolled at login and enforced per account via `profiles.require_2fa`

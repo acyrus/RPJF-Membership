@@ -93,10 +93,11 @@ export default function MembersPage({ profile, members, setMembers, households =
   }
 
   function exportCSV() {
-    const headers = ["First Name","Middle Name","Last Name","Gender","Marital Status","Date of Birth","Age","Phone","Email","City","Home Address","Church Join Date","Skill 1","Skill 2","Skill 3","Other Skills","Roles","Notes","Status"];
+    const headers = ["First Name","Middle Name","Last Name","Gender","Marital Status","Attends","Date of Birth","Age","Phone","Email","City","Home Address","Church Join Date","Skill 1","Skill 2","Skill 3","Other Skills","Roles","Notes","Status"];
     const rows = members.map(m => [
       m.first_name||"", m.middle_name||"", m.last_name||"",
       m.sex||"", m.marital_status||"",
+      m.interaction_type||"",
       m.dob||"", calcAge(m.dob)||"",
       m.phone||"", m.email||"", m.city||"", m.address||"",
       m.join_date||"",
@@ -364,6 +365,7 @@ export default function MembersPage({ profile, members, setMembers, households =
           {selected.dob && <InfoRow icon={<Cake size={15} color="#9ca3af" />} label="Date of Birth" value={formatDob(selected.dob)} />}
           {calcAge(selected.dob)!=null && <InfoRow icon={<Hourglass size={15} color="#9ca3af" />} label="Age" value={`${calcAge(selected.dob)} years old`} />}
           {selected.city && <InfoRow icon={<MapPin size={15} color="#9ca3af" />} label="City" value={selected.city} />}
+          {selected.interaction_type && <InfoRow icon={<Users size={15} color="#9ca3af" />} label="Attends" value={selected.interaction_type} />}
             {selected.phone && <InfoRow icon={<Phone size={15} color="#9ca3af" />} label="Phone" value={selected.phone} />}
           {selected.email && <InfoRow icon={<Mail size={15} color="#9ca3af" />} label="Email" value={selected.email} />}
           {selected.address && <InfoRow icon={<MapPin size={15} color="#9ca3af" />} label="Home Address" value={selected.address} />}

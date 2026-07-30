@@ -121,7 +121,8 @@ alter table members
   add column if not exists household_id uuid references households(id) on delete set null,
   add column if not exists photo_url text,
   add column if not exists household_role text,
-  add column if not exists instruments text;
+  add column if not exists instruments text,
+  add column if not exists interaction_type text;
 
 -- App writes first_name/last_name (not the legacy name), so name must be nullable.
 alter table members alter column name drop not null;

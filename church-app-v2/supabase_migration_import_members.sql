@@ -77,6 +77,7 @@ begin
         dob            = (nullif(rec->>'dob', ''))::date,
         sex            = nullif(rec->>'sex', ''),
         marital_status = nullif(rec->>'marital_status', ''),
+        interaction_type = nullif(rec->>'interaction_type', ''),
         address        = nullif(rec->>'address', ''),
         join_date      = (nullif(rec->>'join_date', ''))::date,
         anniversary    = (nullif(rec->>'anniversary', ''))::date,
@@ -106,12 +107,14 @@ begin
 
       insert into members (
         first_name, last_name, middle_name, email, phone, dob, sex, marital_status,
-        address, join_date, anniversary, skill1, skill2, skill3, other_skills,
-        instruments, city, notes, is_active)
+        interaction_type, address, join_date, anniversary, skill1, skill2,
+        skill3, other_skills, instruments, city, notes, is_active)
       values (
         rec->>'first_name', rec->>'last_name', nullif(rec->>'middle_name', ''),
         nullif(rec->>'email', ''), nullif(rec->>'phone', ''), (nullif(rec->>'dob', ''))::date,
-        nullif(rec->>'sex', ''), nullif(rec->>'marital_status', ''), nullif(rec->>'address', ''),
+        nullif(rec->>'sex', ''), nullif(rec->>'marital_status', ''),
+        nullif(rec->>'interaction_type', ''),
+        nullif(rec->>'address', ''),
         (nullif(rec->>'join_date', ''))::date, (nullif(rec->>'anniversary', ''))::date,
         nullif(rec->>'skill1', ''), nullif(rec->>'skill2', ''), nullif(rec->>'skill3', ''),
         nullif(rec->>'other_skills', ''), nullif(rec->>'instruments', ''),
