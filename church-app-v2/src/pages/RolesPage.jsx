@@ -24,7 +24,14 @@ export default function RolesPage({ members, onMemberClick }) {
       </div>
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(260px,1fr))",gap:14}}>
         {ROLES.map(role => {
-          const rm = members.filter(m=>(m.roles||[]).includes(role));
+          const posRank = { "Leader": 0, "Co-Leader": 1 };
+          // Leaders first, then co-leaders, then everyone else by name.
+          const rm = members.filter(m=>(m.roles||[]).includes(role))
+            .sort((a,b) => {
+              const ra = posRank[(a.rolePositions||{})[role]] ?? 9;
+              const rb = posRank[(b.rolePositions||{})[role]] ?? 9;
+              return ra - rb || fullName(a).localeCompare(fullName(b));
+            });
           const color = ROLE_COLORS[role]||"#888";
           return (
             <div key={role} className="card" style={{padding:16,borderLeft:`3px solid ${color}`}}>
@@ -41,7 +48,10 @@ export default function RolesPage({ members, onMemberClick }) {
                       <div key={m.id} style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer"}} onClick={()=>onMemberClick(m)}>
                         <Avatar member={m} size={28} />
                         <div style={{minWidth:0}}>
-                          <div style={{fontSize:12,color:"#1f2937",fontWeight:600}}>{fullName(m)}</div>
+                          <div style={{fontSize:12,color:"#1f2937",fontWeight:600,display:"flex",alignItems:"center",gap:5}}>
+                            {fullName(m)}
+                            {(m.rolePositions||{})[role] && <span style={{fontSize:9,fontWeight:700,color:"#7a4bd0",background:"#f0eaff",border:"1px solid #d9c9f5",borderRadius:20,padding:"0px 6px"}}>{(m.rolePositions||{})[role]}</span>}
+                          </div>
                           {instruments.length>0 && (
                             <div style={{display:"flex",flexWrap:"wrap",gap:4,marginTop:3}}>
                               {instruments.map(inst=>(

@@ -255,8 +255,14 @@ export default function App() {
       setTab(defaultTabForProfile(prof));
     }
     const roleMap = {};
-    (rolesRes.data||[]).forEach(r => { if (!ROLES.includes(r.role_name)) return; if (!roleMap[r.member_id]) roleMap[r.member_id]=[]; roleMap[r.member_id].push(r.role_name); });
-    setMembers((membersRes.data||[]).map(m => ({ ...m, roles: roleMap[m.id]||[] })));
+    const posMap = {}; // member_id -> { role_name: "Leader"/"Co-Leader" }
+    (rolesRes.data||[]).forEach(r => {
+      if (!ROLES.includes(r.role_name)) return;
+      if (!roleMap[r.member_id]) roleMap[r.member_id]=[];
+      roleMap[r.member_id].push(r.role_name);
+      if (r.position) (posMap[r.member_id] = posMap[r.member_id] || {})[r.role_name] = r.position;
+    });
+    setMembers((membersRes.data||[]).map(m => ({ ...m, roles: roleMap[m.id]||[], rolePositions: posMap[m.id]||{} })));
     // Count attendance per service for display
     const attCountMap = {};
     const attMap = {};

@@ -37,6 +37,7 @@ declare
   v_flagged   int := 0;
   v_results   jsonb := '[]'::jsonb;
   v_role      text;
+  v_positions jsonb;   -- existing role_name -> position, preserved across the role rebuild
 begin
   if get_my_role() <> 'admin' then
     raise exception 'Only admins can import members';
@@ -46,6 +47,7 @@ begin
   loop
     v_existing := null;
     v_flag := null;
+    v_positions := '{}'::jsonb;
 
     -- Match on NAME: first + last + middle, case-insensitive, blank = blank. Email is
     -- deliberately NOT a match key — families share one address, so matching by email
@@ -91,6 +93,13 @@ begin
         is_active      = true
        where id = v_existing;
       v_id := v_existing;
+      -- Preserve leadership positions: the import rebuilds this member's ministries from
+      -- the sheet (which has no position data), so capture what's there before deleting and
+      -- re-apply it to any ministry the person still has. Admin-set leadership survives a
+      -- routine re-import.
+      select coalesce(jsonb_object_agg(role_name, position) filter (where position is not null), '{}'::jsonb)
+        into v_positions
+        from member_roles where member_id = v_id;
       delete from member_roles where member_id = v_id;
       v_updated := v_updated + 1;
       v_results := v_results || jsonb_build_object(
@@ -130,11 +139,14 @@ begin
         'flag', v_flag is not null);
     end if;
 
-    -- Roles arrive as a JSON array of validated, de-duplicated names.
+    -- Roles arrive as a JSON array of validated, de-duplicated names. Re-apply any
+    -- preserved leadership position for a ministry the member still has (v_positions is
+    -- '{}' for new members, so they simply get no position).
     if jsonb_typeof(rec->'roles') = 'array' then
       for v_role in select jsonb_array_elements_text(rec->'roles')
       loop
-        insert into member_roles (member_id, role_name) values (v_id, v_role);
+        insert into member_roles (member_id, role_name, position)
+        values (v_id, v_role, v_positions->>v_role);
       end loop;
     end if;
   end loop;

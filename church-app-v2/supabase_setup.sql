@@ -43,8 +43,11 @@ create table if not exists member_roles (
   id uuid primary key default gen_random_uuid(),
   member_id uuid references members(id) on delete cascade,
   role_name text not null,
+  position text,   -- leadership within this ministry: "Leader" / "Co-Leader" / null
   unique(member_id, role_name)
 );
+-- Existing databases: add the column if the table predates it.
+alter table member_roles add column if not exists position text;
 
 create table if not exists services (
   id uuid primary key default gen_random_uuid(),

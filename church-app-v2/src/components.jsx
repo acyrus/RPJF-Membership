@@ -721,6 +721,8 @@ export const hasCustomTabs = profile =>
 export const MARITAL_OPTIONS = ["Single","Married"];
 export const SEX_OPTIONS = ["Male","Female"];
 export const INTERACTION_OPTIONS = ["In Person","Online","Both"];
+// Leadership position WITHIN a ministry; blank = ordinary member.
+export const POSITION_OPTIONS = ["Leader","Co-Leader"];
 
 export const TRINIDAD_CITIES = [
   "Arima","Barataria","Bon Accord","Carapachiama","Caroni","Chaguanas",
@@ -763,7 +765,7 @@ export const BLANK_MEMBER = {
   first_name:"", middle_name:"", last_name:"",
   phone:"", email:"", dob:"", sex:"", marital_status:"", interaction_type:"",
   address:"", city:"", anniversary:"", skill1:"", skill2:"", skill3:"", other_skills:"", instruments:"", is_active: true,
-  join_date:"", notes:"", roles:[], spouse_id:"", household_id:"", new_household_name:"", photo_url:""
+  join_date:"", notes:"", roles:[], rolePositions:{}, spouse_id:"", household_id:"", new_household_name:"", photo_url:""
 };
 
 export function fullName(m) {
@@ -939,7 +941,19 @@ export function Spinner() {
 
 export function MemberForm({ value, onChange, onSubmit, onCancel, submitLabel="Save", saving, errors={}, members=[], households=[] }) {
   const u = k => e => onChange({...value,[k]:e.target.value});
-  const tr = r => onChange({...value,roles:value.roles.includes(r)?value.roles.filter(x=>x!==r):[...value.roles,r]});
+  // Toggle a ministry. Removing it also drops any leadership position it carried.
+  const tr = r => {
+    const has = value.roles.includes(r);
+    const roles = has ? value.roles.filter(x=>x!==r) : [...value.roles, r];
+    const rolePositions = {...(value.rolePositions||{})};
+    if (has) delete rolePositions[r];
+    onChange({...value, roles, rolePositions});
+  };
+  const setPos = (r, p) => {
+    const next = {...(value.rolePositions||{})};
+    if (p) next[r] = p; else delete next[r];
+    onChange({...value, rolePositions: next});
+  };
   const spouseCandidates = members
     .filter(m => m.id && m.id !== value.id)
     .slice()
@@ -1121,6 +1135,20 @@ export function MemberForm({ value, onChange, onSubmit, onCancel, submitLabel="S
             </button>
           ))}
         </div>
+        {value.roles.length > 0 && (
+          <div style={{marginTop:12, background:"#f7f9fb", border:"1px solid #e4e9f5", borderRadius:8, padding:"10px 12px"}}>
+            <div style={{fontSize:11, fontWeight:700, color:"#6b7280", textTransform:"uppercase", letterSpacing:0.4, marginBottom:6}}>Leadership position <span style={{fontWeight:400, textTransform:"none"}}>(optional, per ministry)</span></div>
+            {value.roles.map(r=>(
+              <div key={r} style={{display:"flex", alignItems:"center", gap:8, marginTop:5}}>
+                <span style={{flex:1, fontSize:12, color:"#374151"}}>{r}</span>
+                <select value={(value.rolePositions||{})[r]||""} onChange={e=>setPos(r, e.target.value)} style={{width:150, fontSize:12, padding:"4px 8px"}}>
+                  <option value="">Member</option>
+                  {POSITION_OPTIONS.map(p=><option key={p} value={p}>{p}</option>)}
+                </select>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div style={{display:"flex",gap:10,marginTop:6}}>
