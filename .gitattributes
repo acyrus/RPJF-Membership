@@ -1,0 +1,26 @@
+# ── Line endings ────────────────────────────────────────────────────────────
+# Store every text file with LF in the repo and check it out as LF everywhere.
+# This is what stops `git status` reporting the whole tree as modified and makes
+# a three-line change show as three lines. Vercel builds on Linux, so LF is the
+# natural choice; modern Windows editors handle LF without issue.
+* text=auto eol=lf
+
+# Shell scripts must stay LF regardless.
+*.sh text eol=lf
+
+# ── Binary files (never touch line endings or try to diff/merge them) ─────────
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.ico   binary
+*.webp  binary
+*.svg   text
+*.pdf   binary
+*.docx  binary
+*.xlsx  binary
+*.pptx  binary
+*.woff  binary
+*.woff2 binary
+*.ttf   binary
+*.eot   binary

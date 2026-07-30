@@ -1,0 +1,21 @@
+# Repo-wide ignores (build/env ignores also live in church-app-v2/.gitignore)
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editors / IDEs
+.vscode/
+.idea/
+*.swp
+
+# Office lock/temp files (e.g. ~$RPJF-Roadmap.docx when a doc is open)
+~$*
+
+# Vercel
+.vercel
+
+# Env (never commit real secrets)
+.env
+.env.local
+.env.*.local
