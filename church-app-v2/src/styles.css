@@ -58,6 +58,14 @@
   --danger-bg: #fef2f2;
   --success: #059669;
 
+  /* Yes/No status pills (Uncaptured table) */
+  --pill-yes-bg: #e8f6ee;
+  --pill-yes-fg: #1e7a4a;
+  --pill-yes-bd: #b0e8c8;
+  --pill-no-bg: #fdeeee;
+  --pill-no-fg: #b03030;
+  --pill-no-bd: #f3c8c8;
+
   /* Birthday banner */
   --birthday-from: #fffbeb;
   --birthday-to: #fdf2f8;
@@ -122,6 +130,14 @@ html.dark {
   --danger-border-strong: #9a4a4a;
   --danger-bg: #2a1a1a;
   --success: #34c88a;
+
+  /* Yes/No status pills — soft dark tints */
+  --pill-yes-bg: #16281e;
+  --pill-yes-fg: #4fc98a;
+  --pill-yes-bd: #285039;
+  --pill-no-bg: #2b1d1d;
+  --pill-no-fg: #e79090;
+  --pill-no-bd: #4d3232;
 
   /* Birthday banner */
   --birthday-from: #241f10;

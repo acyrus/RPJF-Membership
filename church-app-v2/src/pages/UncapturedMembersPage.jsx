@@ -33,8 +33,8 @@ function useIsMobile(breakpoint = 768) {
 
 // Small yes/no pill used in the table cells.
 function YesNo({ yes, yesLabel = "Yes", noLabel = "No" }) {
-  const c = yes ? { bg: "#e8f6ee", fg: "#1e7a4a", bd: "#b0e8c8" }
-                : { bg: "#fdeeee", fg: "#b03030", bd: "#f3c8c8" };
+  const c = yes ? { bg: "var(--pill-yes-bg)", fg: "var(--pill-yes-fg)", bd: "var(--pill-yes-bd)" }
+                : { bg: "var(--pill-no-bg)", fg: "var(--pill-no-fg)", bd: "var(--pill-no-bd)" };
   return (
     <span style={{
       display:"inline-block", minWidth:38, textAlign:"center",
