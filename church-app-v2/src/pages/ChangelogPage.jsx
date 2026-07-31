@@ -95,8 +95,8 @@ export default function ChangelogPage() {
     <div className="fade-in">
       <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20, flexWrap:"wrap", gap:12}}>
         <div>
-          <div style={{fontFamily:"'Inter',sans-serif", color:"#111827", fontSize:14, letterSpacing:0.5, fontWeight:700}}>ACTIVITY LOG</div>
-          <div style={{fontSize:12, color:"#9ca3af", marginTop:3}}>Last 6 months · {filtered.length} entries</div>
+          <div style={{fontFamily:"'Inter',sans-serif", color:"var(--text)", fontSize:14, letterSpacing:0.5, fontWeight:700}}>ACTIVITY LOG</div>
+          <div style={{fontSize:12, color:"var(--text-faint)", marginTop:3}}>Last 6 months · {filtered.length} entries</div>
         </div>
         <button className="btn-ghost" onClick={exportLogs} style={{fontSize:12}}>Export CSV</button>
       </div>
@@ -123,17 +123,17 @@ export default function ChangelogPage() {
       </div>
 
       {loading ? (
-        <div style={{textAlign:"center",padding:40,color:"#9ca3af"}}>Loading logs…</div>
+        <div style={{textAlign:"center",padding:40,color:"var(--text-faint)"}}>Loading logs…</div>
       ) : grouped.length === 0 ? (
-        <div style={{textAlign:"center",padding:"48px 20px",color:"#d1d5db"}}>
+        <div style={{textAlign:"center",padding:"48px 20px",color:"var(--border-strong)"}}>
           <div style={{marginBottom:12,display:"flex",justifyContent:"center"}}><ClipboardList size={36} color="#8a96b8" /></div>
-          <div style={{fontWeight:600,color:"#6b7280",marginBottom:6}}>No activity found</div>
+          <div style={{fontWeight:600,color:"var(--text-muted)",marginBottom:6}}>No activity found</div>
           <div style={{fontSize:12}}>Activity will appear here as changes are made.</div>
         </div>
       ) : (
         grouped.map(([date, entries]) => (
           <div key={date} style={{marginBottom:24}}>
-            <div style={{fontSize:12,fontWeight:700,color:"#9ca3af",textTransform:"uppercase",letterSpacing:0.8,marginBottom:10}}>
+            <div style={{fontSize:12,fontWeight:700,color:"var(--text-faint)",textTransform:"uppercase",letterSpacing:0.8,marginBottom:10}}>
               {formatDate(date)}
             </div>
             <div className="card" style={{padding:6}}>
@@ -144,7 +144,7 @@ export default function ChangelogPage() {
                   <div key={entry.id} style={{
                     display:"flex", alignItems:"flex-start", gap:12,
                     padding:"10px 14px",
-                    borderBottom: i < entries.length-1 ? "1px solid #f0f2f8" : "none"
+                    borderBottom: i < entries.length-1 ? "1px solid var(--panel)" : "none"
                   }}>
                     <div style={{
                       width:32, height:32, borderRadius:"50%", flexShrink:0,
@@ -152,10 +152,10 @@ export default function ChangelogPage() {
                       display:"flex", alignItems:"center", justifyContent:"center", fontSize:14
                     }}><span style={{color, display:"flex"}}>{icon}</span></div>
                     <div style={{flex:1}}>
-                      <div style={{fontSize:14, color:"#111827", fontWeight:500}}>{entry.description}</div>
+                      <div style={{fontSize:14, color:"var(--text)", fontWeight:500}}>{entry.description}</div>
                       <div style={{display:"flex", gap:12, marginTop:3}}>
-                        <span style={{fontSize:12, color:"#9ca3af"}}>{entry.user_name}</span>
-                        <span style={{fontSize:12, color:"#d1d5db"}}>{formatTime(entry.created_at)}</span>
+                        <span style={{fontSize:12, color:"var(--text-faint)"}}>{entry.user_name}</span>
+                        <span style={{fontSize:12, color:"var(--border-strong)"}}>{formatTime(entry.created_at)}</span>
                         <span style={{background:color+"18",border:`1px solid ${color}33`,color,borderRadius:20,padding:"0px 8px",fontSize:11,fontWeight:600}}>
                           {(entry.action_type||"").replace(/_/g," ")}
                         </span>

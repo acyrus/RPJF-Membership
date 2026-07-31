@@ -16,8 +16,8 @@ import HouseholdsPage from "./pages/HouseholdsPage";
 import PhotoRequestsPage from "./pages/PhotoRequestsPage";
 import UncapturedMembersPage from "./pages/UncapturedMembersPage";
 import { Spinner, fullName, PhotoLightbox, MfaChallenge, SecurityModal, SetPasswordScreen, OnboardingFlow, ROLES, TAB_LABELS, tabsForProfile, defaultTabForProfile } from "./components";
-import { logoMark } from "./logoData";
-import { AlertTriangle, Home, Users, ClipboardList, Camera, Tag, LayoutDashboard, PartyPopper, Zap, BarChart3, UserCog, ScrollText, Upload, ShieldCheck, LogOut, ListChecks } from "lucide-react";
+import { branding } from "./branding";
+import { AlertTriangle, Home, Users, ClipboardList, Camera, Tag, LayoutDashboard, PartyPopper, Zap, BarChart3, UserCog, ScrollText, Upload, ShieldCheck, LogOut, ListChecks, Moon, Sun } from "lucide-react";
 
 
 export default function App() {
@@ -42,6 +42,18 @@ export default function App() {
     // Read from URL hash for persistence
     return window.location.hash.replace("#","") || "dashboard";
   });
+
+  // Manual dark mode. The initial class is set before paint by the inline script in
+  // index.html (reads localStorage "rpjf_theme"); this state just mirrors it for the
+  // toggle icon. toggleDark flips the class on <html> and persists the choice.
+  const [dark, setDark] = useState(() =>
+    typeof document !== "undefined" && document.documentElement.classList.contains("dark"));
+  function toggleDark() {
+    const next = !dark;
+    document.documentElement.classList.toggle("dark", next);
+    try { localStorage.setItem("rpjf_theme", next ? "dark" : "light"); } catch (e) {}
+    setDark(next);
+  }
 
   function setTab(newTab) {
     window.location.hash = newTab;
@@ -282,7 +294,7 @@ export default function App() {
     setTab("members"); setMembers([]); setServices([]); setAttendance([]);
   }
 
-  if (loading) return <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"#f4f6fa"}}><Spinner /></div>;
+  if (loading) return <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"var(--panel)"}}><Spinner /></div>;
   if (recovery) return <SetPasswordScreen onDone={handlePasswordSet} onCancel={logout} />;
   if (!session) return (
     <>
@@ -296,9 +308,9 @@ export default function App() {
   );
   if (mfaStatus === "required") return <MfaChallenge onVerified={handleMfaVerified} onCancel={logout} />;
   if (!profile) return (
-    <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:12,color:"#6b7280",padding:20,textAlign:"center",background:"#f4f6fa"}}>
+    <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:12,color:"var(--text-muted)",padding:20,textAlign:"center",background:"var(--panel)"}}>
       <div style={{display:"flex",justifyContent:"center"}}><AlertTriangle size={28} color="#e0a020" /></div>
-      <div style={{fontSize:14,color:"#111827",fontWeight:700}}>Account not fully set up</div>
+      <div style={{fontSize:14,color:"var(--text)",fontWeight:700}}>Account not fully set up</div>
       <div style={{fontSize:12,maxWidth:340,lineHeight:1.7}}>Your login works, but no profile was found. An admin needs to add you to the <code>profiles</code> table in Supabase.</div>
       <button className="btn-ghost" style={{marginTop:8}} onClick={logout}>Sign Out</button>
     </div>
@@ -340,16 +352,16 @@ export default function App() {
 
   return (
     <PhotoLightbox>
-    <div style={{minHeight:"100vh",background:"#f9fafb"}}>
+    <div style={{minHeight:"100vh",background:"var(--surface-alt)"}}>
       {/* Header */}
-      <div className="header-bar" style={{borderBottom:"1.5px solid #e4e9f5",padding:"0 24px",position:"sticky",top:0,background:"#2a5357",zIndex:50,boxShadow:"0 2px 8px #00000030"}}>
+      <div className="header-bar" style={{borderBottom:"1.5px solid var(--border-navy)",padding:"0 24px",position:"sticky",top:0,background:"var(--brand)",zIndex:50,boxShadow:"0 2px 8px #00000030"}}>
         <div style={{maxWidth:1200,margin:"0 auto"}}>
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",paddingTop:12,paddingBottom:6,gap:10}}>
             <div className="header-brand" style={{display:"flex",alignItems:"center",gap:12,minWidth:0}}>
-              <img src={logoMark} alt="RPJF" style={{height:40,width:"auto",display:"block",flexShrink:0}} />
+              <img src={branding.logo.mark} alt={branding.shortName} style={{height:40,width:"auto",display:"block",flexShrink:0}} />
               <div style={{minWidth:0}}>
-                <div className="brand-name" style={{fontFamily:"'Space Grotesk','Inter',sans-serif",fontSize:14,letterSpacing:0.2,color:"#ffffff",fontWeight:600}}>Righteousness Peace and Joy Fellowship</div>
-                <div style={{fontSize:11,color:"#5edcd1",letterSpacing:0.3,fontWeight:500}}>Serving God By Families</div>
+                <div className="brand-name" style={{fontFamily:"'Space Grotesk','Inter',sans-serif",fontSize:14,letterSpacing:0.2,color:"#ffffff",fontWeight:600}}>{branding.fullName}</div>
+                <div style={{fontSize:11,color:"var(--brand-accent)",letterSpacing:0.3,fontWeight:500}}>{branding.motto}</div>
               </div>
             </div>
             <div className="header-actions" style={{display:"flex",alignItems:"center",gap:14,flexShrink:0}}>
@@ -357,8 +369,9 @@ export default function App() {
                 <div style={{fontSize:12,fontWeight:700,color:"#ffffff"}}>{profile.name}</div>
                 <div style={{fontSize:11,color:isAdmin?"#2a5357":"#4caf82",textTransform:"uppercase",letterSpacing:0.2,fontWeight:700}}>{profile.role}</div>
               </div>
-              <button onClick={()=>setSecurityOpen(true)} title="Account security" style={{display:"inline-flex",alignItems:"center",gap:6,fontSize:11,background:"none",border:"1.5px solid #5edcd155",color:"#5edcd1",padding:"7px 12px",borderRadius:8,cursor:"pointer",fontFamily:"Inter,sans-serif",fontWeight:500,transition:"all 0.15s"}}><ShieldCheck size={13} /> <span className="btn-label">Security</span></button>
-              <button onClick={logout} title="Sign out" style={{display:"inline-flex",alignItems:"center",gap:6,fontSize:11,background:"none",border:"1.5px solid #5edcd155",color:"#5edcd1",padding:"7px 14px",borderRadius:8,cursor:"pointer",fontFamily:"Inter,sans-serif",fontWeight:500,transition:"all 0.15s"}}><LogOut size={13} /> <span className="btn-label">Sign Out</span></button>
+              <button onClick={toggleDark} title={dark?"Switch to light mode":"Switch to dark mode"} aria-label={dark?"Switch to light mode":"Switch to dark mode"} style={{display:"inline-flex",alignItems:"center",justifyContent:"center",background:"none",border:"1.5px solid #5edcd155",color:"var(--brand-accent)",padding:"7px 9px",borderRadius:8,cursor:"pointer",transition:"all 0.15s"}}>{dark ? <Sun size={13} /> : <Moon size={13} />}</button>
+              <button onClick={()=>setSecurityOpen(true)} title="Account security" style={{display:"inline-flex",alignItems:"center",gap:6,fontSize:11,background:"none",border:"1.5px solid #5edcd155",color:"var(--brand-accent)",padding:"7px 12px",borderRadius:8,cursor:"pointer",fontFamily:"Inter,sans-serif",fontWeight:500,transition:"all 0.15s"}}><ShieldCheck size={13} /> <span className="btn-label">Security</span></button>
+              <button onClick={logout} title="Sign out" style={{display:"inline-flex",alignItems:"center",gap:6,fontSize:11,background:"none",border:"1.5px solid #5edcd155",color:"var(--brand-accent)",padding:"7px 14px",borderRadius:8,cursor:"pointer",fontFamily:"Inter,sans-serif",fontWeight:500,transition:"all 0.15s"}}><LogOut size={13} /> <span className="btn-label">Sign Out</span></button>
             </div>
           </div>
           <div className="tab-nav" style={{display:"flex",gap:0}}>

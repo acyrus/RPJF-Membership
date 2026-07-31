@@ -280,12 +280,12 @@ export default function MembersPage({ profile, members, setMembers, households =
             {skillsInUse.map(sk=><option key={sk} value={sk}>{sk}</option>)}
           </select>
           <div className="age-filter" style={{display:"flex",alignItems:"center",gap:4}} title="Filter by age range">
-            <span style={{fontSize:12,color:"#8a96b8",fontWeight:600}}>Age</span>
+            <span style={{fontSize:12,color:"var(--text-muted-navy)",fontWeight:600}}>Age</span>
             <input type="number" min="0" max="120" placeholder="min" value={ageMin} onChange={e=>setAgeMin(e.target.value)} style={{width:58,padding:"7px 6px"}} />
-            <span style={{fontSize:12,color:"#8a96b8"}}>–</span>
+            <span style={{fontSize:12,color:"var(--text-muted-navy)"}}>–</span>
             <input type="number" min="0" max="120" placeholder="max" value={ageMax} onChange={e=>setAgeMax(e.target.value)} style={{width:58,padding:"7px 6px"}} />
             {(ageMin!=="" || ageMax!=="") && (
-              <button onClick={()=>{setAgeMin("");setAgeMax("");}} title="Clear age range" style={{background:"none",border:"1px solid #d0d7e8",borderRadius:8,color:"#9ca3af",cursor:"pointer",fontSize:12,padding:"4px 7px"}}><X size={13} /></button>
+              <button onClick={()=>{setAgeMin("");setAgeMax("");}} title="Clear age range" style={{background:"none",border:"1px solid var(--border-navy-strong)",borderRadius:8,color:"var(--text-faint)",cursor:"pointer",fontSize:12,padding:"4px 7px"}}><X size={13} /></button>
             )}
           </div>
           <select value={statusFilter} onChange={e=>setStatusFilter(e.target.value)} style={{width:110}}>
@@ -302,7 +302,7 @@ export default function MembersPage({ profile, members, setMembers, households =
         </div>
 
         <div className="card" style={{padding:6}}>
-          {filtered.length === 0 && <div style={{textAlign:"center",color:"#9ca3af",padding:30,fontSize:13}}>No members found</div>}
+          {filtered.length === 0 && <div style={{textAlign:"center",color:"var(--text-faint)",padding:30,fontSize:13}}>No members found</div>}
           {filtered.map(m => {
             const bday = isBirthdayThisWeek(m.dob);
             return (
@@ -313,7 +313,7 @@ export default function MembersPage({ profile, members, setMembers, households =
                 </div>
                 <div style={{flex:1,minWidth:0}}>
                   <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
-                    <span style={{fontWeight:700,fontSize:14,color:"#111827"}}>{fullName(m)}</span>
+                    <span style={{fontWeight:700,fontSize:14,color:"var(--text)"}}>{fullName(m)}</span>
                     {m.sex && <SexBadge sex={m.sex} />}
                     {m.is_active === false && <StatusBadge active={false} />}
                   </div>
@@ -321,12 +321,12 @@ export default function MembersPage({ profile, members, setMembers, households =
                     {(m.roles||[]).map(r=><RoleBadge key={r} role={r} small />)}
                   </div>
                 </div>
-                <div style={{fontSize:12,color:"#e5e7eb"}}>›</div>
+                <div style={{fontSize:12,color:"var(--border)"}}>›</div>
               </div>
             );
           })}
         </div>
-        <div style={{fontSize:12,color:"#d1d5db",marginTop:8,textAlign:"right"}}>{filtered.length} of {members.length} members</div>
+        <div style={{fontSize:12,color:"var(--border-strong)",marginTop:8,textAlign:"right"}}>{filtered.length} of {members.length} members</div>
       </div>
 
       {/* Mobile backdrop */}
@@ -348,8 +348,8 @@ export default function MembersPage({ profile, members, setMembers, households =
               <Avatar member={selected} size={72} />
               {isBirthdayThisWeek(selected.dob) && <span style={{position:"absolute",bottom:-2,right:-2,display:"flex"}}><Cake size={20} color="#e07830" /></span>}
             </div>
-            <div style={{fontFamily:"'Inter',sans-serif",fontSize:16,color:"#111827",marginTop:12,fontWeight:600}}>{fullNameFull(selected)}</div>
-            <div style={{fontSize:12,color:"#9ca3af",marginTop:4}}>
+            <div style={{fontFamily:"'Inter',sans-serif",fontSize:16,color:"var(--text)",marginTop:12,fontWeight:600}}>{fullNameFull(selected)}</div>
+            <div style={{fontSize:12,color:"var(--text-faint)",marginTop:4}}>
               Member since {selected.join_date ? new Date(selected.join_date+"T12:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}) : "-"}
             </div>
             <div style={{display:"flex",gap:6,justifyContent:"center",marginTop:8,flexWrap:"wrap"}}>
@@ -375,8 +375,8 @@ export default function MembersPage({ profile, members, setMembers, households =
             if (!sp) return null;
             return (
               <div onClick={()=>setSelected(sp)} style={{cursor:"pointer",borderRadius:8,transition:"background 0.15s"}}
-                onMouseEnter={e=>e.currentTarget.style.background="#f4f6ff"} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
-                <InfoRow icon={<Users size={15} color="#9ca3af" />} label="Spouse" value={<span style={{color:"#2a5357",fontWeight:600}}>{fullName(sp)} ›</span>} />
+                onMouseEnter={e=>e.currentTarget.style.background="var(--panel)"} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+                <InfoRow icon={<Users size={15} color="#9ca3af" />} label="Spouse" value={<span style={{color:"var(--brand)",fontWeight:600}}>{fullName(sp)} ›</span>} />
               </div>
             );
           })()}
@@ -390,7 +390,7 @@ export default function MembersPage({ profile, members, setMembers, households =
                 {fam.length > 0 && (
                   <div style={{marginLeft:22,marginTop:-4,display:"flex",flexWrap:"wrap",gap:6}}>
                     {fam.map(m => (
-                      <span key={m.id} onClick={()=>setSelected(m)} style={{cursor:"pointer",display:"inline-flex",alignItems:"center",gap:5,background:"#f4f6ff",border:"1px solid #e4e9f5",borderRadius:16,padding:"2px 8px 2px 2px",fontSize:11,fontWeight:600,color:"#2a3560"}}>
+                      <span key={m.id} onClick={()=>setSelected(m)} style={{cursor:"pointer",display:"inline-flex",alignItems:"center",gap:5,background:"var(--panel)",border:"1px solid var(--border-navy)",borderRadius:16,padding:"2px 8px 2px 2px",fontSize:11,fontWeight:600,color:"var(--text-navy)"}}>
                         <Avatar member={m} size={18} />{fullName(m)}
                       </span>
                     ))}
@@ -408,7 +408,7 @@ export default function MembersPage({ profile, members, setMembers, households =
 
           {/* Roles */}
           <div style={{marginBottom:14}}>
-            <div style={{fontSize:11,color:"#9ca3af",letterSpacing:0.8,textTransform:"uppercase",fontWeight:700,marginBottom:8}}>Roles & Ministries</div>
+            <div style={{fontSize:11,color:"var(--text-faint)",letterSpacing:0.8,textTransform:"uppercase",fontWeight:700,marginBottom:8}}>Roles & Ministries</div>
             <div style={{display:"flex",flexWrap:"wrap",gap:5,alignItems:"center"}}>
               {(selected.roles||[]).length
                 ? (selected.roles||[]).map(r=>{
@@ -420,7 +420,7 @@ export default function MembersPage({ profile, members, setMembers, households =
                       </span>
                     );
                   })
-                : <span style={{color:"#d1d5db",fontSize:12}}>No roles assigned</span>}
+                : <span style={{color:"var(--border-strong)",fontSize:12}}>No roles assigned</span>}
             </div>
           </div>
 
@@ -429,39 +429,39 @@ export default function MembersPage({ profile, members, setMembers, households =
           {/* Attendance Summary */}
           <div style={{marginBottom:14}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-              <div style={{fontSize:11,color:"#9ca3af",letterSpacing:0.8,textTransform:"uppercase",fontWeight:700}}>Attendance History</div>
+              <div style={{fontSize:11,color:"var(--text-faint)",letterSpacing:0.8,textTransform:"uppercase",fontWeight:700}}>Attendance History</div>
               {serviceTypes.length > 2 && (
                 <select
                   value={attFilter}
                   onChange={e=>setAttFilter(e.target.value)}
-                  style={{fontSize:11,padding:"3px 6px",width:"auto",borderRadius:6,border:"1.5px solid #d0d7e8",color:"#6b7280",fontWeight:600}}>
+                  style={{fontSize:11,padding:"3px 6px",width:"auto",borderRadius:6,border:"1.5px solid var(--border-navy-strong)",color:"var(--text-muted)",fontWeight:600}}>
                   {serviceTypes.map(t=><option key={t} value={t}>{t === "All" ? "All Services" : t}</option>)}
                 </select>
               )}
             </div>
             {memberAttendance.length === 0
-              ? <div style={{fontSize:12,color:"#d1d5db"}}>No services recorded yet</div>
+              ? <div style={{fontSize:12,color:"var(--border-strong)"}}>No services recorded yet</div>
               : filteredMemberAttendance.length === 0
-              ? <div style={{fontSize:12,color:"#d1d5db"}}>No {attFilter} services recorded yet</div>
+              ? <div style={{fontSize:12,color:"var(--border-strong)"}}>No {attFilter} services recorded yet</div>
               : <>
                   {attendanceRate && (
                     <div style={{display:"flex",gap:8,marginBottom:10}}>
-                      <div style={{flex:1,background:"#f4f6ff",borderRadius:8,padding:"8px 6px",textAlign:"center"}}>
-                        <div style={{fontFamily:"'Inter',sans-serif",fontSize:18,color:"#2a5357",fontWeight:700}}>{attendanceRate.present}</div>
-                        <div style={{fontSize:10,color:"#9ca3af",textTransform:"uppercase",letterSpacing:0.5,fontWeight:600}}>Present</div>
+                      <div style={{flex:1,background:"var(--panel)",borderRadius:8,padding:"8px 6px",textAlign:"center"}}>
+                        <div style={{fontFamily:"'Inter',sans-serif",fontSize:18,color:"var(--brand)",fontWeight:700}}>{attendanceRate.present}</div>
+                        <div style={{fontSize:10,color:"var(--text-faint)",textTransform:"uppercase",letterSpacing:0.5,fontWeight:600}}>Present</div>
                       </div>
-                      <div style={{flex:1,background:"#f4f6ff",borderRadius:8,padding:"8px 6px",textAlign:"center"}}>
-                        <div style={{fontFamily:"'Inter',sans-serif",fontSize:18,color:"#2a5357",fontWeight:700}}>{attendanceRate.total - attendanceRate.present}</div>
-                        <div style={{fontSize:10,color:"#9ca3af",textTransform:"uppercase",letterSpacing:0.5,fontWeight:600}}>Absent</div>
+                      <div style={{flex:1,background:"var(--panel)",borderRadius:8,padding:"8px 6px",textAlign:"center"}}>
+                        <div style={{fontFamily:"'Inter',sans-serif",fontSize:18,color:"var(--brand)",fontWeight:700}}>{attendanceRate.total - attendanceRate.present}</div>
+                        <div style={{fontSize:10,color:"var(--text-faint)",textTransform:"uppercase",letterSpacing:0.5,fontWeight:600}}>Absent</div>
                       </div>
-                      <div style={{flex:1,background:"#f4f6ff",borderRadius:8,padding:"8px 6px",textAlign:"center"}}>
-                        <div style={{fontFamily:"'Inter',sans-serif",fontSize:18,color:"#2a5357",fontWeight:700}}>{attendanceRate.pct}%</div>
-                        <div style={{fontSize:10,color:"#9ca3af",textTransform:"uppercase",letterSpacing:0.5,fontWeight:600}}>Rate</div>
+                      <div style={{flex:1,background:"var(--panel)",borderRadius:8,padding:"8px 6px",textAlign:"center"}}>
+                        <div style={{fontFamily:"'Inter',sans-serif",fontSize:18,color:"var(--brand)",fontWeight:700}}>{attendanceRate.pct}%</div>
+                        <div style={{fontSize:10,color:"var(--text-faint)",textTransform:"uppercase",letterSpacing:0.5,fontWeight:600}}>Rate</div>
                       </div>
                     </div>
                   )}
                   {attFilter !== "All" && (
-                    <div style={{fontSize:11,color:"#9ca3af",marginBottom:6,fontStyle:"italic"}}>
+                    <div style={{fontSize:11,color:"var(--text-faint)",marginBottom:6,fontStyle:"italic"}}>
                       Showing {filteredMemberAttendance.length} {attFilter} session{filteredMemberAttendance.length!==1?"s":""}
                     </div>
                   )}

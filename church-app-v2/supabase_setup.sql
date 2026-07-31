@@ -77,7 +77,10 @@ create table if not exists activity_log (
   id uuid primary key default gen_random_uuid(),
   action_type text not null,
   description text not null,
-  user_id uuid references auth.users(id),
+  -- ON DELETE SET NULL: deleting a staff account must not be blocked by its log
+  -- history, and the audit entry should survive the account (user_name is kept on
+  -- the row, so who-did-what is still legible after the user_id goes null).
+  user_id uuid references auth.users(id) on delete set null,
   user_name text,
   metadata jsonb,
   created_at timestamptz default now()

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../supabase";
-import { logoFull } from "../logoData";
+import { branding } from "../branding";
 
 // ── Failed-login lockout (per email, persisted on the device) ──
 const LOCK_PREFIX = "rpjf_lock_";
@@ -84,18 +84,18 @@ export default function LoginPage() {
   }
 
   return (
-    <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",padding:20,background:"#f9fafb",position:"relative",overflow:"hidden"}}>
+    <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",padding:20,background:"var(--surface-alt)",position:"relative",overflow:"hidden"}}>
       <div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center",pointerEvents:"none",zIndex:0}}>
-        <img src={logoFull} alt="" style={{width:"75%",maxWidth:700,opacity:0.06,userSelect:"none"}} />
+        <img src={branding.logo.full} alt="" style={{width:"75%",maxWidth:700,opacity:0.06,userSelect:"none"}} />
       </div>
       <div style={{width:"100%",maxWidth:400}}>
         <div style={{textAlign:"center",marginBottom:36}}>
-          <div style={{width:64,height:64,borderRadius:18,margin:"0 auto 16px",background:"#2a5357",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 4px 16px #2a535730"}}><svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="11" y="2" width="6" height="24" rx="2" fill="white"/><rect x="2" y="9" width="24" height="6" rx="2" fill="white"/></svg></div>
-          <div style={{fontFamily:"'Inter',sans-serif",fontSize:22,letterSpacing:0.2,color:"#111827",fontWeight:700}}>RPJF MEMBERSHIP</div>
-          <div style={{fontSize:12,color:"#9ca3af",marginTop:4,letterSpacing:0.3,fontWeight:500}}>Membership Management System</div>
+          <div style={{width:64,height:64,borderRadius:18,margin:"0 auto 16px",background:"var(--brand)",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 4px 16px #2a535730"}}><svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="11" y="2" width="6" height="24" rx="2" fill="white"/><rect x="2" y="9" width="24" height="6" rx="2" fill="white"/></svg></div>
+          <div style={{fontFamily:"'Inter',sans-serif",fontSize:22,letterSpacing:0.2,color:"var(--text)",fontWeight:700,textTransform:"uppercase"}}>{branding.name}</div>
+          <div style={{fontSize:12,color:"var(--text-faint)",marginTop:4,letterSpacing:0.3,fontWeight:500}}>{branding.tagline}</div>
         </div>
-        <div className="card" style={{padding:36,boxShadow:'0 8px 32px rgba(0,0,0,0.10)',border:'1px solid #e5e7eb'}}>
-          <div style={{fontFamily:"'Inter',sans-serif",fontSize:14,color:"#2a5357",letterSpacing:0.2,marginBottom:22,textAlign:"center",fontWeight:600}}>SIGN IN</div>
+        <div className="card" style={{padding:36,boxShadow:'0 8px 32px rgba(0,0,0,0.10)',border:'1px solid var(--border)'}}>
+          <div style={{fontFamily:"'Inter',sans-serif",fontSize:14,color:"var(--brand)",letterSpacing:0.2,marginBottom:22,textAlign:"center",fontWeight:600}}>SIGN IN</div>
           <form onSubmit={handleSubmit}>
             <div className="field-group">
               <label className="field-label">Email Address</label>
@@ -116,9 +116,9 @@ export default function LoginPage() {
               {locked ? `Try again in ${remaining}s` : loading ? "Signing in…" : "Sign In"}
             </button>
           </form>
-          <button onClick={handleForgot} style={{width:"100%",marginTop:12,background:"none",border:"none",color:"#2a5357",fontSize:12.5,fontWeight:500,cursor:"pointer"}}>Forgot password?</button>
+          <button onClick={handleForgot} style={{width:"100%",marginTop:12,background:"none",border:"none",color:"var(--brand)",fontSize:12.5,fontWeight:500,cursor:"pointer"}}>Forgot password?</button>
         </div>
-        <div style={{textAlign:"center",marginTop:16,fontSize:12,color:"#e5e7eb"}}>Church Connect · Secure Member Portal</div>
+        <div style={{textAlign:"center",marginTop:16,fontSize:12,color:"var(--border)"}}>{branding.portalNote}</div>
       </div>
     </div>
   );

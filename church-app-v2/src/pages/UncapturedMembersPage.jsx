@@ -48,18 +48,18 @@ function YesNo({ yes, yesLabel = "Yes", noLabel = "No" }) {
 function Chip({ label, children }) {
   return (
     <span style={{display:"inline-flex", alignItems:"center", gap:6}}>
-      <span style={{fontSize:10, fontWeight:700, color:"#9ca3af", textTransform:"uppercase", letterSpacing:0.4}}>{label}</span>
+      <span style={{fontSize:10, fontWeight:700, color:"var(--text-faint)", textTransform:"uppercase", letterSpacing:0.4}}>{label}</span>
       {children}
     </span>
   );
 }
 
-function Stat({ label, value, sub, color = "#2a3560" }) {
+function Stat({ label, value, sub, color = "var(--text-navy)" }) {
   return (
     <div className="card" style={{padding:"14px 16px"}}>
       <div style={{fontSize:24, fontWeight:800, color}}>{value}</div>
-      <div style={{fontSize:11, color:"#9ca3af", fontWeight:600, textTransform:"uppercase", letterSpacing:0.4, marginTop:2}}>{label}</div>
-      {sub && <div style={{fontSize:11, color:"#c0c8d8", marginTop:2}}>{sub}</div>}
+      <div style={{fontSize:11, color:"var(--text-faint)", fontWeight:600, textTransform:"uppercase", letterSpacing:0.4, marginTop:2}}>{label}</div>
+      {sub && <div style={{fontSize:11, color:"var(--text-faint)", marginTop:2}}>{sub}</div>}
     </div>
   );
 }
@@ -79,7 +79,7 @@ function AssignmentEditor({ row, ushers, saving, onSave, onClose }) {
     <div className="modal-bg" onClick={onClose}>
       <div className="modal fade-in" onClick={e=>e.stopPropagation()}>
         <h2>{row.first_name} {row.last_name}</h2>
-        <div style={{fontSize:12, color:"#9ca3af", marginTop:-14, marginBottom:18}}>
+        <div style={{fontSize:12, color:"var(--text-faint)", marginTop:-14, marginBottom:18}}>
           {row.inApp ? "In the app" : "Not in the app"}
           {row.inApp && (row.hasPic ? " · has a picture" : " · no picture yet")}
         </div>
@@ -105,7 +105,7 @@ function AssignmentEditor({ row, ushers, saving, onSave, onClose }) {
             style={{resize:"vertical"}} />
         </div>
 
-        <label style={{display:"flex", alignItems:"flex-start", gap:9, cursor:"pointer", padding:"4px 0 2px", fontSize:13, color:"#374151", lineHeight:1.5}}>
+        <label style={{display:"flex", alignItems:"flex-start", gap:9, cursor:"pointer", padding:"4px 0 2px", fontSize:13, color:"var(--text-2)", lineHeight:1.5}}>
           <input type="checkbox" checked={inactive} onChange={e=>setInactive(e.target.checked)} style={{marginTop:3}} />
           <span><strong>Remove from the list</strong>, for names you don't need to capture
             (visitors, moved away, duplicates). It drops out of the “to capture” target and the
@@ -304,11 +304,11 @@ export default function UncapturedMembersPage({ members = [] }) {
   if (!currentList) {
     return (
       <div className="fade-in">
-        <div style={{fontFamily:"'Inter',sans-serif", color:"#111827", fontSize:14, letterSpacing:0.5, fontWeight:700, marginBottom:20}}>UNCAPTURED MEMBERS</div>
+        <div style={{fontFamily:"'Inter',sans-serif", color:"var(--text)", fontSize:14, letterSpacing:0.5, fontWeight:700, marginBottom:20}}>UNCAPTURED MEMBERS</div>
         <div className="card" style={{padding:28, textAlign:"center"}}>
           <ClipboardList size={28} color="#c0c8d8" />
-          <div style={{fontWeight:700, fontSize:14, color:"#111827", marginTop:10}}>No list published yet</div>
-          <div style={{fontSize:12, color:"#9ca3af", marginTop:4, lineHeight:1.7}}>
+          <div style={{fontWeight:700, fontSize:14, color:"var(--text)", marginTop:10}}>No list published yet</div>
+          <div style={{fontSize:12, color:"var(--text-faint)", marginTop:4, lineHeight:1.7}}>
             An admin needs to upload the attendance list from the Import page. Once they do, it will appear here.
           </div>
         </div>
@@ -318,7 +318,7 @@ export default function UncapturedMembersPage({ members = [] }) {
 
   const FilterGroup = ({ label, value, onChange, options }) => (
     <div>
-      <div style={{fontSize:10, fontWeight:700, color:"#9ca3af", textTransform:"uppercase", letterSpacing:0.5, marginBottom:5}}>{label}</div>
+      <div style={{fontSize:10, fontWeight:700, color:"var(--text-faint)", textTransform:"uppercase", letterSpacing:0.5, marginBottom:5}}>{label}</div>
       <div style={{display:"flex", gap:5}}>
         {options.map(([key, text]) => (
           <button key={key} onClick={()=>onChange(key)} style={{
@@ -335,13 +335,13 @@ export default function UncapturedMembersPage({ members = [] }) {
 
   return (
     <div className="fade-in">
-      <div style={{fontFamily:"'Inter',sans-serif", color:"#111827", fontSize:14, letterSpacing:0.5, fontWeight:700, marginBottom:20}}>UNCAPTURED MEMBERS</div>
+      <div style={{fontFamily:"'Inter',sans-serif", color:"var(--text)", fontSize:14, letterSpacing:0.5, fontWeight:700, marginBottom:20}}>UNCAPTURED MEMBERS</div>
 
       {/* Which list is live */}
       <div className="card" style={{padding:"14px 16px", marginBottom:16, display:"flex", justifyContent:"space-between", alignItems:"center", flexWrap:"wrap", gap:10}}>
         <div>
-          <div style={{fontWeight:700, fontSize:14, color:"#111827"}}>{currentList.label}</div>
-          <div style={{fontSize:12, color:"#9ca3af", marginTop:2}}>
+          <div style={{fontWeight:700, fontSize:14, color:"var(--text)"}}>{currentList.label}</div>
+          <div style={{fontSize:12, color:"var(--text-faint)", marginTop:2}}>
             Published {new Date(currentList.created_at).toLocaleDateString()}
           </div>
         </div>
@@ -352,7 +352,7 @@ export default function UncapturedMembersPage({ members = [] }) {
       <div style={{display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(130px,1fr))", gap:12, marginBottom:16}}>
         <Stat label="Total names"  value={stats.totalAll} />
         <Stat label="Inactive"     value={stats.inactive} color="#8a94a6" />
-        <Stat label="To capture"   value={stats.toCapture} sub="total minus inactive" color="#2a5357" />
+        <Stat label="To capture"   value={stats.toCapture} sub="total minus inactive" color="var(--brand)" />
         <Stat label="Captured"     value={stats.captured} sub={`${stats.pct}% complete`} color="#2a8a50" />
         <Stat label="Remaining"    value={stats.remaining} color="#c06010" />
         <Stat label="Assigned"     value={stats.assigned} color="#3a8fd0" />
@@ -362,8 +362,8 @@ export default function UncapturedMembersPage({ members = [] }) {
       {/* Completion toward the real target (names left after inactive are removed). */}
       <div className="card" style={{padding:"14px 16px", marginBottom:16}}>
         <div style={{display:"flex", justifyContent:"space-between", alignItems:"baseline", marginBottom:8, flexWrap:"wrap", gap:6}}>
-          <span style={{fontSize:12, fontWeight:700, color:"#2a3560"}}>Onboarding progress</span>
-          <span style={{fontSize:12, color:"#6b7280"}}>
+          <span style={{fontSize:12, fontWeight:700, color:"var(--text-navy)"}}>Onboarding progress</span>
+          <span style={{fontSize:12, color:"var(--text-muted)"}}>
             <strong style={{color:"#2a8a50", fontSize:14}}>{stats.captured}</strong> of {stats.toCapture} captured
             <strong style={{color:"#2a8a50", marginLeft:8}}>{stats.pct}%</strong>
           </span>
@@ -376,20 +376,20 @@ export default function UncapturedMembersPage({ members = [] }) {
       {/* Progress by usher. "Done" = in the app AND has a photo. */}
       <div className="card" style={{padding:"14px 16px", marginBottom:16}}>
         <div style={{display:"flex", justifyContent:"space-between", alignItems:"baseline", marginBottom:10, flexWrap:"wrap", gap:6}}>
-          <span style={{fontSize:12, fontWeight:700, color:"#2a3560"}}>Progress by usher</span>
-          <span style={{fontSize:11, color:"#9ca3af"}}>Done = in the app and has a photo</span>
+          <span style={{fontSize:12, fontWeight:700, color:"var(--text-navy)"}}>Progress by usher</span>
+          <span style={{fontSize:11, color:"var(--text-faint)"}}>Done = in the app and has a photo</span>
         </div>
 
         {byUsher.rows.length === 0 && byUsher.unassigned.assigned === 0 ? (
-          <div style={{fontSize:12, color:"#9ca3af", padding:"6px 0"}}>
+          <div style={{fontSize:12, color:"var(--text-faint)", padding:"6px 0"}}>
             No names assigned yet. Tap a name and choose an usher to start tracking who's on what.
           </div>
         ) : (
           <div>
             <div style={{
               display:"grid", gridTemplateColumns:"1fr 74px 66px 74px", gap:8,
-              padding:"6px 6px", fontSize:10, fontWeight:700, color:"#9ca3af",
-              textTransform:"uppercase", letterSpacing:0.4, borderBottom:"1.5px solid #eef1f6",
+              padding:"6px 6px", fontSize:10, fontWeight:700, color:"var(--text-faint)",
+              textTransform:"uppercase", letterSpacing:0.4, borderBottom:"1.5px solid var(--panel)",
             }}>
               <span>Usher</span>
               <span style={{textAlign:"right"}}>Assigned</span>
@@ -399,21 +399,21 @@ export default function UncapturedMembersPage({ members = [] }) {
 
             {byUsher.rows.map(u => (
               <div key={u.id} onClick={()=>setUsherFilter(u.id)} title="Filter the list to this usher's names"
-                style={{display:"grid", gridTemplateColumns:"1fr 74px 66px 74px", gap:8, alignItems:"center", padding:"8px 6px", cursor:"pointer", borderBottom:"1px solid #f4f6fa"}}>
-                <span style={{fontSize:13, fontWeight:600, color:"#2a3560", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap"}}>{u.name}</span>
-                <span style={{textAlign:"right", fontSize:13, fontWeight:700, color:"#2a3560"}}>{u.assigned}</span>
-                <span style={{textAlign:"right", fontSize:13, fontWeight:700, color:"#2a8a50"}}>{u.complete}<span style={{fontSize:10, color:"#9ca3af", fontWeight:600}}> · {u.pct}%</span></span>
+                style={{display:"grid", gridTemplateColumns:"1fr 74px 66px 74px", gap:8, alignItems:"center", padding:"8px 6px", cursor:"pointer", borderBottom:"1px solid var(--panel)"}}>
+                <span style={{fontSize:13, fontWeight:600, color:"var(--text-navy)", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap"}}>{u.name}</span>
+                <span style={{textAlign:"right", fontSize:13, fontWeight:700, color:"var(--text-navy)"}}>{u.assigned}</span>
+                <span style={{textAlign:"right", fontSize:13, fontWeight:700, color:"#2a8a50"}}>{u.complete}<span style={{fontSize:10, color:"var(--text-faint)", fontWeight:600}}> · {u.pct}%</span></span>
                 <span style={{textAlign:"right", fontSize:13, fontWeight:700, color: u.remaining ? "#c06010" : "#c0c8d8"}}>{u.remaining}</span>
               </div>
             ))}
 
             {byUsher.unassigned.assigned > 0 && (
               <div onClick={()=>setUsherFilter("unassigned")} title="Filter to names with no usher yet"
-                style={{display:"grid", gridTemplateColumns:"1fr 74px 66px 74px", gap:8, alignItems:"center", padding:"8px 6px", cursor:"pointer", background:"#fbfcfe"}}>
-                <span style={{fontSize:13, fontWeight:600, color:"#8a94a6", fontStyle:"italic"}}>Unassigned</span>
-                <span style={{textAlign:"right", fontSize:13, fontWeight:700, color:"#8a94a6"}}>{byUsher.unassigned.assigned}</span>
-                <span style={{textAlign:"right", fontSize:13, fontWeight:700, color:"#8a94a6"}}>{byUsher.unassigned.complete}</span>
-                <span style={{textAlign:"right", fontSize:13, fontWeight:700, color:"#8a94a6"}}>{byUsher.unassigned.assigned - byUsher.unassigned.complete}</span>
+                style={{display:"grid", gridTemplateColumns:"1fr 74px 66px 74px", gap:8, alignItems:"center", padding:"8px 6px", cursor:"pointer", background:"var(--surface-alt)"}}>
+                <span style={{fontSize:13, fontWeight:600, color:"var(--text-muted-navy)", fontStyle:"italic"}}>Unassigned</span>
+                <span style={{textAlign:"right", fontSize:13, fontWeight:700, color:"var(--text-muted-navy)"}}>{byUsher.unassigned.assigned}</span>
+                <span style={{textAlign:"right", fontSize:13, fontWeight:700, color:"var(--text-muted-navy)"}}>{byUsher.unassigned.complete}</span>
+                <span style={{textAlign:"right", fontSize:13, fontWeight:700, color:"var(--text-muted-navy)"}}>{byUsher.unassigned.assigned - byUsher.unassigned.complete}</span>
               </div>
             )}
           </div>
@@ -432,7 +432,7 @@ export default function UncapturedMembersPage({ members = [] }) {
       {/* Filters */}
       <div className="card" style={{padding:"14px 16px", marginBottom:16, display:"flex", gap:22, flexWrap:"wrap", alignItems:"flex-end"}}>
         <div>
-          <div style={{fontSize:10, fontWeight:700, color:"#9ca3af", textTransform:"uppercase", letterSpacing:0.5, marginBottom:5}}>Assigned usher</div>
+          <div style={{fontSize:10, fontWeight:700, color:"var(--text-faint)", textTransform:"uppercase", letterSpacing:0.5, marginBottom:5}}>Assigned usher</div>
           <select value={usherFilter} onChange={e=>setUsherFilter(e.target.value)} style={{fontSize:12, padding:"6px 10px", minWidth:150}}>
             <option value="all">Anyone</option>
             <option value="unassigned">Unassigned</option>
@@ -457,7 +457,7 @@ export default function UncapturedMembersPage({ members = [] }) {
       </div>
 
       {rows.length === 0 ? (
-        <div className="card" style={{padding:24, textAlign:"center", fontSize:13, color:"#9ca3af"}}>
+        <div className="card" style={{padding:24, textAlign:"center", fontSize:13, color:"var(--text-faint)"}}>
           {q ? <>No one on the list matches “{q}”.</> : "Nothing matches these filters."}
         </div>
       ) : isMobile ? (
@@ -467,19 +467,19 @@ export default function UncapturedMembersPage({ members = [] }) {
             {rows.map(n => (
               <div key={n.id} className="card" onClick={()=>setEditing(n)} style={{
                 padding:"12px 14px", cursor:"pointer",
-                background: n.is_inactive ? "#f7f8fa" : "#fff",
+                background: n.is_inactive ? "var(--panel)" : "var(--surface)",
                 opacity: n.is_inactive ? 0.7 : 1,
               }}>
                 <div style={{display:"flex", alignItems:"center", gap:10}}>
-                  <span style={{fontSize:11, color:"#c0c8d8", minWidth:20}}>{n.position + 1}</span>
+                  <span style={{fontSize:11, color:"var(--border-navy-strong)", minWidth:20}}>{n.position + 1}</span>
                   {n.member
                     ? <Avatar member={n.member} size={30} />
-                    : <div style={{width:30, height:30, borderRadius:"50%", background:"#eef1f6", flexShrink:0}} />}
-                  <span style={{fontSize:15, fontWeight:700, color:"#2a3560", textDecoration:n.is_inactive?"line-through":"none", lineHeight:1.2}}>
+                    : <div style={{width:30, height:30, borderRadius:"50%", background:"var(--panel)", flexShrink:0}} />}
+                  <span style={{fontSize:15, fontWeight:700, color:"var(--text-navy)", textDecoration:n.is_inactive?"line-through":"none", lineHeight:1.2}}>
                     {n.first_name} {n.last_name}
                   </span>
                   {n.is_inactive && (
-                    <span style={{marginLeft:"auto", fontSize:10, fontWeight:700, color:"#8a94a6", background:"#eef1f6", borderRadius:20, padding:"2px 9px", textTransform:"uppercase", letterSpacing:0.4}}>Inactive</span>
+                    <span style={{marginLeft:"auto", fontSize:10, fontWeight:700, color:"var(--text-muted-navy)", background:"var(--panel)", borderRadius:20, padding:"2px 9px", textTransform:"uppercase", letterSpacing:0.4}}>Inactive</span>
                   )}
                 </div>
 
@@ -517,8 +517,8 @@ export default function UncapturedMembersPage({ members = [] }) {
           <div className="uncaptured-desktop card uncaptured-scroll" style={{padding:0}}>
             <div className="uncaptured-head" style={{
               display:"grid", gridTemplateColumns:GRID,
-              padding:"10px 14px", background:"#f7f9fc", borderBottom:"1.5px solid #e4e9f5",
-              fontSize:10, fontWeight:700, color:"#6b7280", textTransform:"uppercase", letterSpacing:0.5,
+              padding:"10px 14px", background:"var(--surface-alt)", borderBottom:"1.5px solid var(--border-navy)",
+              fontSize:10, fontWeight:700, color:"var(--text-muted)", textTransform:"uppercase", letterSpacing:0.5,
             }}>
               <span>#</span>
               <span style={{display:"flex", alignItems:"center", gap:4, cursor:"pointer"}} onClick={()=>setSort("first")}>First <ArrowUpDown size={11} color="#c0c8d8" /></span>
@@ -533,18 +533,18 @@ export default function UncapturedMembersPage({ members = [] }) {
               <div key={n.id} onClick={()=>setEditing(n)} title="Click to assign an usher, add a note, or flag inactive" style={{
                 display:"grid", gridTemplateColumns:GRID,
                 alignItems:"center", padding:"9px 14px", cursor:"pointer",
-                borderTop: i ? "1px solid #f0f2f8" : "none",
-                background: n.is_inactive ? "#f7f8fa" : (i % 2 ? "#fcfdff" : "#fff"),
+                borderTop: i ? "1px solid var(--panel)" : "none",
+                background: n.is_inactive ? "var(--panel)" : (i % 2 ? "var(--surface-alt)" : "var(--surface)"),
                 opacity: n.is_inactive ? 0.6 : 1,
               }}>
-                <span style={{fontSize:11, color:"#c0c8d8"}}>{n.position + 1}</span>
+                <span style={{fontSize:11, color:"var(--border-navy-strong)"}}>{n.position + 1}</span>
                 <span style={{display:"flex", alignItems:"center", gap:8, minWidth:0}}>
                   {n.member
                     ? <Avatar member={n.member} size={24} />
-                    : <div style={{width:24, height:24, borderRadius:"50%", background:"#eef1f6", flexShrink:0}} />}
-                  <span style={{fontSize:13, fontWeight:600, color:"#2a3560", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", textDecoration:n.is_inactive?"line-through":"none"}}>{n.first_name}</span>
+                    : <div style={{width:24, height:24, borderRadius:"50%", background:"var(--panel)", flexShrink:0}} />}
+                  <span style={{fontSize:13, fontWeight:600, color:"var(--text-navy)", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", textDecoration:n.is_inactive?"line-through":"none"}}>{n.first_name}</span>
                 </span>
-                <span style={{fontSize:13, fontWeight:600, color:"#2a3560", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", textDecoration:n.is_inactive?"line-through":"none"}}>{n.last_name}</span>
+                <span style={{fontSize:13, fontWeight:600, color:"var(--text-navy)", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", textDecoration:n.is_inactive?"line-through":"none"}}>{n.last_name}</span>
                 <span><YesNo yes={n.inApp} /></span>
                 {/* Pic always shows (matches the mobile cards): someone not in the app has
                     no photo either, so it reads No rather than a blank dash. */}
@@ -564,7 +564,7 @@ export default function UncapturedMembersPage({ members = [] }) {
           </div>
       )}
 
-      <div style={{fontSize:11, color:"#9ca3af", marginTop:12, lineHeight:1.7}}>
+      <div style={{fontSize:11, color:"var(--text-faint)", marginTop:12, lineHeight:1.7}}>
         Showing {rows.length} of {linked.length} names. Tap any name to assign an usher, add a note, or flag it inactive.
         The published list itself is read-only, ask an admin to publish an updated list to change the names.
       </div>

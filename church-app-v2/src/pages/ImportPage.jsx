@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { supabase } from "../supabase";
 import { SKILLS_LIST, ROLES, Avatar, fullName } from "../components";
+import { branding } from "../branding";
 import { CheckCircle2, AlertTriangle, Camera, UserX, UserCheck } from "lucide-react";
 
 // ── Name matching for the Roster Check ────────────────────────────────────────
@@ -535,7 +536,7 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
     const body = memberResult.log.map(l => [l.row, l.name, l.outcome, l.reason].map(cell).join(",")).join("\n");
     const stamp = new Date().toISOString().slice(0,19).replace(/[:T]/g,"-");
     const mode = memberResult.replaced ? "replace" : "import";
-    const csv = `# Church Connect ${mode} report ${new Date().toLocaleString()}\n# added:${memberResult.added} updated:${memberResult.updated} skipped(issues):${memberResult.errorSkipped} skipped(no name):${memberResult.nameSkipped} empty:${memberResult.emptySkipped} duplicates-in-sheet:${memberResult.deduped} db-errors:${memberResult.errors.length}\n${header}\n${body}\n`;
+    const csv = `# ${branding.reportLabel} ${mode} report ${new Date().toLocaleString()}\n# added:${memberResult.added} updated:${memberResult.updated} skipped(issues):${memberResult.errorSkipped} skipped(no name):${memberResult.nameSkipped} empty:${memberResult.emptySkipped} duplicates-in-sheet:${memberResult.deduped} db-errors:${memberResult.errors.length}\n${header}\n${body}\n`;
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a"); a.href = url; a.download = `import-report-${stamp}.csv`; a.click();
@@ -665,7 +666,7 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
     noPhoto.forEach(m =>
       lines.push(["No photo", m.first_name, m.last_name, ""].map(cell).join(",")));
     const stamp = new Date().toISOString().slice(0,10);
-    const csv = `# RPJF roster check ${new Date().toLocaleString()}\n# roster:${rosterCheck.rosterCount} app:${rosterCheck.appCount} matched:${rosterCheck.matched} missing-from-app:${rosterCheck.missingFromApp.length} not-on-roster:${rosterCheck.notOnRoster.length} no-photo:${noPhoto.length}\n${lines.join("\n")}\n`;
+    const csv = `# ${branding.shortName} roster check ${new Date().toLocaleString()}\n# roster:${rosterCheck.rosterCount} app:${rosterCheck.appCount} matched:${rosterCheck.matched} missing-from-app:${rosterCheck.missingFromApp.length} not-on-roster:${rosterCheck.notOnRoster.length} no-photo:${noPhoto.length}\n${lines.join("\n")}\n`;
     const blob = new Blob([csv], { type: "text/csv" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
@@ -849,16 +850,16 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
 
   return (
     <div className="fade-in">
-      <div style={{fontFamily:"'Inter',sans-serif", color:"#111827", fontSize:14, letterSpacing:0.5, fontWeight:700, marginBottom:20}}>DATA IMPORT</div>
+      <div style={{fontFamily:"'Inter',sans-serif", color:"var(--text)", fontSize:14, letterSpacing:0.5, fontWeight:700, marginBottom:20}}>DATA IMPORT</div>
 
       {/* Tabs */}
-      <div style={{display:"flex", gap:4, marginBottom:24, borderBottom:"1.5px solid #e4e9f5"}}>
+      <div style={{display:"flex", gap:4, marginBottom:24, borderBottom:"1.5px solid var(--border-navy)"}}>
         {[["members","Import Members"],["attendance","Import Attendance"],["roster","Roster Check"]].map(([key,label])=>(
           <button key={key} onClick={()=>setActiveTab(key)} style={{
             background:"none", border:"none", cursor:"pointer", fontFamily:"'Inter',sans-serif",
             fontSize:14, fontWeight:600, padding:"10px 18px",
             color:activeTab===key?"#2a5357":"#8a96b8",
-            borderBottom:activeTab===key?"2px solid #2a5357":"2px solid transparent",
+            borderBottom:activeTab===key?"2px solid var(--brand)":"2px solid transparent",
             transition:"all 0.15s",
           }}>{label}</button>
         ))}
@@ -869,13 +870,13 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
         <div>
           {/* Google Sheets */}
           {/* Member Replace Mode */}
-          <div className="card" style={{padding:16, marginBottom:16, background: memberReplaceMode?"#fff8f0":"#fff", border:`1.5px solid ${memberReplaceMode?"#f5a050":"#e4e9f5"}`}}>
+          <div className="card" style={{padding:16, marginBottom:16, background: memberReplaceMode?"#fff8f0":"var(--surface)", border:`1.5px solid ${memberReplaceMode?"#f5a050":"#e4e9f5"}`}}>
             <div style={{display:"flex", alignItems:"center", justifyContent:"space-between"}}>
               <div>
                 <div style={{fontWeight:700, fontSize:14, color: memberReplaceMode?"#c06010":"#2a3560", marginBottom:3}}>
                   {memberReplaceMode ? "Replace Mode: ON" : "Replace Mode"}
                 </div>
-                <div style={{fontSize:12, color:"#9ca3af", lineHeight:1.7}}>
+                <div style={{fontSize:12, color:"var(--text-faint)", lineHeight:1.7}}>
                   {memberReplaceMode
                     ? "Existing members with matching names will be updated. New members will be added."
                     : "Off. Duplicate names will be skipped. Turn on to update existing members."}
@@ -897,10 +898,10 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
           </div>
 
           <div className="card" style={{padding:20, marginBottom:16}}>
-            <div style={{fontWeight:700, fontSize:14, color:"#111827", marginBottom:4}}>Import from Google Sheets</div>
-            <div style={{fontSize:12, color:"#9ca3af", marginBottom:12, lineHeight:1.7}}>
+            <div style={{fontWeight:700, fontSize:14, color:"var(--text)", marginBottom:4}}>Import from Google Sheets</div>
+            <div style={{fontSize:12, color:"var(--text-faint)", marginBottom:12, lineHeight:1.7}}>
               Share your Google Sheet publicly (File → Share → Anyone with link → Viewer), then paste the URL below.
-              Your sheet should have column headers matching: <code style={{background:"#f4f6ff",padding:"1px 5px",borderRadius:4,fontSize:11}}>first_name, last_name, email, phone, dob, sex, marital_status</code> etc.
+              Your sheet should have column headers matching: <code style={{background:"var(--panel)",padding:"1px 5px",borderRadius:4,fontSize:11}}>first_name, last_name, email, phone, dob, sex, marital_status</code> etc.
             </div>
             <div style={{display:"flex", gap:8}}>
               <input placeholder="https://docs.google.com/spreadsheets/d/…" value={sheetUrl} onChange={e=>setSheetUrl(e.target.value)} style={{flex:1}} />
@@ -910,8 +911,8 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
 
           {/* CSV Upload */}
           <div className="card" style={{padding:20, marginBottom:16}}>
-            <div style={{fontWeight:700, fontSize:14, color:"#111827", marginBottom:4}}>Import from CSV / Excel</div>
-            <div style={{fontSize:12, color:"#9ca3af", marginBottom:12}}>Export your spreadsheet as CSV and upload it here. First row must be column headers.</div>
+            <div style={{fontWeight:700, fontSize:14, color:"var(--text)", marginBottom:4}}>Import from CSV / Excel</div>
+            <div style={{fontSize:12, color:"var(--text-faint)", marginBottom:12}}>Export your spreadsheet as CSV and upload it here. First row must be column headers.</div>
             <input type="file" accept=".csv,.txt" onChange={handleMemberFile} style={{fontSize:12}} />
           </div>
 
@@ -920,8 +921,8 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
           {/* Column mapping */}
           {memberRows.length > 0 && (
             <div className="card" style={{padding:20, marginBottom:16}}>
-              <div style={{fontWeight:700, fontSize:14, color:"#111827", marginBottom:4}}>Map Columns</div>
-              <div style={{fontSize:12, color:"#9ca3af", marginBottom:12}}>{memberRows.length} rows found. Match your spreadsheet columns to the app fields.</div>
+              <div style={{fontWeight:700, fontSize:14, color:"var(--text)", marginBottom:4}}>Map Columns</div>
+              <div style={{fontSize:12, color:"var(--text-faint)", marginBottom:12}}>{memberRows.length} rows found. Match your spreadsheet columns to the app fields.</div>
               <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:10}}>
                 {MEMBER_COLUMNS.map(col => (
                   <div key={col}>
@@ -935,8 +936,8 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
               </div>
               {/* Date format — auto-detected, overridable. Wrong order silently swaps
                   day and month, so make it explicit before importing. */}
-              <div style={{marginTop:16, background:"#f7f9fb", border:"1px solid #e4e9f5", borderRadius:8, padding:"11px 14px", display:"flex", flexWrap:"wrap", alignItems:"center", gap:10}}>
-                <span style={{fontSize:12, fontWeight:700, color:"#374151"}}>Dates in this file are</span>
+              <div style={{marginTop:16, background:"var(--panel)", border:"1px solid var(--border-navy)", borderRadius:8, padding:"11px 14px", display:"flex", flexWrap:"wrap", alignItems:"center", gap:10}}>
+                <span style={{fontSize:12, fontWeight:700, color:"var(--text-2)"}}>Dates in this file are</span>
                 <select value={dateOrder} onChange={e=>setDateOrderOverride(e.target.value)} style={{fontSize:12, padding:"5px 8px", width:"auto"}}>
                   <option value="DMY">DD/MM/YYYY (day first)</option>
                   <option value="MDY">MM/DD/YYYY (month first, US)</option>
@@ -946,14 +947,14 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
                     ? `Auto-detected from the data${dateOrderOverride ? " (overridden)" : ""}.`
                     : "Couldn't tell from the data. ISO yyyy-mm-dd values are always safe. Check this is right."}
                 </span>
-                <span style={{fontSize:11, color:"#9ca3af", width:"100%"}}>
+                <span style={{fontSize:11, color:"var(--text-faint)", width:"100%"}}>
                   e.g. <code>04/03/2020</code> → {convertDate("04/03/2020", dateOrder)}
                 </span>
               </div>
 
               {/* Proper-case names on import (previewed in Validate Data). */}
-              <div style={{marginTop:10, background:"#f7f9fb", border:"1px solid #e4e9f5", borderRadius:8, padding:"11px 14px"}}>
-                <label style={{display:"flex", alignItems:"center", gap:9, cursor:"pointer", fontSize:12, color:"#374151"}}>
+              <div style={{marginTop:10, background:"var(--panel)", border:"1px solid var(--border-navy)", borderRadius:8, padding:"11px 14px"}}>
+                <label style={{display:"flex", alignItems:"center", gap:9, cursor:"pointer", fontSize:12, color:"var(--text-2)"}}>
                   <input type="checkbox" checked={properCase} onChange={e=>setProperCase(e.target.checked)} />
                   <span><strong>Tidy name capitalisation</strong>: save <code>john smith</code> or <code>JOHN SMITH</code> as <code>John Smith</code>. Handles O'Brien, Ali-Mohammed, McDonald.</span>
                 </label>
@@ -968,10 +969,10 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
                 {/* Validation results */}
                 {memberValidation && (
                   <div style={{marginBottom:14, background: memberValidation.issues.length?"#fff8f0":"#f0fff8", border:`1.5px solid ${memberValidation.issues.length?"#f5d088":"#b0e8c8"}`, borderRadius:8, padding:"12px 14px"}}>
-                    <div style={{fontWeight:700, fontSize:12, color:"#111827", marginBottom:6}}>
+                    <div style={{fontWeight:700, fontSize:12, color:"var(--text)", marginBottom:6}}>
                       {memberValidation.issues.length === 0 ? "Data looks good!" : `${memberValidation.issues.length} issue${memberValidation.issues.length!==1?"s":""} across ${memberValidation.badRows} row${memberValidation.badRows!==1?"s":""}`}
                     </div>
-                    <div style={{fontSize:12, color:"#6b7280", marginBottom: memberValidation.issues.length?8:0}}>
+                    <div style={{fontSize:12, color:"var(--text-muted)", marginBottom: memberValidation.issues.length?8:0}}>
                       {memberValidation.validRows} valid row{memberValidation.validRows!==1?"s":""} will import
                       {memberValidation.badRows > 0 && ` · ${memberValidation.badRows} row${memberValidation.badRows!==1?"s":""} with issues will be skipped`}
                       {memberValidation.existingSkipped > 0 && ` · ${memberValidation.existingSkipped} already in the app (not shown)`}
@@ -1034,7 +1035,7 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
 
           {memberResult && (
             <div style={{background: memberResult.errors.length?"#fff8f0":"#f0fff8", border:`1.5px solid ${memberResult.errors.length?"#f5d0a0":"#b0e8c8"}`, borderRadius:10, padding:"14px 16px"}}>
-              <div style={{fontWeight:700, fontSize:14, color:"#111827", marginBottom:8, display:"flex", alignItems:"center", gap:8, flexWrap:"wrap"}}>
+              <div style={{fontWeight:700, fontSize:14, color:"var(--text)", marginBottom:8, display:"flex", alignItems:"center", gap:8, flexWrap:"wrap"}}>
                 {memberResult.replaced ? "Update Complete" : "Import Complete"}
                 {memberResult.replaced && <span style={{fontSize:10, fontWeight:700, background:"#fbe4d0", color:"#b5581a", padding:"2px 9px", borderRadius:20, textTransform:"uppercase", letterSpacing:0.4}}>Replace mode: existing records overwritten</span>}
               </div>
@@ -1045,17 +1046,17 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
                 <div style={{fontSize:14, color:"#e07830", marginBottom:4}}>{memberResult.updated} existing member{memberResult.updated!==1?"s":""} updated</div>
               )}
               {((memberResult.addedList && memberResult.addedList.length > 0) || (memberResult.updatedList && memberResult.updatedList.length > 0)) && (
-                <div style={{marginTop:8, marginBottom:6, maxHeight:220, overflowY:"auto", border:"1px solid #e4e9f5", borderRadius:8, padding:"8px 10px", background:"#fff"}}>
-                  <div style={{fontSize:11, fontWeight:700, color:"#6b7280", textTransform:"uppercase", letterSpacing:0.4, marginBottom:6}}>
+                <div style={{marginTop:8, marginBottom:6, maxHeight:220, overflowY:"auto", border:"1px solid var(--border-navy)", borderRadius:8, padding:"8px 10px", background:"var(--surface)"}}>
+                  <div style={{fontSize:11, fontWeight:700, color:"var(--text-muted)", textTransform:"uppercase", letterSpacing:0.4, marginBottom:6}}>
                     {memberResult.replaced ? "Imported / updated records" : "Imported records"}
                   </div>
                   {(memberResult.addedList||[]).map((m,i)=>(
-                    <div key={"a"+i} style={{fontSize:12, color:"#2a3560", marginTop:2}}>
+                    <div key={"a"+i} style={{fontSize:12, color:"var(--text-navy)", marginTop:2}}>
                       <strong>Row {m.row}</strong> · {m.name} <span style={{color:"#2a8a50", fontWeight:600}}>added</span>
                     </div>
                   ))}
                   {(memberResult.updatedList||[]).map((m,i)=>(
-                    <div key={"u"+i} style={{fontSize:12, color:"#2a3560", marginTop:2}}>
+                    <div key={"u"+i} style={{fontSize:12, color:"var(--text-navy)", marginTop:2}}>
                       <strong>Row {m.row}</strong> · {m.name} <span style={{color:"#e07830", fontWeight:600}}>updated</span>
                     </div>
                   ))}
@@ -1088,10 +1089,10 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
                 <div style={{fontSize:12, color:"#c06010", marginBottom:4}}>{memberResult.nameSkipped} row{memberResult.nameSkipped!==1?"s":""} skipped (missing first or last name)</div>
               )}
               {memberResult.emptySkipped > 0 && (
-                <div style={{fontSize:12, color:"#9ca3af", marginBottom:4}}>{memberResult.emptySkipped} empty row{memberResult.emptySkipped!==1?"s":""} skipped</div>
+                <div style={{fontSize:12, color:"var(--text-faint)", marginBottom:4}}>{memberResult.emptySkipped} empty row{memberResult.emptySkipped!==1?"s":""} skipped</div>
               )}
               {memberResult.deduped > 0 && (
-                <div style={{fontSize:12, color:"#9ca3af", marginBottom:4}}>{memberResult.deduped} duplicate row{memberResult.deduped!==1?"s":""} within the sheet collapsed to the newest entry each</div>
+                <div style={{fontSize:12, color:"var(--text-faint)", marginBottom:4}}>{memberResult.deduped} duplicate row{memberResult.deduped!==1?"s":""} within the sheet collapsed to the newest entry each</div>
               )}
               {memberResult.errors.map((e,i)=><div key={i} style={{fontSize:12,color:"#e05050",marginTop:4}}>{e}</div>)}
               {memberResult.log && memberResult.log.length > 0 && (
@@ -1127,14 +1128,14 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
       {activeTab === "roster" && (
         <div>
           <div className="card" style={{padding:20, marginBottom:16}}>
-            <div style={{fontWeight:700, fontSize:14, color:"#111827", marginBottom:4}}>Check the Ushers' Roster</div>
-            <div style={{fontSize:12, color:"#9ca3af", marginBottom:12, lineHeight:1.7}}>
-              Upload the printed attendance list as a CSV (columns <code style={{background:"#f4f6ff",padding:"1px 5px",borderRadius:4,fontSize:11}}>FIRST NAME, LAST NAME</code>).
+            <div style={{fontWeight:700, fontSize:14, color:"var(--text)", marginBottom:4}}>Check the Ushers' Roster</div>
+            <div style={{fontSize:12, color:"var(--text-faint)", marginBottom:12, lineHeight:1.7}}>
+              Upload the printed attendance list as a CSV (columns <code style={{background:"var(--panel)",padding:"1px 5px",borderRadius:4,fontSize:11}}>FIRST NAME, LAST NAME</code>).
               Nothing is written to the database. This only compares the list against your members and shows the gaps.
               In Excel: <strong>File → Save As → CSV</strong>.
             </div>
             <input type="file" accept=".csv,.txt" onChange={handleRosterFile} style={{fontSize:12}} />
-            {rosterFileName && <div style={{fontSize:12, color:"#6b7280", marginTop:8}}>Loaded: <strong>{rosterFileName}</strong>, {rosterRows.length} names</div>}
+            {rosterFileName && <div style={{fontSize:12, color:"var(--text-muted)", marginTop:8}}>Loaded: <strong>{rosterFileName}</strong>, {rosterRows.length} names</div>}
           </div>
 
           {/* What the ushers can see right now */}
@@ -1146,7 +1147,7 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
                 : <>No roster published yet. Upload one below and the ushers' Uncaptured Members tab will be empty until you do.</>}
             </div>
             {rosterHistory.length > 0 && (
-              <div style={{fontSize:11, color:"#9ca3af", marginTop:6}}>
+              <div style={{fontSize:11, color:"var(--text-faint)", marginTop:6}}>
                 Previous: {rosterHistory.slice(0,4).map(r=>r.label).join(" · ")}{rosterHistory.length>4?` · +${rosterHistory.length-4} more`:""}
               </div>
             )}
@@ -1155,8 +1156,8 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
           {/* Publish to ushers */}
           {rosterRows.length > 0 && (
             <div className="card" style={{padding:20, marginBottom:16}}>
-              <div style={{fontWeight:700, fontSize:14, color:"#111827", marginBottom:4}}>Publish this list to the ushers</div>
-              <div style={{fontSize:12, color:"#9ca3af", marginBottom:12, lineHeight:1.7}}>
+              <div style={{fontWeight:700, fontSize:14, color:"var(--text)", marginBottom:4}}>Publish this list to the ushers</div>
+              <div style={{fontSize:12, color:"var(--text-faint)", marginBottom:12, lineHeight:1.7}}>
                 Saves the list into the app so ushers can open it on their phones. It replaces the current list. The old one is kept as history, not deleted.
               </div>
               <div style={{display:"flex", gap:8}}>
@@ -1177,7 +1178,7 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
           {rosterError && <div className="error-msg" style={{marginBottom:12}}>{rosterError}</div>}
 
           <div className="card" style={{padding:"12px 16px", marginBottom:16, display:"flex", alignItems:"center", justifyContent:"space-between"}}>
-            <div style={{fontSize:12, color:"#6b7280"}}>Include inactive members in the comparison</div>
+            <div style={{fontSize:12, color:"var(--text-muted)"}}>Include inactive members in the comparison</div>
             <button onClick={()=>setIncludeInactive(v=>!v)} style={{
               background: includeInactive?"#2a5357":"#f4f6fa", color: includeInactive?"#fff":"#5a6a8a",
               border:`1.5px solid ${includeInactive?"#2a5357":"#d0d7e8"}`, borderRadius:20,
@@ -1197,7 +1198,7 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
               ].map(([label, val, color]) => (
                 <div key={label} className="card" style={{padding:"14px 16px"}}>
                   <div style={{fontSize:24, fontWeight:800, color}}>{val}</div>
-                  <div style={{fontSize:11, color:"#9ca3af", fontWeight:600, textTransform:"uppercase", letterSpacing:0.4, marginTop:2}}>{label}</div>
+                  <div style={{fontSize:11, color:"var(--text-faint)", fontWeight:600, textTransform:"uppercase", letterSpacing:0.4, marginTop:2}}>{label}</div>
                 </div>
               ))}
             </div>
@@ -1208,17 +1209,17 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
             <div className="card" style={{padding:20, marginBottom:16, border:"1.5px solid #f5d088"}}>
               <div style={{display:"flex", alignItems:"center", gap:8, marginBottom:4}}>
                 <UserX size={17} color="#c06010" />
-                <div style={{fontWeight:700, fontSize:14, color:"#111827"}}>
+                <div style={{fontWeight:700, fontSize:14, color:"var(--text)"}}>
                   {rosterCheck.missingFromApp.length} on the roster, not in the app
                 </div>
               </div>
-              <div style={{fontSize:12, color:"#9ca3af", marginBottom:12, lineHeight:1.7}}>
+              <div style={{fontSize:12, color:"var(--text-faint)", marginBottom:12, lineHeight:1.7}}>
                 These names are on the ushers' sheet but have no member record. Add them via Import Members, or check the suggested matches below. They may be spelling differences or nicknames.
               </div>
               <div style={{maxHeight:340, overflowY:"auto"}}>
                 {rosterCheck.missingFromApp.map((r,i)=>(
-                  <div key={i} style={{display:"flex", justifyContent:"space-between", gap:12, alignItems:"center", padding:"7px 0", borderTop: i?"1px solid #f0f2f8":"none"}}>
-                    <div style={{fontSize:13, color:"#2a3560", fontWeight:600}}>{r.first} {r.last}</div>
+                  <div key={i} style={{display:"flex", justifyContent:"space-between", gap:12, alignItems:"center", padding:"7px 0", borderTop: i?"1px solid var(--panel)":"none"}}>
+                    <div style={{fontSize:13, color:"var(--text-navy)", fontWeight:600}}>{r.first} {r.last}</div>
                     {r.near.length > 0 && (
                       <div style={{fontSize:11, color:"#a06a10", textAlign:"right"}}>
                         possible match: {r.near.map(m=>fullName(m)).join(" · ")}
@@ -1235,19 +1236,19 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
             <div className="card" style={{padding:20, marginBottom:16}}>
               <div style={{display:"flex", alignItems:"center", gap:8, marginBottom:4}}>
                 <UserCheck size={17} color="#8a5a10" />
-                <div style={{fontWeight:700, fontSize:14, color:"#111827"}}>
+                <div style={{fontWeight:700, fontSize:14, color:"var(--text)"}}>
                   {rosterCheck.notOnRoster.length} in the app, not on the roster
                 </div>
               </div>
-              <div style={{fontSize:12, color:"#9ca3af", marginBottom:12, lineHeight:1.7}}>
+              <div style={{fontSize:12, color:"var(--text-faint)", marginBottom:12, lineHeight:1.7}}>
                 These members exist in the app but the ushers can't mark them present. Add them to next month's printed sheet.
               </div>
               <div style={{maxHeight:340, overflowY:"auto"}}>
                 {rosterCheck.notOnRoster.map(m=>(
                   <div key={m.id} style={{display:"flex", alignItems:"center", gap:10, padding:"6px 0"}}>
                     <Avatar member={m} size={30} />
-                    <div style={{fontSize:13, color:"#2a3560", fontWeight:600}}>{fullName(m)}</div>
-                    {m.is_active === false && <span style={{fontSize:10, fontWeight:700, background:"#eef1f6", color:"#8a96b8", padding:"2px 8px", borderRadius:20}}>INACTIVE</span>}
+                    <div style={{fontSize:13, color:"var(--text-navy)", fontWeight:600}}>{fullName(m)}</div>
+                    {m.is_active === false && <span style={{fontSize:10, fontWeight:700, background:"var(--panel)", color:"var(--text-muted-navy)", padding:"2px 8px", borderRadius:20}}>INACTIVE</span>}
                   </div>
                 ))}
               </div>
@@ -1270,25 +1271,15 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
           <div className="card" style={{padding:20, marginBottom:16}}>
             <div style={{display:"flex", alignItems:"center", gap:8, marginBottom:4}}>
               <Camera size={17} color="#2a5357" />
-              <div style={{fontWeight:700, fontSize:14, color:"#111827"}}>
+              <div style={{fontWeight:700, fontSize:14, color:"var(--text)"}}>
                 {noPhoto.length} member{noPhoto.length!==1?"s":""} without a photo
               </div>
             </div>
-            <div style={{fontSize:12, color:"#9ca3af", marginBottom:12, lineHeight:1.7}}>
+            <div style={{fontSize:12, color:"var(--text-faint)", lineHeight:1.7}}>
               {members.length > 0
-                ? `${members.length - noPhoto.length} of ${members.length} members have a profile photo. Use the Photos tab to request the rest.`
+                ? `${members.length - noPhoto.length} of ${members.length} members have a profile photo. The Uncaptured Members tab lists who's still missing one; use the Photos tab to request them.`
                 : "No members loaded."}
             </div>
-            {noPhoto.length > 0 && (
-              <div style={{maxHeight:340, overflowY:"auto", display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))", gap:8}}>
-                {noPhoto.map(m=>(
-                  <div key={m.id} style={{display:"flex", alignItems:"center", gap:10, padding:"6px 8px", background:"#fafbfd", borderRadius:8}}>
-                    <Avatar member={m} size={30} />
-                    <div style={{fontSize:12, color:"#2a3560", fontWeight:600, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap"}}>{fullName(m)}</div>
-                  </div>
-                ))}
-              </div>
-            )}
           </div>
 
           {rosterCheck && (
@@ -1301,13 +1292,13 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
       {activeTab === "attendance" && (
         <div>
           {/* Replace mode toggle */}
-          <div className="card" style={{padding:16, marginBottom:16, background: replaceMode?"#fff8f0":"#fff", border:`1.5px solid ${replaceMode?"#f5a050":"#e4e9f5"}`}}>
+          <div className="card" style={{padding:16, marginBottom:16, background: replaceMode?"#fff8f0":"var(--surface)", border:`1.5px solid ${replaceMode?"#f5a050":"#e4e9f5"}`}}>
             <div style={{display:"flex", alignItems:"center", justifyContent:"space-between"}}>
               <div>
                 <div style={{fontWeight:700, fontSize:14, color: replaceMode?"#c06010":"#2a3560", marginBottom:3}}>
                   {replaceMode ? "Replace Mode: ON" : "Replace Mode"}
                 </div>
-                <div style={{fontSize:12, color:"#9ca3af", lineHeight:1.7}}>
+                <div style={{fontSize:12, color:"var(--text-faint)", lineHeight:1.7}}>
                   {replaceMode
                     ? "Existing attendance for each service in your file will be cleared before importing. Use this to correct a previous import."
                     : "Turn on to replace existing attendance records. Leave off to add records to existing ones."}
@@ -1335,14 +1326,14 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
           </div>
 
           <div className="card" style={{padding:20, marginBottom:16}}>
-            <div style={{fontWeight:700, fontSize:14, color:"#111827", marginBottom:4}}>Import Historical Attendance</div>
-            <div style={{fontSize:12, color:"#9ca3af", marginBottom:4, lineHeight:1.7}}>
+            <div style={{fontWeight:700, fontSize:14, color:"var(--text)", marginBottom:4}}>Import Historical Attendance</div>
+            <div style={{fontSize:12, color:"var(--text-faint)", marginBottom:4, lineHeight:1.7}}>
               Upload a CSV with historical attendance records. Required columns:
             </div>
-            <div style={{background:"#f4f6ff", borderRadius:8, padding:"8px 12px", marginBottom:12, fontSize:12, color:"#1f2937", fontFamily:"monospace"}}>
+            <div style={{background:"var(--panel)", borderRadius:8, padding:"8px 12px", marginBottom:12, fontSize:12, color:"var(--text)", fontFamily:"monospace"}}>
               service_date (DD/MM/YYYY), first_name, last_name, service_name (optional)
             </div>
-            <div style={{fontSize:12, color:"#9ca3af", marginBottom:12}}>
+            <div style={{fontSize:12, color:"var(--text-faint)", marginBottom:12}}>
               Members must already exist in the database. Dates should be in DD/MM/YYYY format e.g. 15/05/2026
             </div>
             <input type="file" accept=".csv,.txt" onChange={handleAttFile} style={{fontSize:12}} />
@@ -1352,10 +1343,10 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
 
           {attRows.length > 0 && (
             <div className="card" style={{padding:20, marginBottom:16}}>
-              <div style={{fontSize:14, color:"#111827", marginBottom:12}}>
+              <div style={{fontSize:14, color:"var(--text)", marginBottom:12}}>
                 <strong>{attRows.length}</strong> attendance records found. Columns detected: {attHeaders.join(", ")}
               </div>
-              <div style={{background:"#f4f6ff", borderRadius:8, padding:"10px 12px", marginBottom:14, fontSize:12, color:"#1f2937"}}>
+              <div style={{background:"var(--panel)", borderRadius:8, padding:"10px 12px", marginBottom:14, fontSize:12, color:"var(--text)"}}>
                 Preview (first 3 rows):<br/>
                 {attRows.slice(0,3).map((r,i)=><div key={i} style={{marginTop:4, fontFamily:"monospace", fontSize:11}}>{JSON.stringify(r)}</div>)}
               </div>
@@ -1369,10 +1360,10 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
               {/* Validation results */}
               {attValidation && (
                 <div style={{marginBottom:14, background: (attValidation.issues.length||(attValidation.warnings||[]).length)?"#fff8f0":"#f0fff8", border:`1.5px solid ${(attValidation.issues.length||(attValidation.warnings||[]).length)?"#f5d088":"#b0e8c8"}`, borderRadius:8, padding:"12px 14px"}}>
-                  <div style={{fontWeight:700, fontSize:12, color:"#111827", marginBottom:6}}>
+                  <div style={{fontWeight:700, fontSize:12, color:"var(--text)", marginBottom:6}}>
                     {attValidation.issues.length === 0 ? "Data looks good!" : `${attValidation.issues.length} issue${attValidation.issues.length!==1?"s":""} found`}
                   </div>
-                  <div style={{fontSize:12, color:"#6b7280", marginBottom: attValidation.issues.length?8:0}}>
+                  <div style={{fontSize:12, color:"var(--text-muted)", marginBottom: attValidation.issues.length?8:0}}>
                     {attValidation.validRows} valid row{attValidation.validRows!==1?"s":""} ready to import
                     {attValidation.emptyRows > 0 && ` · ${attValidation.emptyRows} empty row${attValidation.emptyRows!==1?"s":""} will be skipped`}
                   </div>
@@ -1382,7 +1373,7 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
                     </div>
                   ))}
                   {attValidation.issues.length > 8 && (
-                    <div style={{fontSize:12, color:"#9ca3af", marginTop:3}}>
+                    <div style={{fontSize:12, color:"var(--text-faint)", marginTop:3}}>
                       ...and {attValidation.issues.length - 8} more issues
                     </div>
                   )}
@@ -1397,7 +1388,7 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
                         </div>
                       ))}
                       {attValidation.warnings.length > 8 && (
-                        <div style={{fontSize:12, color:"#9ca3af", marginTop:3}}>
+                        <div style={{fontSize:12, color:"var(--text-faint)", marginTop:3}}>
                           ...and {attValidation.warnings.length - 8} more
                         </div>
                       )}
@@ -1432,7 +1423,7 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
 
           {attResult && (
             <div style={{background: attResult.unmatchedNames?.length ? "#fffbf0" : "#f0fff8", border:`1.5px solid ${attResult.unmatchedNames?.length?"#f5d88a":"#b0e8c8"}`, borderRadius:10, padding:"14px 16px"}}>
-              <div style={{fontWeight:700, fontSize:14, color:"#111827", marginBottom:8}}>
+              <div style={{fontWeight:700, fontSize:14, color:"var(--text)", marginBottom:8}}>
                 {attResult.replaced ? "Replace Complete" : "Import Complete"}
               </div>
               {attResult.replaced && (
@@ -1442,12 +1433,12 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
               )}
               <div style={{fontSize:14, color:"#4caf82", marginBottom:4}}>{attResult.added} new attendance records imported</div>
               {attResult.duplicates > 0 && !attResult.replaced && (
-                <div style={{fontSize:12, color:"#9ca3af", marginBottom:4}}>
+                <div style={{fontSize:12, color:"var(--text-faint)", marginBottom:4}}>
                   ℹ {attResult.duplicates} record{attResult.duplicates!==1?"s":""} already existed and were skipped
                 </div>
               )}
               {attResult.skipped > 0 && (
-                <div style={{fontSize:12, color:"#9ca3af", marginBottom:4}}>
+                <div style={{fontSize:12, color:"var(--text-faint)", marginBottom:4}}>
                   {attResult.skipped} row{attResult.skipped!==1?"s":""} skipped (empty or missing data)
                 </div>
               )}
@@ -1467,20 +1458,20 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
                     Their attendance was <strong>not imported</strong>. Check the spelling matches
                     exactly what's in the Members tab, then re-import.
                   </div>
-                  <div style={{background:"#fff", border:"1px solid #fde68a", borderRadius:8, overflow:"hidden"}}>
+                  <div style={{background:"var(--surface)", border:"1px solid #fde68a", borderRadius:8, overflow:"hidden"}}>
                     <div style={{display:"grid", gridTemplateColumns:"1fr 1fr 1fr", padding:"8px 12px", background:"#fef3c7", fontSize:10, fontWeight:700, color:"#92400e", textTransform:"uppercase", letterSpacing:0.5}}>
                       <span>Name in CSV</span><span>Date</span><span>Service</span>
                     </div>
                     {attResult.unmatchedNames.map((u,i)=>(
                       <div key={i} style={{
                         display:"grid", gridTemplateColumns:"1fr 1fr 1fr",
-                        padding:"9px 12px", fontSize:12, color:"#374151",
+                        padding:"9px 12px", fontSize:12, color:"var(--text-2)",
                         borderTop:"1px solid #fde68a",
-                        background: i%2===0?"#fff":"#fffbeb"
+                        background: i%2===0?"var(--surface)":"#fffbeb"
                       }}>
-                        <span style={{fontWeight:600, color:"#111827"}}>{u.name}</span>
-                        <span style={{color:"#6b7280"}}>{u.date}</span>
-                        <span style={{color:"#9ca3af", fontSize:11}}>{u.service}</span>
+                        <span style={{fontWeight:600, color:"var(--text)"}}>{u.name}</span>
+                        <span style={{color:"var(--text-muted)"}}>{u.date}</span>
+                        <span style={{color:"var(--text-faint)", fontSize:11}}>{u.service}</span>
                       </div>
                     ))}
                   </div>

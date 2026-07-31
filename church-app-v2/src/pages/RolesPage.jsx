@@ -14,9 +14,9 @@ export default function RolesPage({ members, onMemberClick }) {
   return (
     <div className="fade-in">
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:10,marginBottom:18}}>
-        <div style={{fontFamily:"'Inter',sans-serif",color:"#111827",fontSize:14,letterSpacing:0.2,fontWeight:600}}>MINISTRIES OVERVIEW</div>
+        <div style={{fontFamily:"'Inter',sans-serif",color:"var(--text)",fontSize:14,letterSpacing:0.2,fontWeight:600}}>MINISTRIES OVERVIEW</div>
         <div style={{
-          background:"#2a535712", border:"1.5px solid #2a535733", color:"#2a5357",
+          background:"#2a535712", border:"1.5px solid #2a535733", color:"var(--brand)",
           borderRadius:20, padding:"6px 14px", fontSize:12, fontWeight:700,
         }}>
           Total Members Involved in Ministry: {totalInvolved}
@@ -36,11 +36,11 @@ export default function RolesPage({ members, onMemberClick }) {
           return (
             <div key={role} className="card" style={{padding:16,borderLeft:`3px solid ${color}`}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-                <div style={{fontWeight:700,fontSize:14,color:"#111827"}}>{role}</div>
+                <div style={{fontWeight:700,fontSize:14,color:"var(--text)"}}>{role}</div>
                 <div style={{background:color+"18",border:`1.5px solid ${color}44`,color,borderRadius:20,padding:"2px 10px",fontSize:12,fontWeight:700}}>{rm.length}</div>
               </div>
               {rm.length===0
-                ? <div style={{fontSize:12,color:"#d1d5db"}}>No members assigned</div>
+                ? <div style={{fontSize:12,color:"var(--border-strong)"}}>No members assigned</div>
                 : <div style={{display:"flex",flexDirection:"column",gap:8}}>
                     {rm.map(m=>{
                       const instruments = MUSIC_MINISTRIES.includes(role) ? getInstruments(m) : [];
@@ -48,7 +48,7 @@ export default function RolesPage({ members, onMemberClick }) {
                       <div key={m.id} style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer"}} onClick={()=>onMemberClick(m)}>
                         <Avatar member={m} size={28} />
                         <div style={{minWidth:0}}>
-                          <div style={{fontSize:12,color:"#1f2937",fontWeight:600,display:"flex",alignItems:"center",gap:5}}>
+                          <div style={{fontSize:12,color:"var(--text)",fontWeight:600,display:"flex",alignItems:"center",gap:5}}>
                             {fullName(m)}
                             {(m.rolePositions||{})[role] && <span style={{fontSize:9,fontWeight:700,color:"#7a4bd0",background:"#f0eaff",border:"1px solid #d9c9f5",borderRadius:20,padding:"0px 6px"}}>{(m.rolePositions||{})[role]}</span>}
                           </div>

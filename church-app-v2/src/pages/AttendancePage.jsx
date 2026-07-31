@@ -203,7 +203,7 @@ export default function AttendancePage({ profile, members, services, setServices
   return (
     <div className="fade-in">
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14,flexWrap:"wrap",gap:10}}>
-        <div style={{fontFamily:"'Inter',sans-serif",color:"#111827",fontSize:14,letterSpacing:0.2,fontWeight:600}}>SERVICE SESSIONS</div>
+        <div style={{fontFamily:"'Inter',sans-serif",color:"var(--text)",fontSize:14,letterSpacing:0.2,fontWeight:600}}>SERVICE SESSIONS</div>
         <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
           <select
             value={typeFilter}
@@ -237,29 +237,29 @@ export default function AttendancePage({ profile, members, services, setServices
         </div>
       </div>
       {(typeFilter !== "All" || yearFilter !== "All" || monthFilter !== "All") && (
-        <div style={{fontSize:12,color:"#2a5357",marginBottom:12,fontWeight:500,display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+        <div style={{fontSize:12,color:"var(--brand)",marginBottom:12,fontWeight:500,display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
           Showing {filteredServices.length} session{filteredServices.length!==1?"s":""}
           {typeFilter !== "All" && <> · {typeFilter}</>}
           {monthFilter !== "All" && <> · {["January","February","March","April","May","June","July","August","September","October","November","December"][parseInt(monthFilter)-1]}</>}
           {yearFilter !== "All" && <> · {yearFilter}</>}
-          <button onClick={()=>{setTypeFilter("All");setYearFilter("All");setMonthFilter("All");setActiveId(null);}} style={{background:"none",border:"1px solid #d0d7e8",borderRadius:20,color:"#9ca3af",cursor:"pointer",fontSize:12,padding:"1px 8px"}}>Clear</button>
+          <button onClick={()=>{setTypeFilter("All");setYearFilter("All");setMonthFilter("All");setActiveId(null);}} style={{background:"none",border:"1px solid var(--border-navy-strong)",borderRadius:20,color:"var(--text-faint)",cursor:"pointer",fontSize:12,padding:"1px 8px"}}>Clear</button>
         </div>
       )}
 
       <div className="att-grid" style={{display:"grid",gridTemplateColumns:"260px 1fr",gap:20}}>
         <div style={{display:"flex",flexDirection:"column",gap:10}}>
-          {filteredServices.length === 0 && <div style={{color:"#9ca3af",fontSize:14,textAlign:"center",padding:20}}>{typeFilter==="All"?"No services yet":"No "+typeFilter+" sessions found"}</div>}
+          {filteredServices.length === 0 && <div style={{color:"var(--text-faint)",fontSize:14,textAlign:"center",padding:20}}>{typeFilter==="All"?"No services yet":"No "+typeFilter+" sessions found"}</div>}
           {filteredServices.map(s => {
             const d = new Date(s.service_date+"T12:00:00");
             return (
               <div key={s.id} className={`service-card ${activeId===s.id?"active":""}`} onClick={()=>selectService(s.id)}>
-                <div style={{width:46,height:46,borderRadius:10,background:activeId===s.id?"#2a535720":"#f4f6ff",border:"1.5px solid #e4e9f5",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                  <div style={{fontFamily:"'Inter',sans-serif",fontSize:17,color:"#2a5357",fontWeight:600}}>{d.getDate()}</div>
-                  <div style={{fontSize:10,color:"#9ca3af",letterSpacing:0.2}}>{d.toLocaleString("default",{month:"short"}).toUpperCase()}</div>
+                <div style={{width:46,height:46,borderRadius:10,background:activeId===s.id?"#2a535720":"#f4f6ff",border:"1.5px solid var(--border-navy)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                  <div style={{fontFamily:"'Inter',sans-serif",fontSize:17,color:"var(--brand)",fontWeight:600}}>{d.getDate()}</div>
+                  <div style={{fontSize:10,color:"var(--text-faint)",letterSpacing:0.2}}>{d.toLocaleString("default",{month:"short"}).toUpperCase()}</div>
                 </div>
                 <div style={{flex:1}}>
-                  <div style={{fontSize:14,fontWeight:700,color:"#111827"}}>{s.name}</div>
-                  <div style={{fontSize:12,color:"#9ca3af",marginTop:2}}>{s.attendance_count||0} / {total} present</div>
+                  <div style={{fontSize:14,fontWeight:700,color:"var(--text)"}}>{s.name}</div>
+                  <div style={{fontSize:12,color:"var(--text-faint)",marginTop:2}}>{s.attendance_count||0} / {total} present</div>
                 </div>
                 {isAdmin && <button onClick={e=>{e.stopPropagation();deleteService(s.id);}} style={{background:"none",border:"none",color:"#e0a0a0",cursor:"pointer",fontSize:16,padding:4}}><X size={13} /></button>}
               </div>
@@ -269,12 +269,12 @@ export default function AttendancePage({ profile, members, services, setServices
 
         {activeId ? (
           <div className="card fade-in" style={{padding:20}}>
-            {loadingAtt ? <div style={{textAlign:"center",color:"#9ca3af",padding:40}}>Loading…</div> : (
+            {loadingAtt ? <div style={{textAlign:"center",color:"var(--text-faint)",padding:40}}>Loading…</div> : (
               <>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16,flexWrap:"wrap",gap:12}}>
                   <div>
-                    <div style={{fontFamily:"'Inter',sans-serif",fontSize:15,color:"#111827",fontWeight:600}}>{active?.name}</div>
-                    <div style={{fontSize:12,color:"#9ca3af",marginTop:2}}>{active?.service_date}</div>
+                    <div style={{fontFamily:"'Inter',sans-serif",fontSize:15,color:"var(--text)",fontWeight:600}}>{active?.name}</div>
+                    <div style={{fontSize:12,color:"var(--text-faint)",marginTop:2}}>{active?.service_date}</div>
                   </div>
                   <div style={{display:"flex",gap:10}}>
                     <div className="stat-box"><div className="stat-num">{present}</div><div className="stat-label">Present</div></div>
@@ -295,7 +295,7 @@ export default function AttendancePage({ profile, members, services, setServices
                         <div className={`check-circle ${isPresent?"checked":""}`}>{isPresent && <Check size={14} color="#fff" />}</div>
                         <Avatar member={m} size={36} />
                         <div style={{flex:1}}>
-                          <div style={{fontWeight:600,fontSize:14,color:"#111827"}}>{fullName(m)}</div>
+                          <div style={{fontWeight:600,fontSize:14,color:"var(--text)"}}>{fullName(m)}</div>
                           <div style={{display:"flex",gap:4,marginTop:2,flexWrap:"wrap"}}>
                             {(m.roles||[]).map(r=><RoleBadge key={r} role={r} small />)}
                           </div>
@@ -309,7 +309,7 @@ export default function AttendancePage({ profile, members, services, setServices
             )}
           </div>
         ) : (
-          <div className="card" style={{display:"flex",alignItems:"center",justifyContent:"center",color:"#d1d5db",fontSize:14,minHeight:200,flexDirection:"column",gap:8}}>
+          <div className="card" style={{display:"flex",alignItems:"center",justifyContent:"center",color:"var(--border-strong)",fontSize:14,minHeight:200,flexDirection:"column",gap:8}}>
             <span style={{display:"flex"}}><ClipboardList size={28} color="#8a96b8" /></span>
             Select a service to take attendance
           </div>
@@ -338,7 +338,7 @@ export default function AttendancePage({ profile, members, services, setServices
         <div className="modal-bg" onClick={()=>setShowExport(false)}>
           <div className="modal fade-in" onClick={e=>e.stopPropagation()}>
             <h2>EXPORT ATTENDANCE</h2>
-            <div style={{fontSize:12,color:"#6b7280",marginBottom:18,lineHeight:1.7}}>
+            <div style={{fontSize:12,color:"var(--text-muted)",marginBottom:18,lineHeight:1.7}}>
               Exports a spreadsheet with one column per service and one row per member,
               showing Present/Absent for each service plus each member's overall attendance rate.
             </div>
@@ -352,7 +352,7 @@ export default function AttendancePage({ profile, members, services, setServices
                 ))}
               </select>
               {exportServiceFilter !== "All" && (
-                <div style={{fontSize:12,color:"#2a5357",marginTop:4,fontWeight:500}}>
+                <div style={{fontSize:12,color:"var(--brand)",marginTop:4,fontWeight:500}}>
                   Exporting {exportServiceFilter} sessions only
                 </div>
               )}
@@ -371,7 +371,7 @@ export default function AttendancePage({ profile, members, services, setServices
 
             {/* Quick range shortcuts */}
             <div style={{marginBottom:16}}>
-              <div style={{fontSize:12,color:"#9ca3af",letterSpacing:0.2,textTransform:"uppercase",fontWeight:700,marginBottom:8}}>Quick Select</div>
+              <div style={{fontSize:12,color:"var(--text-faint)",letterSpacing:0.2,textTransform:"uppercase",fontWeight:700,marginBottom:8}}>Quick Select</div>
               <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
                 {[
                   { label:"This Month", fn:() => {
@@ -412,7 +412,7 @@ export default function AttendancePage({ profile, members, services, setServices
 
             {/* Preview of services in range */}
             {exportFrom && exportTo && (
-              <div style={{background:"#f4f6ff",borderRadius:8,padding:"10px 12px",marginBottom:14,fontSize:12,color:"#1f2937"}}>
+              <div style={{background:"var(--panel)",borderRadius:8,padding:"10px 12px",marginBottom:14,fontSize:12,color:"var(--text)"}}>
                 {(() => {
                   const inRange = services.filter(s =>
                     s.service_date >= exportFrom && s.service_date <= exportTo &&

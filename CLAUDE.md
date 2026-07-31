@@ -156,7 +156,21 @@ files are for the **existing** database and must be run by hand in the Supabase 
 `require_2fa`, `single_session`, `usher_services` (ushers + leadership may create an
 attendance service; **deleting** one stays admin-only), `rosters`, `tab_access`, `usher_photos`,
 `roster_assignments` (usher-editable assign / note / inactive data, keyed by name),
-`admin_mfa` (`admin_clear_mfa(uuid)` so an admin can actually turn OFF a user's 2FA).
+`admin_mfa` (`admin_clear_mfa(uuid)` so an admin can actually turn OFF a user's 2FA),
+`activity_log_ondelete` (repoints `activity_log.user_id` to `ON DELETE SET NULL` so
+deleting a staff account isn't blocked by its log history — the `23503
+activity_log_user_id_fkey` error).
+
+**Never run `supabase_setup.sql` against the live project.** It's the fresh-project
+superset; re-running it against an existing database recreates functions and can flip
+Auth config. That is what caused the Jul 2026 login outage twice over: it stripped
+`set search_path` off `get_my_role()`/`handle_user_login()` (login failed with
+"Database error granting user" / 42P01 `relation "profiles" does not exist`) AND the
+Email provider ended up disabled in Auth → Providers (`signInWithPassword` returned
+422 `email_provider_disabled`, which the login screen showed as a generic "Incorrect
+email or password"). Both functions now pin `search_path=public` and qualify
+`public.profiles` in setup, but the rule stands: on the existing DB run the individual
+`supabase_migration_*.sql` files, never the whole setup.
 
 **Turning off a user's 2FA from the Users page needs `admin_clear_mfa`.** The "Require 2FA"
 checkbox is only a flag that forces enrollment; a user who already has a verified factor is

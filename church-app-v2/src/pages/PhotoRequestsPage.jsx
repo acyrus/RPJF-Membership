@@ -102,8 +102,8 @@ export default function PhotoRequestsPage({ profile, members, setMembers, setPen
     <div className="fade-in">
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10, marginBottom: 18 }}>
         <div>
-          <div style={{ fontFamily: "'Inter',sans-serif", color: "#111827", fontSize: 14, letterSpacing: 0.2, fontWeight: 600 }}>PHOTO REQUESTS</div>
-          <div style={{ fontSize: 12, color: "#9ca3af", marginTop: 3 }}>
+          <div style={{ fontFamily: "'Inter',sans-serif", color: "var(--text)", fontSize: 14, letterSpacing: 0.2, fontWeight: 600 }}>PHOTO REQUESTS</div>
+          <div style={{ fontSize: 12, color: "var(--text-faint)", marginTop: 3 }}>
             {loading ? "Loading…" : `${subs.length} photo${subs.length !== 1 ? "s" : ""} awaiting review`}
           </div>
         </div>
@@ -113,9 +113,9 @@ export default function PhotoRequestsPage({ profile, members, setMembers, setPen
       {error && <div className="error-msg" style={{ marginBottom: 14 }}>{error}</div>}
 
       {!loading && subs.length === 0 ? (
-        <div style={{ textAlign: "center", padding: "48px 20px", color: "#d1d5db" }}>
+        <div style={{ textAlign: "center", padding: "48px 20px", color: "var(--border-strong)" }}>
           <div style={{ marginBottom: 12, display:"flex", justifyContent:"center" }}><Inbox size={36} color="#8a96b8" /></div>
-          <div style={{ fontWeight: 600, color: "#6b7280", marginBottom: 6 }}>No photos waiting</div>
+          <div style={{ fontWeight: 600, color: "var(--text-muted)", marginBottom: 6 }}>No photos waiting</div>
           <div style={{ fontSize: 12 }}>Submissions from the public photo page will appear here.</div>
         </div>
       ) : (
@@ -127,10 +127,10 @@ export default function PhotoRequestsPage({ profile, members, setMembers, setPen
             return (
               <div key={s.id} className="card" style={{ padding: 16 }}>
                 <div style={{ display: "flex", gap: 14, marginBottom: 12 }}>
-                  <img src={s.photo_url} alt="Submitted" style={{ width: 72, height: 72, borderRadius: 12, objectFit: "cover", background: "#eef1f6", flexShrink: 0 }} />
+                  <img src={s.photo_url} alt="Submitted" style={{ width: 72, height: 72, borderRadius: 12, objectFit: "cover", background: "var(--panel)", flexShrink: 0 }} />
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 15, fontWeight: 700, color: "#111827" }}>{s.first_name} {s.last_name}</div>
-                    <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 2 }}>
+                    <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text)" }}>{s.first_name} {s.last_name}</div>
+                    <div style={{ fontSize: 11, color: "var(--text-faint)", marginTop: 2 }}>
                       Submitted {new Date(s.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
                     </div>
                     <div style={{ display: "inline-block", marginTop: 8, background: infoBg, color: infoColor, fontSize: 11, fontWeight: 700, borderRadius: 20, padding: "3px 10px" }}>

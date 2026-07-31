@@ -42,8 +42,8 @@ export default function SkillsPage({ members, onMemberClick }) {
     <div className="fade-in">
       <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20, flexWrap:"wrap", gap:12}}>
         <div>
-          <div style={{fontFamily:"'Inter',sans-serif", color:"#111827", fontSize:14, letterSpacing:0.5, fontWeight:700}}>SKILLS DIRECTORY</div>
-          <div style={{fontSize:12, color:"#9ca3af", marginTop:3}}>{totalWithSkills} of {members.length} members have skills recorded · {skillsInUse.length} skill{skillsInUse.length!==1?"s":""} in use</div>
+          <div style={{fontFamily:"'Inter',sans-serif", color:"var(--text)", fontSize:14, letterSpacing:0.5, fontWeight:700}}>SKILLS DIRECTORY</div>
+          <div style={{fontSize:12, color:"var(--text-faint)", marginTop:3}}>{totalWithSkills} of {members.length} members have skills recorded · {skillsInUse.length} skill{skillsInUse.length!==1?"s":""} in use</div>
         </div>
         <select value={selectedSkill} onChange={e=>setSelectedSkill(e.target.value)} style={{width:220, fontWeight:500}}>
           <option value="All">All Skills ({skillsInUse.length})</option>
@@ -54,9 +54,9 @@ export default function SkillsPage({ members, onMemberClick }) {
       </div>
 
       {visibleSkills.length === 0 ? (
-        <div style={{textAlign:"center", padding:"48px 20px", color:"#d1d5db"}}>
+        <div style={{textAlign:"center", padding:"48px 20px", color:"var(--border-strong)"}}>
           <div style={{marginBottom:12, display:"flex", justifyContent:"center"}}><Zap size={36} color="#8a96b8" /></div>
-          <div style={{fontWeight:600, color:"#6b7280", marginBottom:6}}>
+          <div style={{fontWeight:600, color:"var(--text-muted)", marginBottom:6}}>
             {selectedSkill !== "All" ? `No members with "${selectedSkill}"` : "No skills recorded yet"}
           </div>
           <div style={{fontSize:12}}>Add skills to members in the Members tab.</div>
@@ -66,10 +66,10 @@ export default function SkillsPage({ members, onMemberClick }) {
           {visibleSkills.map(skill => {
             const skillMembers = skillMap[skill] || [];
             return (
-              <div key={skill} className="card" style={{padding:16, borderLeft:"3px solid #2a5357"}}>
+              <div key={skill} className="card" style={{padding:16, borderLeft:"3px solid var(--brand)"}}>
                 <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12}}>
-                  <div style={{fontWeight:700, fontSize:14, color:"#111827", display:"flex", alignItems:"center", gap:6}}><Zap size={14} color="#e15700" />{skill}</div>
-                  <div style={{background:"#2a535718", border:"1.5px solid #2a535744", color:"#2a5357", borderRadius:20, padding:"2px 10px", fontSize:12, fontWeight:700}}>
+                  <div style={{fontWeight:700, fontSize:14, color:"var(--text)", display:"flex", alignItems:"center", gap:6}}><Zap size={14} color="#e15700" />{skill}</div>
+                  <div style={{background:"#2a535718", border:"1.5px solid #2a535744", color:"var(--brand)", borderRadius:20, padding:"2px 10px", fontSize:12, fontWeight:700}}>
                     {skillMembers.length}
                   </div>
                 </div>
@@ -77,7 +77,7 @@ export default function SkillsPage({ members, onMemberClick }) {
                   {skillMembers.map(m => (
                     <div key={m.id} style={{display:"flex", alignItems:"center", gap:8, cursor:"pointer"}} onClick={()=>onMemberClick(m)}>
                       <Avatar member={m} size={28} />
-                      <div style={{fontSize:12, color:"#1f2937", fontWeight:600}}>{fullName(m)}</div>
+                      <div style={{fontSize:12, color:"var(--text)", fontWeight:600}}>{fullName(m)}</div>
                     </div>
                   ))}
                 </div>
