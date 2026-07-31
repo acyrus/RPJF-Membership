@@ -253,7 +253,7 @@ export default function AttendancePage({ profile, members, services, setServices
             const d = new Date(s.service_date+"T12:00:00");
             return (
               <div key={s.id} className={`service-card ${activeId===s.id?"active":""}`} onClick={()=>selectService(s.id)}>
-                <div style={{width:46,height:46,borderRadius:10,background:activeId===s.id?"#2a535720":"#f4f6ff",border:"1.5px solid var(--border-navy)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                <div style={{width:46,height:46,borderRadius:10,background:activeId===s.id?"#2a535720":"var(--panel)",border:"1.5px solid var(--border-navy)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",flexShrink:0}}>
                   <div style={{fontFamily:"'Inter',sans-serif",fontSize:17,color:"var(--brand)",fontWeight:600}}>{d.getDate()}</div>
                   <div style={{fontSize:10,color:"var(--text-faint)",letterSpacing:0.2}}>{d.toLocaleString("default",{month:"short"}).toUpperCase()}</div>
                 </div>

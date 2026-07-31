@@ -1033,7 +1033,7 @@ export default function AnalyticsPage({ members, services, attendance, household
                     ))}
                   </div>
                   {householdView.largest && (
-                    <div style={{marginTop:10,padding:"8px 10px",background:"#f0fafa",borderRadius:8,fontSize:12,color:TEAL,fontWeight:500}}>
+                    <div style={{marginTop:10,padding:"8px 10px",background:"var(--brand-tint-soft)",borderRadius:8,fontSize:12,color:TEAL,fontWeight:500}}>
                       Largest: {householdView.largest.name} ({householdView.largest.size} members)
                     </div>
                   )}
@@ -1109,7 +1109,7 @@ export default function AnalyticsPage({ members, services, attendance, household
                         <div style={{fontSize:11,color:"var(--text-faint)"}}>({filteredMembers.length?Math.round(d.value/filteredMembers.length*100):0}%)</div>
                       </div>
                     ))}
-                    <div style={{marginTop:10,padding:"8px 10px",background:"#f0fafa",borderRadius:8,fontSize:12,color:TEAL,fontWeight:500}}>
+                    <div style={{marginTop:10,padding:"8px 10px",background:"var(--brand-tint-soft)",borderRadius:8,fontSize:12,color:TEAL,fontWeight:500}}>
                       {distinctWithRole} of {filteredMembers.length} members serve in at least one ministry
                     </div>
                   </div>

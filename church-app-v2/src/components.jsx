@@ -502,7 +502,7 @@ export function SecurityModal({ onClose }) {
                 <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text)" }}>Two-step verification</div>
                 <div style={{ fontSize: 12, color: "var(--text-muted)" }}>An extra code at sign-in from your authenticator app</div>
               </div>
-              <span style={{ fontSize: 11, fontWeight: 700, color: factor ? "#2a7a50" : "#9ca3af", background: factor ? "#e8f6ee" : "var(--panel)", borderRadius: 20, padding: "3px 10px" }}>{twoFaStatus}</span>
+              <span style={{ fontSize: 11, fontWeight: 700, color: factor ? "#2a7a50" : "#9ca3af", background: factor ? "var(--brand-tint-soft)" : "var(--panel)", borderRadius: 20, padding: "3px 10px" }}>{twoFaStatus}</span>
               <ChevronRight size={18} color="#c0c8d8" />
             </button>
           </div>
@@ -532,7 +532,7 @@ export function SecurityModal({ onClose }) {
             {/* Already enabled */}
             {factor && !enroll && (
               <div>
-                <div style={{ background: "#f0fff8", border: "1.5px solid #b0e8c8", borderRadius: 8, padding: "10px 12px", fontSize: 13, color: "#2a7a50", margin: "4px 0 10px" }}>
+                <div style={{ background: "var(--brand-tint-soft)", border: "1.5px solid #b0e8c8", borderRadius: 8, padding: "10px 12px", fontSize: 13, color: "#2a7a50", margin: "4px 0 10px" }}>
                   Two-step verification is <strong>on</strong> for your account.
                 </div>
                 <p style={{ fontSize: 12.5, color: "var(--text-muted)", lineHeight: 1.6 }}>
@@ -901,8 +901,8 @@ export function SexBadge({ sex }) {
 }
 export function StatusBadge({ active }) {
   return active === false
-    ? <span style={{background:"#f0f0f8",border:"1.5px solid #c0c8e0",color:"var(--text-faint)",borderRadius:20,padding:"3px 10px",fontSize:12,fontWeight:700,display:"inline-block"}}>Inactive</span>
-    : <span style={{background:"#e8f8f0",border:"1.5px solid #a0dfc0",color:"#2a8a50",borderRadius:20,padding:"3px 10px",fontSize:12,fontWeight:700,display:"inline-block"}}>Active</span>;
+    ? <span style={{background:"var(--panel)",border:"1.5px solid #c0c8e0",color:"var(--text-faint)",borderRadius:20,padding:"3px 10px",fontSize:12,fontWeight:700,display:"inline-block"}}>Inactive</span>
+    : <span style={{background:"var(--brand-tint-soft)",border:"1.5px solid #a0dfc0",color:"#2a8a50",borderRadius:20,padding:"3px 10px",fontSize:12,fontWeight:700,display:"inline-block"}}>Active</span>;
 }
 export function InfoRow({ icon, label, value }) {
   return (
@@ -1095,7 +1095,7 @@ export function MemberForm({ value, onChange, onSubmit, onCancel, submitLabel="S
             const sel = (value.instruments||"").split(",").map(s=>s.trim()).filter(Boolean);
             const on = sel.includes(inst);
             return (
-              <label key={inst} style={{display:"inline-flex",alignItems:"center",gap:6,fontSize:12,color:"var(--text-2)",background:on?"#2a535712":"#f7f9fb",border:`1px solid ${on?"#2a535744":"#e4e9f5"}`,borderRadius:8,padding:"5px 10px",cursor:"pointer"}}>
+              <label key={inst} style={{display:"inline-flex",alignItems:"center",gap:6,fontSize:12,color:"var(--text-2)",background:on?"#2a535712":"var(--panel)",border:`1px solid ${on?"#2a535744":"#e4e9f5"}`,borderRadius:8,padding:"5px 10px",cursor:"pointer"}}>
                 <input type="checkbox" checked={on} onChange={e=>{
                   const next = sel.filter(x=>x!==inst);
                   if (e.target.checked) next.push(inst);

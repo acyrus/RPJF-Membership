@@ -122,8 +122,8 @@ export default function PhotoRequestsPage({ profile, members, setMembers, setPen
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(320px,1fr))", gap: 14 }}>
           {subs.map(s => {
             const info = matchInfo(s);
-            const infoColor = info.kind === "one" ? "#2a8a50" : info.kind === "many" ? "#a05010" : "#9ca3af";
-            const infoBg = info.kind === "one" ? "#e8f8f0" : info.kind === "many" ? "#fdf3e7" : "#f3f4f6";
+            const infoColor = info.kind === "one" ? "#2a8a50" : info.kind === "many" ? "#c8843a" : "var(--text-muted)";
+            const infoBg = info.kind === "one" ? "var(--brand-tint-soft)" : info.kind === "many" ? "var(--panel)" : "var(--panel)";
             return (
               <div key={s.id} className="card" style={{ padding: 16 }}>
                 <div style={{ display: "flex", gap: 14, marginBottom: 12 }}>

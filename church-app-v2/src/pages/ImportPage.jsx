@@ -884,7 +884,7 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
               </div>
               <button onClick={()=>setMemberReplaceMode(r=>!r)} style={{
                 flexShrink:0, marginLeft:16,
-                background: memberReplaceMode?"#e07830":"#f4f6fa",
+                background: memberReplaceMode?"#e07830":"var(--panel)",
                 color: memberReplaceMode?"#fff":"#5a6a8a",
                 border:`1.5px solid ${memberReplaceMode?"#e07830":"#d0d7e8"}`,
                 borderRadius:20, padding:"6px 16px", fontSize:12, fontWeight:700, cursor:"pointer", transition:"all 0.2s"
@@ -968,7 +968,7 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
 
                 {/* Validation results */}
                 {memberValidation && (
-                  <div style={{marginBottom:14, background: memberValidation.issues.length?"#fff8f0":"#f0fff8", border:`1.5px solid ${memberValidation.issues.length?"#f5d088":"#b0e8c8"}`, borderRadius:8, padding:"12px 14px"}}>
+                  <div style={{marginBottom:14, background: memberValidation.issues.length?"#fff8f0":"var(--brand-tint-soft)", border:`1.5px solid ${memberValidation.issues.length?"#f5d088":"#b0e8c8"}`, borderRadius:8, padding:"12px 14px"}}>
                     <div style={{fontWeight:700, fontSize:12, color:"var(--text)", marginBottom:6}}>
                       {memberValidation.issues.length === 0 ? "Data looks good!" : `${memberValidation.issues.length} issue${memberValidation.issues.length!==1?"s":""} across ${memberValidation.badRows} row${memberValidation.badRows!==1?"s":""}`}
                     </div>
@@ -1034,7 +1034,7 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
           )}
 
           {memberResult && (
-            <div style={{background: memberResult.errors.length?"#fff8f0":"#f0fff8", border:`1.5px solid ${memberResult.errors.length?"#f5d0a0":"#b0e8c8"}`, borderRadius:10, padding:"14px 16px"}}>
+            <div style={{background: memberResult.errors.length?"#fff8f0":"var(--brand-tint-soft)", border:`1.5px solid ${memberResult.errors.length?"#f5d0a0":"#b0e8c8"}`, borderRadius:10, padding:"14px 16px"}}>
               <div style={{fontWeight:700, fontSize:14, color:"var(--text)", marginBottom:8, display:"flex", alignItems:"center", gap:8, flexWrap:"wrap"}}>
                 {memberResult.replaced ? "Update Complete" : "Import Complete"}
                 {memberResult.replaced && <span style={{fontSize:10, fontWeight:700, background:"#fbe4d0", color:"#b5581a", padding:"2px 9px", borderRadius:20, textTransform:"uppercase", letterSpacing:0.4}}>Replace mode: existing records overwritten</span>}
@@ -1068,7 +1068,7 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
               {/* People added who share an email with someone already in the app: could be
                   a corrected name or a family sharing one address. Added, but flagged. */}
               {memberResult.emailFlags && memberResult.emailFlags.length > 0 && (
-                <div style={{marginTop:8, marginBottom:6, background:"#f0f6ff", border:"1.5px solid #b8d0f0", borderRadius:8, padding:"10px 12px"}}>
+                <div style={{marginTop:8, marginBottom:6, background:"var(--panel)", border:"1.5px solid #b8d0f0", borderRadius:8, padding:"10px 12px"}}>
                   <div style={{fontSize:12, fontWeight:700, color:"#2a5aa0", marginBottom:5}}>
                     {memberResult.emailFlags.length} added but sharing an email, worth a check
                   </div>
@@ -1139,9 +1139,9 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
           </div>
 
           {/* What the ushers can see right now */}
-          <div className="card" style={{padding:"14px 16px", marginBottom:16, background:"#f7fbfa", border:"1.5px solid #b8ddd8"}}>
-            <div style={{fontSize:12, fontWeight:700, color:"#1f4e4a", marginBottom:3}}>Live for ushers</div>
-            <div style={{fontSize:12, color:"#5a7a76", lineHeight:1.7}}>
+          <div className="card" style={{padding:"14px 16px", marginBottom:16, background:"var(--brand-tint-soft)", border:"1.5px solid var(--brand-accent-border-soft)"}}>
+            <div style={{fontSize:12, fontWeight:700, color:"var(--brand)", marginBottom:3}}>Live for ushers</div>
+            <div style={{fontSize:12, color:"var(--text-muted)", lineHeight:1.7}}>
               {currentRoster
                 ? <>Ushers currently see <strong>{currentRoster.label}</strong>, {currentRoster.name_count} names, uploaded {new Date(currentRoster.created_at).toLocaleDateString()}.</>
                 : <>No roster published yet. Upload one below and the ushers' Uncaptured Members tab will be empty until you do.</>}
@@ -1168,7 +1168,7 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
                 </button>
               </div>
               {rosterSaved && (
-                <div style={{marginTop:10, display:"flex", alignItems:"center", gap:8, background:"#f0fff8", border:"1.5px solid #b0e8c8", borderRadius:8, padding:"9px 12px", fontSize:12, color:"#2a8a50", fontWeight:600}}>
+                <div style={{marginTop:10, display:"flex", alignItems:"center", gap:8, background:"var(--brand-tint-soft)", border:"1.5px solid #b0e8c8", borderRadius:8, padding:"9px 12px", fontSize:12, color:"#2a8a50", fontWeight:600}}>
                   <CheckCircle2 size={16} color="#4caf82" /> {rosterSaved}
                 </div>
               )}
@@ -1180,7 +1180,7 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
           <div className="card" style={{padding:"12px 16px", marginBottom:16, display:"flex", alignItems:"center", justifyContent:"space-between"}}>
             <div style={{fontSize:12, color:"var(--text-muted)"}}>Include inactive members in the comparison</div>
             <button onClick={()=>setIncludeInactive(v=>!v)} style={{
-              background: includeInactive?"#2a5357":"#f4f6fa", color: includeInactive?"#fff":"#5a6a8a",
+              background: includeInactive?"#2a5357":"var(--panel)", color: includeInactive?"#fff":"#5a6a8a",
               border:`1.5px solid ${includeInactive?"#2a5357":"#d0d7e8"}`, borderRadius:20,
               padding:"6px 16px", fontSize:12, fontWeight:700, cursor:"pointer"
             }}>{includeInactive ? "ON" : "OFF"}</button>
@@ -1308,7 +1308,7 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
                 onClick={()=>setReplaceMode(r=>!r)}
                 style={{
                   flexShrink:0, marginLeft:16,
-                  background: replaceMode?"#e07830":"#f4f6fa",
+                  background: replaceMode?"#e07830":"var(--panel)",
                   color: replaceMode?"#fff":"#5a6a8a",
                   border:`1.5px solid ${replaceMode?"#e07830":"#d0d7e8"}`,
                   borderRadius:20, padding:"6px 16px",
@@ -1359,7 +1359,7 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
 
               {/* Validation results */}
               {attValidation && (
-                <div style={{marginBottom:14, background: (attValidation.issues.length||(attValidation.warnings||[]).length)?"#fff8f0":"#f0fff8", border:`1.5px solid ${(attValidation.issues.length||(attValidation.warnings||[]).length)?"#f5d088":"#b0e8c8"}`, borderRadius:8, padding:"12px 14px"}}>
+                <div style={{marginBottom:14, background: (attValidation.issues.length||(attValidation.warnings||[]).length)?"#fff8f0":"var(--brand-tint-soft)", border:`1.5px solid ${(attValidation.issues.length||(attValidation.warnings||[]).length)?"#f5d088":"#b0e8c8"}`, borderRadius:8, padding:"12px 14px"}}>
                   <div style={{fontWeight:700, fontSize:12, color:"var(--text)", marginBottom:6}}>
                     {attValidation.issues.length === 0 ? "Data looks good!" : `${attValidation.issues.length} issue${attValidation.issues.length!==1?"s":""} found`}
                   </div>
@@ -1422,7 +1422,7 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
           )}
 
           {attResult && (
-            <div style={{background: attResult.unmatchedNames?.length ? "#fffbf0" : "#f0fff8", border:`1.5px solid ${attResult.unmatchedNames?.length?"#f5d88a":"#b0e8c8"}`, borderRadius:10, padding:"14px 16px"}}>
+            <div style={{background: attResult.unmatchedNames?.length ? "#fffbf0" : "var(--brand-tint-soft)", border:`1.5px solid ${attResult.unmatchedNames?.length?"#f5d88a":"#b0e8c8"}`, borderRadius:10, padding:"14px 16px"}}>
               <div style={{fontWeight:700, fontSize:14, color:"var(--text)", marginBottom:8}}>
                 {attResult.replaced ? "Replace Complete" : "Import Complete"}
               </div>

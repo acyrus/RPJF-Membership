@@ -322,7 +322,7 @@ export default function UncapturedMembersPage({ members = [] }) {
       <div style={{display:"flex", gap:5}}>
         {options.map(([key, text]) => (
           <button key={key} onClick={()=>onChange(key)} style={{
-            background: value===key ? "#2a5357" : "#f4f6fa",
+            background: value===key ? "#2a5357" : "var(--panel)",
             color:      value===key ? "#fff" : "#5a6a8a",
             border:`1.5px solid ${value===key ? "#2a5357" : "#d0d7e8"}`,
             borderRadius:20, padding:"5px 13px", fontSize:12, fontWeight:700,
@@ -345,7 +345,7 @@ export default function UncapturedMembersPage({ members = [] }) {
             Published {new Date(currentList.created_at).toLocaleDateString()}
           </div>
         </div>
-        <span style={{fontSize:10, fontWeight:700, background:"#e8f5f0", color:"#1f4e4a", padding:"4px 10px", borderRadius:20, textTransform:"uppercase", letterSpacing:0.4}}>Current list</span>
+        <span style={{fontSize:10, fontWeight:700, background:"var(--brand-tint-soft)", color:"#1f4e4a", padding:"4px 10px", borderRadius:20, textTransform:"uppercase", letterSpacing:0.4}}>Current list</span>
       </div>
 
       {/* Summary statistics */}

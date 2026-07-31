@@ -48,7 +48,7 @@ function EventRow({ member, date, type, past, onMemberClick }) {
       marginBottom:8, opacity: past ? 0.8 : 1,
     }}
     onMouseEnter={e=>e.currentTarget.style.background=typeColor+"08"}
-    onMouseLeave={e=>e.currentTarget.style.background=isToday?typeColor+"0a":"#fff"}>
+    onMouseLeave={e=>e.currentTarget.style.background=isToday?typeColor+"0a":"var(--surface)"}>
       <Avatar member={member} size={38} />
       <div style={{flex:1}}>
         <div style={{fontWeight:700, fontSize:14, color:"var(--text)"}}>{fullName(member)}</div>
@@ -80,7 +80,7 @@ function MonthSection({ monthIndex, entries, type, past, onMemberClick, isCurren
       <div style={{display:"flex", alignItems:"center", gap:10, marginBottom:12}}>
         <div style={{
           background: isCurrentMonth ? typeColor : "var(--panel)",
-          color: isCurrentMonth ? "#fff" : "#5a6a8a",
+          color: isCurrentMonth ? "#fff" : "var(--text-navy-muted)",
           borderRadius:8, padding:"4px 14px",
           fontSize:12, fontWeight:700,
           border: isCurrentMonth ? "none" : "1.5px solid var(--border-navy)",
@@ -195,7 +195,7 @@ export default function CelebrationsPage({ members, onMemberClick }) {
           }}>
             {t.icon} {t.label}
             <span style={{
-              background: subtab===t.key?"#2a535718":"#f0f2f8",
+              background: subtab===t.key?"#2a535718":"var(--panel)",
               border: subtab===t.key?"1.5px solid #2a535744":"1.5px solid var(--border-navy)",
               color: subtab===t.key?"#2a5357":"#8a96b8",
               borderRadius:20, padding:"1px 8px", fontSize:12, fontWeight:700,

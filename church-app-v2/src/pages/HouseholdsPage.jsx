@@ -100,7 +100,7 @@ export default function HouseholdsPage({ profile, members, setMembers, household
         </div>
       </div>
 
-      <div style={{ background: "#eef6f6", border: "1.5px solid #c9e3e1", borderRadius: 10, padding: "10px 14px", fontSize: 12, color: "var(--brand)", marginBottom: 18, lineHeight: 1.6 }}>
+      <div style={{ background: "var(--brand-tint-soft)", border: "1.5px solid var(--brand-accent-border-soft)", borderRadius: 10, padding: "10px 14px", fontSize: 12, color: "var(--brand)", marginBottom: 18, lineHeight: 1.6 }}>
         To build a family from scratch: create the household above, then add each member to it below, even the very first person can be added before anyone else exists.
       </div>
 

@@ -60,7 +60,7 @@ function TabAccessModal({ user, onSave, onReset, onClose, saving }) {
             return (
               <label key={key} style={{
                 display:"flex", alignItems:"center", gap:7, fontSize:12, cursor:"pointer",
-                background: on ? "#2a535712" : "#f7f9fb",
+                background: on ? "#2a535712" : "var(--panel)",
                 border:`1px solid ${on ? "#2a535744" : "#e4e9f5"}`,
                 borderRadius:8, padding:"7px 10px", color:"var(--text-2)",
               }}>
@@ -238,7 +238,7 @@ export default function UsersPage({ currentProfile }) {
         <div style={{fontSize:12, color:"var(--text-faint)"}}>{users.length} users</div>
       </div>
 
-      {success && <div className="success-msg" style={{marginBottom:14, fontSize:14, padding:"10px 14px", background:"#f0fff8", border:"1.5px solid #b0e8c8", borderRadius:8}}>{success}</div>}
+      {success && <div className="success-msg" style={{marginBottom:14, fontSize:14, padding:"10px 14px", background:"var(--brand-tint-soft)", border:"1.5px solid #b0e8c8", borderRadius:8}}>{success}</div>}
       {error && <div className="error-msg" style={{marginBottom:14}}>{error}</div>}
 
       {/* Without the migration the Tabs editor looks usable but can't save, so say so
