@@ -185,10 +185,18 @@ alter table photo_submissions enable row level security;
 -- 6. FUNCTIONS & VIEW
 -- ============================================================
 
+-- NOTE: security definer functions that GoTrue runs on the login path MUST pin
+-- search_path. Without it, the login trigger executes with an empty/other search
+-- path, "profiles" resolves to nothing (42P01 relation does not exist), and every
+-- login fails with "Database error granting user". Keep the qualified table names
+-- and the "set search_path" clause on both this and handle_user_login().
 create or replace function get_my_role()
-returns text as $$
-  select role from profiles where id = auth.uid();
-$$ language sql security definer stable;
+returns text
+language sql security definer stable
+set search_path to 'public'
+as $$
+  select role from public.profiles where id = auth.uid();
+$$;
 
 create or replace function handle_updated_at()
 returns trigger as $$
@@ -196,12 +204,15 @@ begin new.updated_at = now(); return new; end;
 $$ language plpgsql;
 
 create or replace function handle_user_login()
-returns trigger as $$
+returns trigger
+language plpgsql security definer
+set search_path to 'public'
+as $$
 begin
-  update profiles set last_sign_in = now() where id = new.id;
+  update public.profiles set last_sign_in = now() where id = new.id;
   return new;
 end;
-$$ language plpgsql security definer;
+$$;
 
 -- Non-admins (leadership/usher) may assign a member's household ONLY —
 -- never any other member column — via this locked-down function.
