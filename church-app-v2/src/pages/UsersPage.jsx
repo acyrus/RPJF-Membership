@@ -8,11 +8,11 @@ const ROLE_OPTIONS = [
   { value:"usher", label:"Usher", desc:tabsForRole("usher"), color:"#4caf82" },
   { value:"leadership", label:"Leadership", desc:tabsForRole("leadership"), color:"#a040c0" },
   { value:"celebrations", label:"Celebrations", desc:"Celebrations only", color:"#e07830" },
-  { value:"admin", label:"Admin", desc:"Full access to everything", color:"#2a5357" },
+  { value:"admin", label:"Admin", desc:"Full access to everything", color:"var(--brand)" },
 ];
 
 function RolePill({ role }) {
-  const opt = ROLE_OPTIONS.find(r => r.value === role) || { label: role, color: "#8a96b8" };
+  const opt = ROLE_OPTIONS.find(r => r.value === role) || { label: role, color: "var(--text-muted-navy)" };
   return (
     <span style={{
       background: opt.color+"18", border:`1.5px solid ${opt.color}33`,
@@ -44,8 +44,8 @@ function TabAccessModal({ user, onSave, onReset, onClose, saving }) {
     <div className="modal-bg" onClick={onClose}>
       <div className="modal fade-in" onClick={e=>e.stopPropagation()}>
         <h2>TAB ACCESS: {user.name.toUpperCase()}</h2>
-        <div style={{fontSize:12, color:"#6b7280", marginBottom:14, lineHeight:1.7}}>
-          Tick the tabs <strong style={{color:"#111827"}}>{user.name}</strong> should see.
+        <div style={{fontSize:12, color:"var(--text-muted)", marginBottom:14, lineHeight:1.7}}>
+          Tick the tabs <strong style={{color:"var(--text)"}}>{user.name}</strong> should see.
           Leave them on the role default unless there's a reason not to.
         </div>
         <div style={{background:"#fffbf0", border:"1.5px solid #f5d88a", borderRadius:8, padding:"9px 12px", marginBottom:14, fontSize:11, color:"#8a6800", lineHeight:1.6}}>
@@ -60,9 +60,9 @@ function TabAccessModal({ user, onSave, onReset, onClose, saving }) {
             return (
               <label key={key} style={{
                 display:"flex", alignItems:"center", gap:7, fontSize:12, cursor:"pointer",
-                background: on ? "#2a535712" : "#f7f9fb",
+                background: on ? "#2a535712" : "var(--panel)",
                 border:`1px solid ${on ? "#2a535744" : "#e4e9f5"}`,
-                borderRadius:8, padding:"7px 10px", color:"#374151",
+                borderRadius:8, padding:"7px 10px", color:"var(--text-2)",
               }}>
                 <input type="checkbox" checked={on} onChange={()=>toggle(key)} />
                 <span style={{fontWeight: on ? 600 : 400}}>{TAB_LABELS[key]}</span>
@@ -74,7 +74,7 @@ function TabAccessModal({ user, onSave, onReset, onClose, saving }) {
           })}
         </div>
 
-        <div style={{fontSize:11, color:"#9ca3af", marginBottom:14}}>
+        <div style={{fontSize:11, color:"var(--text-faint)", marginBottom:14}}>
           {picked.size === 0
             ? "No tabs selected, this user won't be able to see anything."
             : matchesRole
@@ -234,11 +234,11 @@ export default function UsersPage({ currentProfile }) {
   return (
     <div className="fade-in">
       <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:18}}>
-        <div style={{fontFamily:"'Inter',sans-serif", color:"#111827", fontSize:14, letterSpacing:0.5, fontWeight:700}}>USER MANAGEMENT</div>
-        <div style={{fontSize:12, color:"#9ca3af"}}>{users.length} users</div>
+        <div style={{fontFamily:"'Inter',sans-serif", color:"var(--text)", fontSize:14, letterSpacing:0.5, fontWeight:700}}>USER MANAGEMENT</div>
+        <div style={{fontSize:12, color:"var(--text-faint)"}}>{users.length} users</div>
       </div>
 
-      {success && <div className="success-msg" style={{marginBottom:14, fontSize:14, padding:"10px 14px", background:"#f0fff8", border:"1.5px solid #b0e8c8", borderRadius:8}}>{success}</div>}
+      {success && <div className="success-msg" style={{marginBottom:14, fontSize:14, padding:"10px 14px", background:"var(--brand-tint-soft)", border:"1.5px solid #b0e8c8", borderRadius:8}}>{success}</div>}
       {error && <div className="error-msg" style={{marginBottom:14}}>{error}</div>}
 
       {/* Without the migration the Tabs editor looks usable but can't save, so say so
@@ -263,31 +263,31 @@ export default function UsersPage({ currentProfile }) {
         {ROLE_OPTIONS.map(r => (
           <div key={r.value} style={{background:r.color+"0a", border:`1.5px solid ${r.color}22`, borderRadius:10, padding:"10px 12px"}}>
             <div style={{fontWeight:700, fontSize:12, color:r.color, marginBottom:3}}>{r.label}</div>
-            <div style={{fontSize:12, color:"#6b7280", lineHeight:1.7}}>{r.desc}</div>
+            <div style={{fontSize:12, color:"var(--text-muted)", lineHeight:1.7}}>{r.desc}</div>
           </div>
         ))}
       </div>
-      <div style={{fontSize:11, color:"#9ca3af", marginTop:-16, marginBottom:22, lineHeight:1.7}}>
+      <div style={{fontSize:11, color:"var(--text-faint)", marginTop:-16, marginBottom:22, lineHeight:1.7}}>
         These are the defaults for each role. Use <strong>Tabs</strong> on any user to give
         them a different set, anyone customised is flagged in their row.
       </div>
 
       {/* Users grouped by role */}
       {loading ? (
-        <div style={{textAlign:"center", color:"#9ca3af", padding:30}}>Loading users…</div>
+        <div style={{textAlign:"center", color:"var(--text-faint)", padding:30}}>Loading users…</div>
       ) : (
         groupedUsers.map(({ value, label, color, members: group }) => (
           <div key={value} style={{marginBottom:24}}>
-            <div style={{fontSize:12, color:"#9ca3af", letterSpacing:0.8, textTransform:"uppercase", fontWeight:700, marginBottom:10, display:"flex", alignItems:"center", gap:8}}>
+            <div style={{fontSize:12, color:"var(--text-faint)", letterSpacing:0.8, textTransform:"uppercase", fontWeight:700, marginBottom:10, display:"flex", alignItems:"center", gap:8}}>
               <span style={{color}}>{label}</span>
-              <span style={{color:"#e5e7eb"}}>({group.length})</span>
+              <span style={{color:"var(--border)"}}>({group.length})</span>
             </div>
             <div className="card" style={{padding:6}}>
               {group.length === 0 && (
-                <div style={{padding:"12px 14px", color:"#d1d5db", fontSize:12}}>No {label.split(" ")[1]} users yet</div>
+                <div style={{padding:"12px 14px", color:"var(--border-strong)", fontSize:12}}>No {label.split(" ")[1]} users yet</div>
               )}
               {group.map(u => (
-                <div key={u.id} className="user-row" style={{display:"flex", alignItems:"center", gap:12, padding:"12px 14px", borderBottom:"1px solid #f0f2f8", flexWrap:"wrap"}}>
+                <div key={u.id} className="user-row" style={{display:"flex", alignItems:"center", gap:12, padding:"12px 14px", borderBottom:"1px solid var(--panel)", flexWrap:"wrap"}}>
                   <div style={{
                     width:38, height:38, borderRadius:"50%", flexShrink:0,
                     background:color+"22", border:`1.5px solid ${color}44`,
@@ -297,11 +297,11 @@ export default function UsersPage({ currentProfile }) {
                     {u.name[0].toUpperCase()}
                   </div>
                   <div style={{flex:1, minWidth:150}}>
-                    <div style={{fontWeight:700, fontSize:14, color:"#111827", display:"flex", alignItems:"center", gap:8}}>
+                    <div style={{fontWeight:700, fontSize:14, color:"var(--text)", display:"flex", alignItems:"center", gap:8}}>
                       {u.name}
-                      {u.id === currentProfile.id && <span style={{fontSize:11, color:"#9ca3af", fontWeight:400}}>(you)</span>}
+                      {u.id === currentProfile.id && <span style={{fontSize:11, color:"var(--text-faint)", fontWeight:400}}>(you)</span>}
                     </div>
-                    <div style={{fontSize:12, color:"#9ca3af", marginTop:2}}>
+                    <div style={{fontSize:12, color:"var(--text-faint)", marginTop:2}}>
                       {u.last_sign_in_at ? `Last login: ${new Date(u.last_sign_in_at).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric",hour:"2-digit",minute:"2-digit"})}` : "Never logged in"}
                     </div>
                     {hasCustomTabs(u) && (
@@ -356,8 +356,8 @@ export default function UsersPage({ currentProfile }) {
         <div className="modal-bg" onClick={()=>setResetTarget(null)}>
           <div className="modal fade-in" onClick={e=>e.stopPropagation()}>
             <h2>RESET PASSWORD</h2>
-            <div style={{fontSize:14, color:"#6b7280", marginBottom:16, lineHeight:1.7}}>
-              A password reset email will be sent to <strong style={{color:"#111827"}}>{resetTarget.name}</strong>.
+            <div style={{fontSize:14, color:"var(--text-muted)", marginBottom:16, lineHeight:1.7}}>
+              A password reset email will be sent to <strong style={{color:"var(--text)"}}>{resetTarget.name}</strong>.
             </div>
             {error && <div className="error-msg">{error}</div>}
             <div style={{display:"flex", gap:10, marginTop:6}}>

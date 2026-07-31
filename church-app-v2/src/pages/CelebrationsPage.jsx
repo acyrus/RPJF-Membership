@@ -43,16 +43,16 @@ function EventRow({ member, date, type, past, onMemberClick }) {
     <div onClick={() => onMemberClick(member)} style={{
       display:"flex", alignItems:"center", gap:14, padding:"11px 14px",
       borderRadius:10, cursor:"pointer", transition:"background 0.15s",
-      background: isToday ? typeColor+"0a" : "#fff",
-      border: isToday ? `1.5px solid ${typeColor}33` : "1.5px solid #e4e9f5",
+      background: isToday ? typeColor+"0a" : "var(--surface)",
+      border: isToday ? `1.5px solid ${typeColor}33` : "1.5px solid var(--border-navy)",
       marginBottom:8, opacity: past ? 0.8 : 1,
     }}
     onMouseEnter={e=>e.currentTarget.style.background=typeColor+"08"}
-    onMouseLeave={e=>e.currentTarget.style.background=isToday?typeColor+"0a":"#fff"}>
+    onMouseLeave={e=>e.currentTarget.style.background=isToday?typeColor+"0a":"var(--surface)"}>
       <Avatar member={member} size={38} />
       <div style={{flex:1}}>
-        <div style={{fontWeight:700, fontSize:14, color:"#111827"}}>{fullName(member)}</div>
-        <div style={{fontSize:12, color:"#6b7280", marginTop:2, display:"flex", alignItems:"center", gap:5}}>
+        <div style={{fontWeight:700, fontSize:14, color:"var(--text)"}}>{fullName(member)}</div>
+        <div style={{fontSize:12, color:"var(--text-muted)", marginTop:2, display:"flex", alignItems:"center", gap:5}}>
           {typeIcon} {formatShortDate(date)}
         </div>
       </div>
@@ -60,8 +60,8 @@ function EventRow({ member, date, type, past, onMemberClick }) {
         {isToday
           ? <span style={{background:typeColor+"18",border:`1.5px solid ${typeColor}44`,color:typeColor,borderRadius:20,padding:"3px 10px",fontSize:12,fontWeight:700}}>Today!</span>
           : past
-            ? <div style={{fontSize:12, color:"#d1d5db", fontWeight:500}}>Passed</div>
-            : <div style={{fontSize:12, fontWeight:600, color:isSoon?typeColor:"#8a96b8"}}>{formatDaysAway(days)}</div>
+            ? <div style={{fontSize:12, color:"var(--border-strong)", fontWeight:500}}>Passed</div>
+            : <div style={{fontSize:12, fontWeight:600, color:isSoon?typeColor:"var(--text-muted-navy)"}}>{formatDaysAway(days)}</div>
         }
       </div>
     </div>
@@ -79,15 +79,15 @@ function MonthSection({ monthIndex, entries, type, past, onMemberClick, isCurren
     <div style={{marginBottom:24}}>
       <div style={{display:"flex", alignItems:"center", gap:10, marginBottom:12}}>
         <div style={{
-          background: isCurrentMonth ? typeColor : "#f4f6fa",
-          color: isCurrentMonth ? "#fff" : "#5a6a8a",
+          background: isCurrentMonth ? typeColor : "var(--panel)",
+          color: isCurrentMonth ? "#fff" : "var(--text-navy-muted)",
           borderRadius:8, padding:"4px 14px",
           fontSize:12, fontWeight:700,
-          border: isCurrentMonth ? "none" : "1.5px solid #e4e9f5",
+          border: isCurrentMonth ? "none" : "1.5px solid var(--border-navy)",
         }}>
           {MONTH_NAMES[monthIndex]}
         </div>
-        <span style={{fontSize:12, color:"#d1d5db", fontWeight:500}}>{count} {noun}</span>
+        <span style={{fontSize:12, color:"var(--border-strong)", fontWeight:500}}>{count} {noun}</span>
         {isCurrentMonth && <span style={{fontSize:12, color:typeColor, fontWeight:600}}>This Month</span>}
       </div>
       {entries.map(x => (
@@ -168,19 +168,19 @@ export default function CelebrationsPage({ members, onMemberClick }) {
       {/* Header */}
       <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20}}>
         <div>
-          <div style={{fontFamily:"'Inter',sans-serif", color:"#111827", fontSize:14, letterSpacing:0.5, fontWeight:700}}>CELEBRATIONS</div>
-          <div style={{fontSize:12, color:"#9ca3af", marginTop:3}}>
+          <div style={{fontFamily:"'Inter',sans-serif", color:"var(--text)", fontSize:14, letterSpacing:0.5, fontWeight:700}}>CELEBRATIONS</div>
+          <div style={{fontSize:12, color:"var(--text-faint)", marginTop:3}}>
             {upcomingTotal} {type === "birthday" ? "birthday" : "anniversary"}{upcomingTotal !== 1 ? (type==="birthday"?"s":"ies") : (type==="anniversary"?"":"s")} remaining · {pastTotal} already passed this year
           </div>
         </div>
-        <div style={{background:"#f4f6ff",border:"1.5px solid #e4e9f5",borderRadius:10,padding:"8px 14px",textAlign:"center"}}>
-          <div style={{fontSize:12,color:"#9ca3af",fontWeight:600}}>This Month</div>
-          <div style={{fontSize:20,fontWeight:700,color:"#2a5357"}}>{thisMonthCount}</div>
+        <div style={{background:"var(--panel)",border:"1.5px solid var(--border-navy)",borderRadius:10,padding:"8px 14px",textAlign:"center"}}>
+          <div style={{fontSize:12,color:"var(--text-faint)",fontWeight:600}}>This Month</div>
+          <div style={{fontSize:20,fontWeight:700,color:"var(--brand)"}}>{thisMonthCount}</div>
         </div>
       </div>
 
       {/* Main sub tabs: Birthdays / Anniversaries */}
-      <div style={{display:"flex", gap:4, marginBottom:0, borderBottom:"1.5px solid #e4e9f5"}}>
+      <div style={{display:"flex", gap:4, marginBottom:0, borderBottom:"1.5px solid var(--border-navy)"}}>
         {[
           { key:"birthdays", icon:<Cake size={15} />, label:"Birthdays", count: thisMonthCount },
           { key:"anniversaries", icon:<Heart size={15} />, label:"Anniversaries",
@@ -190,13 +190,13 @@ export default function CelebrationsPage({ members, onMemberClick }) {
             background:"none", border:"none", cursor:"pointer",
             fontFamily:"'Inter',sans-serif", fontSize:14, fontWeight:600,
             padding:"10px 18px", color: subtab===t.key?"#2a5357":"#8a96b8",
-            borderBottom: subtab===t.key?"2px solid #2a5357":"2px solid transparent",
+            borderBottom: subtab===t.key?"2px solid var(--brand)":"2px solid transparent",
             display:"flex", alignItems:"center", gap:6, transition:"all 0.15s",
           }}>
             {t.icon} {t.label}
             <span style={{
-              background: subtab===t.key?"#2a535718":"#f0f2f8",
-              border: subtab===t.key?"1.5px solid #2a535744":"1.5px solid #e4e9f5",
+              background: subtab===t.key?"#2a535718":"var(--panel)",
+              border: subtab===t.key?"1.5px solid #2a535744":"1.5px solid var(--border-navy)",
               color: subtab===t.key?"#2a5357":"#8a96b8",
               borderRadius:20, padding:"1px 8px", fontSize:12, fontWeight:700,
             }}>{t.count} this month</span>
@@ -205,11 +205,11 @@ export default function CelebrationsPage({ members, onMemberClick }) {
       </div>
 
       {/* Upcoming / Past toggle */}
-      <div style={{display:"flex", gap:8, margin:"14px 0 20px", background:"#f4f6fa", borderRadius:10, padding:4, width:"fit-content"}}>
+      <div style={{display:"flex", gap:8, margin:"14px 0 20px", background:"var(--panel)", borderRadius:10, padding:4, width:"fit-content"}}>
         {[["upcoming","Upcoming"], ["past","Past"]].map(([key, label]) => (
           <button key={key} onClick={()=>setViewMode(key)} style={{
-            background: viewMode===key?"#fff":"none",
-            border: viewMode===key?"1.5px solid #e4e9f5":"1.5px solid transparent",
+            background: viewMode===key?"var(--surface)":"none",
+            border: viewMode===key?"1.5px solid var(--border-navy)":"1.5px solid transparent",
             borderRadius:8, padding:"6px 16px", cursor:"pointer",
             fontFamily:"'Inter',sans-serif", fontSize:12, fontWeight:600,
             color: viewMode===key?"#2a3560":"#8a96b8",
@@ -223,9 +223,9 @@ export default function CelebrationsPage({ members, onMemberClick }) {
       {viewMode === "upcoming" && (
         <div>
           {upcomingTotal === 0 ? (
-            <div style={{textAlign:"center",padding:"48px 20px",color:"#d1d5db"}}>
+            <div style={{textAlign:"center",padding:"48px 20px",color:"var(--border-strong)"}}>
               <div style={{fontSize:36,marginBottom:12}}>{subtab==="birthdays"?<Cake size={36} color="#8a96b8" />:<Heart size={36} color="#8a96b8" />}</div>
-              <div style={{fontWeight:600,color:"#6b7280",marginBottom:6}}>No upcoming {subtab} for the rest of this year</div>
+              <div style={{fontWeight:600,color:"var(--text-muted)",marginBottom:6}}>No upcoming {subtab} for the rest of this year</div>
             </div>
           ) : (
             monthsUpcoming.map(month => {
@@ -233,11 +233,11 @@ export default function CelebrationsPage({ members, onMemberClick }) {
               if (entries.length === 0) return (
                 <div key={month} style={{marginBottom:16}}>
                   <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:6}}>
-                    <div style={{background:"#f4f6fa",color:"#d1d5db",borderRadius:8,padding:"4px 14px",fontSize:12,fontWeight:700,border:"1.5px solid #e4e9f5"}}>
+                    <div style={{background:"var(--panel)",color:"var(--border-strong)",borderRadius:8,padding:"4px 14px",fontSize:12,fontWeight:700,border:"1.5px solid var(--border-navy)"}}>
                       {MONTH_NAMES[month]}
                     </div>
-                    <span style={{fontSize:12,color:"#c0c8d8"}}>None</span>
-                    {month === currentMonth && <span style={{fontSize:12,color:"#2a5357",fontWeight:600}}>This Month</span>}
+                    <span style={{fontSize:12,color:"var(--border-navy-strong)"}}>None</span>
+                    {month === currentMonth && <span style={{fontSize:12,color:"var(--brand)",fontWeight:600}}>This Month</span>}
                   </div>
                 </div>
               );
@@ -247,7 +247,7 @@ export default function CelebrationsPage({ members, onMemberClick }) {
               );
             })
           )}
-          <div style={{textAlign:"center",padding:"12px",marginTop:4,background:"#f4f6fa",borderRadius:10,fontSize:12,color:"#9ca3af",fontWeight:500}}>
+          <div style={{textAlign:"center",padding:"12px",marginTop:4,background:"var(--panel)",borderRadius:10,fontSize:12,color:"var(--text-faint)",fontWeight:500}}>
             Showing {MONTH_NAMES[currentMonth]} – December {currentYear}
           </div>
         </div>
@@ -257,15 +257,15 @@ export default function CelebrationsPage({ members, onMemberClick }) {
       {viewMode === "past" && (
         <div>
           {currentMonth === 0 ? (
-            <div style={{textAlign:"center",padding:"48px 20px",color:"#d1d5db"}}>
+            <div style={{textAlign:"center",padding:"48px 20px",color:"var(--border-strong)"}}>
               <div style={{marginBottom:12,display:"flex",justifyContent:"center"}}><CalendarDays size={36} color="#8a96b8" /></div>
-              <div style={{fontWeight:600,color:"#6b7280",marginBottom:6}}>No past {subtab}, it's January!</div>
+              <div style={{fontWeight:600,color:"var(--text-muted)",marginBottom:6}}>No past {subtab}, it's January!</div>
               <div style={{fontSize:12}}>Past {subtab} will appear here as the year progresses.</div>
             </div>
           ) : pastTotal === 0 ? (
-            <div style={{textAlign:"center",padding:"48px 20px",color:"#d1d5db"}}>
+            <div style={{textAlign:"center",padding:"48px 20px",color:"var(--border-strong)"}}>
               <div style={{marginBottom:12,display:"flex",justifyContent:"center"}}><CalendarDays size={36} color="#8a96b8" /></div>
-              <div style={{fontWeight:600,color:"#6b7280",marginBottom:6}}>No past {subtab} recorded</div>
+              <div style={{fontWeight:600,color:"var(--text-muted)",marginBottom:6}}>No past {subtab} recorded</div>
               <div style={{fontSize:12}}>Make sure members have their {type === "birthday" ? "date of birth" : "anniversary date"} entered.</div>
             </div>
           ) : (
@@ -274,10 +274,10 @@ export default function CelebrationsPage({ members, onMemberClick }) {
               if (entries.length === 0) return (
                 <div key={month} style={{marginBottom:16}}>
                   <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:6}}>
-                    <div style={{background:"#f4f6fa",color:"#d1d5db",borderRadius:8,padding:"4px 14px",fontSize:12,fontWeight:700,border:"1.5px solid #e4e9f5"}}>
+                    <div style={{background:"var(--panel)",color:"var(--border-strong)",borderRadius:8,padding:"4px 14px",fontSize:12,fontWeight:700,border:"1.5px solid var(--border-navy)"}}>
                       {MONTH_NAMES[month]}
                     </div>
-                    <span style={{fontSize:12,color:"#c0c8d8"}}>None</span>
+                    <span style={{fontSize:12,color:"var(--border-navy-strong)"}}>None</span>
                   </div>
                 </div>
               );
@@ -288,7 +288,7 @@ export default function CelebrationsPage({ members, onMemberClick }) {
             })
           )}
           {pastTotal > 0 && (
-            <div style={{textAlign:"center",padding:"12px",marginTop:4,background:"#f4f6fa",borderRadius:10,fontSize:12,color:"#9ca3af",fontWeight:500}}>
+            <div style={{textAlign:"center",padding:"12px",marginTop:4,background:"var(--panel)",borderRadius:10,fontSize:12,color:"var(--text-faint)",fontWeight:500}}>
               Showing January – {MONTH_NAMES[currentMonth]} {currentYear}
             </div>
           )}

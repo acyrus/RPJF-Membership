@@ -81,7 +81,7 @@ function PasswordInput({ value, onChange, placeholder, onEnter, autoFocus, small
         style={{ width: "100%", padding: small ? "9px 58px 9px 11px" : "10px 58px 10px 12px", border: "1.5px solid #d6dde3", borderRadius: small ? 9 : 10, fontSize: small ? 13.5 : 14 }}
       />
       <button type="button" onClick={() => setShow(s => !s)}
-        style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", color: "#2a5357", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+        style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", color: "var(--brand)", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
         {show ? "Hide" : "Show"}
       </button>
     </div>
@@ -119,11 +119,11 @@ export function MfaChallenge({ onVerified, onCancel }) {
   }
 
   return (
-    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#f4f6fa", padding: 20 }}>
-      <div style={{ background: "#fff", borderRadius: 14, boxShadow: "0 10px 40px #0000001a", padding: 28, width: "100%", maxWidth: 360, textAlign: "center" }}>
+    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--panel)", padding: 20 }}>
+      <div style={{ background: "var(--surface)", borderRadius: 14, boxShadow: "0 10px 40px #0000001a", padding: 28, width: "100%", maxWidth: 360, textAlign: "center" }}>
         <div style={{ display:"flex", justifyContent:"center" }}><ShieldCheck size={30} color="#2a5357" /></div>
-        <div style={{ fontSize: 17, fontWeight: 700, color: "#111827", margin: "8px 0 4px" }}>Two-step verification</div>
-        <div style={{ fontSize: 12.5, color: "#6b7280", lineHeight: 1.6, marginBottom: 16 }}>
+        <div style={{ fontSize: 17, fontWeight: 700, color: "var(--text)", margin: "8px 0 4px" }}>Two-step verification</div>
+        <div style={{ fontSize: 12.5, color: "var(--text-muted)", lineHeight: 1.6, marginBottom: 16 }}>
           Enter the 6-digit code from your authenticator app to finish signing in.
         </div>
         <input
@@ -135,11 +135,11 @@ export function MfaChallenge({ onVerified, onCancel }) {
         />
         {error && <div style={{ color: "#d05050", fontSize: 12, marginTop: 10 }}>{error}</div>}
         <button onClick={submit} disabled={busy}
-          style={{ width: "100%", marginTop: 14, background: "#2a5357", color: "#fff", border: "none", borderRadius: 10, padding: "11px", fontSize: 14, fontWeight: 600, cursor: busy ? "default" : "pointer", opacity: busy ? 0.6 : 1 }}>
+          style={{ width: "100%", marginTop: 14, background: "var(--brand)", color: "#fff", border: "none", borderRadius: 10, padding: "11px", fontSize: 14, fontWeight: 600, cursor: busy ? "default" : "pointer", opacity: busy ? 0.6 : 1 }}>
           {busy ? "Verifying…" : "Verify"}
         </button>
         <button onClick={onCancel}
-          style={{ width: "100%", marginTop: 8, background: "none", color: "#6b7280", border: "none", fontSize: 12, cursor: "pointer" }}>
+          style={{ width: "100%", marginTop: 8, background: "none", color: "var(--text-muted)", border: "none", fontSize: 12, cursor: "pointer" }}>
           Cancel and sign out
         </button>
       </div>
@@ -180,7 +180,7 @@ export function SetPasswordScreen({ onDone, onCancel }) {
   }
 
   if (checking) return (
-    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#f4f6fa" }}>
+    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--panel)" }}>
       <Spinner />
     </div>
   );
@@ -189,22 +189,22 @@ export function SetPasswordScreen({ onDone, onCancel }) {
   if (needsMfa) return <MfaChallenge onVerified={() => setNeedsMfa(false)} onCancel={onCancel} />;
 
   return (
-    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#f4f6fa", padding: 20 }}>
-      <div style={{ background: "#fff", borderRadius: 14, boxShadow: "0 10px 40px #0000001a", padding: 28, width: "100%", maxWidth: 360 }}>
+    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--panel)", padding: 20 }}>
+      <div style={{ background: "var(--surface)", borderRadius: 14, boxShadow: "0 10px 40px #0000001a", padding: 28, width: "100%", maxWidth: 360 }}>
         <div style={{ display:"flex", justifyContent:"center" }}><KeyRound size={30} color="#2a5357" /></div>
-        <div style={{ fontSize: 17, fontWeight: 700, color: "#111827", textAlign: "center", margin: "8px 0 4px" }}>Set a new password</div>
-        <div style={{ fontSize: 12.5, color: "#6b7280", lineHeight: 1.6, textAlign: "center", marginBottom: 16 }}>
+        <div style={{ fontSize: 17, fontWeight: 700, color: "var(--text)", textAlign: "center", margin: "8px 0 4px" }}>Set a new password</div>
+        <div style={{ fontSize: 12.5, color: "var(--text-muted)", lineHeight: 1.6, textAlign: "center", marginBottom: 16 }}>
           Choose a password for your account. You'll use it to sign in from now on.
         </div>
         <PasswordInput value={pw} onChange={e => setPw(e.target.value)} placeholder="New password" autoFocus />
         <PasswordInput value={pw2} onChange={e => setPw2(e.target.value)} placeholder="Confirm new password" onEnter={submit} />
         {error && <div style={{ color: "#d05050", fontSize: 12, marginTop: 10 }}>{error}</div>}
         <button onClick={submit} disabled={busy}
-          style={{ width: "100%", marginTop: 14, background: "#2a5357", color: "#fff", border: "none", borderRadius: 10, padding: "11px", fontSize: 14, fontWeight: 600, cursor: busy ? "default" : "pointer", opacity: busy ? 0.6 : 1 }}>
+          style={{ width: "100%", marginTop: 14, background: "var(--brand)", color: "#fff", border: "none", borderRadius: 10, padding: "11px", fontSize: 14, fontWeight: 600, cursor: busy ? "default" : "pointer", opacity: busy ? 0.6 : 1 }}>
           {busy ? "Saving…" : "Save password"}
         </button>
         {onCancel && (
-          <button onClick={onCancel} style={{ width: "100%", marginTop: 8, background: "none", color: "#6b7280", border: "none", fontSize: 12, cursor: "pointer" }}>
+          <button onClick={onCancel} style={{ width: "100%", marginTop: 8, background: "none", color: "var(--text-muted)", border: "none", fontSize: 12, cursor: "pointer" }}>
             Cancel and sign out
           </button>
         )}
@@ -283,22 +283,22 @@ export function OnboardingFlow({ onComplete, onCancel, onPasswordSet, requirePas
   }
 
   return (
-    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#f4f6fa", padding: 20 }}>
-      <div style={{ background: "#fff", borderRadius: 14, boxShadow: "0 10px 40px #0000001a", padding: 28, width: "100%", maxWidth: 400 }}>
-        <div style={{ fontSize: 11, fontWeight: 700, color: "#5edcd1", letterSpacing: 0.8, textAlign: "center" }}>{requirePassword ? (require2fa ? `STEP ${step} OF 2` : "SET YOUR PASSWORD") : "REQUIRED SETUP"}</div>
+    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--panel)", padding: 20 }}>
+      <div style={{ background: "var(--surface)", borderRadius: 14, boxShadow: "0 10px 40px #0000001a", padding: 28, width: "100%", maxWidth: 400 }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: "var(--brand-accent)", letterSpacing: 0.8, textAlign: "center" }}>{requirePassword ? (require2fa ? `STEP ${step} OF 2` : "SET YOUR PASSWORD") : "REQUIRED SETUP"}</div>
 
         {step === 1 && (
           <>
             <div style={{ display:"flex", justifyContent:"center", marginTop: 6 }}><KeyRound size={30} color="#2a5357" /></div>
-            <div style={{ fontSize: 17, fontWeight: 700, color: "#111827", textAlign: "center", margin: "6px 0 4px" }}>Create your password</div>
-            <div style={{ fontSize: 12.5, color: "#6b7280", lineHeight: 1.6, textAlign: "center", marginBottom: 16 }}>
+            <div style={{ fontSize: 17, fontWeight: 700, color: "var(--text)", textAlign: "center", margin: "6px 0 4px" }}>Create your password</div>
+            <div style={{ fontSize: 12.5, color: "var(--text-muted)", lineHeight: 1.6, textAlign: "center", marginBottom: 16 }}>
               Welcome! Set a password to secure your account, you'll use it to sign in from now on.
             </div>
             <PasswordInput value={pw} onChange={e => setPw(e.target.value)} placeholder="New password" autoFocus />
             <PasswordInput value={pw2} onChange={e => setPw2(e.target.value)} placeholder="Confirm new password" onEnter={savePassword} />
             {pwErr && <div style={{ color: "#d05050", fontSize: 12, marginTop: 6 }}>{pwErr}</div>}
             <button onClick={savePassword} disabled={pwBusy}
-              style={{ width: "100%", marginTop: 14, background: "#2a5357", color: "#fff", border: "none", borderRadius: 10, padding: "11px", fontSize: 14, fontWeight: 600, cursor: pwBusy ? "default" : "pointer", opacity: pwBusy ? 0.6 : 1 }}>
+              style={{ width: "100%", marginTop: 14, background: "var(--brand)", color: "#fff", border: "none", borderRadius: 10, padding: "11px", fontSize: 14, fontWeight: 600, cursor: pwBusy ? "default" : "pointer", opacity: pwBusy ? 0.6 : 1 }}>
               {pwBusy ? "Saving…" : "Continue"}
             </button>
           </>
@@ -307,15 +307,15 @@ export function OnboardingFlow({ onComplete, onCancel, onPasswordSet, requirePas
         {step === 2 && (
           <>
             <div style={{ display:"flex", justifyContent:"center", marginTop: 6 }}><ShieldCheck size={30} color="#2a5357" /></div>
-            <div style={{ fontSize: 17, fontWeight: 700, color: "#111827", textAlign: "center", margin: "6px 0 4px" }}>Set up two-step verification</div>
-            <div style={{ fontSize: 12.5, color: "#6b7280", lineHeight: 1.6, textAlign: "center", marginBottom: 12 }}>
+            <div style={{ fontSize: 17, fontWeight: 700, color: "var(--text)", textAlign: "center", margin: "6px 0 4px" }}>Set up two-step verification</div>
+            <div style={{ fontSize: 12.5, color: "var(--text-muted)", lineHeight: 1.6, textAlign: "center", marginBottom: 12 }}>
               This is required. Scan the QR code with an authenticator app (Google Authenticator, Authy, 1Password), then enter the 6-digit code it shows.
             </div>
-            {!enrolling && !mfaErr && <div style={{ textAlign: "center", color: "#9ca3af", fontSize: 13, padding: "10px 0" }}>Preparing…</div>}
+            {!enrolling && !mfaErr && <div style={{ textAlign: "center", color: "var(--text-faint)", fontSize: 13, padding: "10px 0" }}>Preparing…</div>}
             {enrolling && (
               <div style={{ textAlign: "center" }}>
                 <div style={{ display: "flex", justifyContent: "center", margin: "4px 0 8px" }}><QRCode value={enrolling.qr} /></div>
-                {enrolling.secret && <div style={{ fontSize: 11, color: "#9ca3af", marginBottom: 10 }}>Can't scan? Key: <code style={{ fontSize: 12, color: "#374151", wordBreak: "break-all" }}>{enrolling.secret}</code></div>}
+                {enrolling.secret && <div style={{ fontSize: 11, color: "var(--text-faint)", marginBottom: 10 }}>Can't scan? Key: <code style={{ fontSize: 12, color: "var(--text-2)", wordBreak: "break-all" }}>{enrolling.secret}</code></div>}
                 <input value={code} onChange={e => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))} onKeyDown={e => e.key === "Enter" && finish()}
                   inputMode="numeric" autoFocus placeholder="000000"
                   style={{ width: 160, textAlign: "center", letterSpacing: 6, fontSize: 20, fontWeight: 700, padding: "9px 10px", border: "1.5px solid #d6dde3", borderRadius: 10, fontFamily: "monospace" }} />
@@ -323,13 +323,13 @@ export function OnboardingFlow({ onComplete, onCancel, onPasswordSet, requirePas
             )}
             {mfaErr && <div style={{ color: "#d05050", fontSize: 12, marginTop: 10, textAlign: "center" }}>{mfaErr}</div>}
             <button onClick={finish} disabled={mfaBusy || !enrolling}
-              style={{ width: "100%", marginTop: 14, background: "#2a5357", color: "#fff", border: "none", borderRadius: 10, padding: "11px", fontSize: 14, fontWeight: 600, cursor: (mfaBusy || !enrolling) ? "default" : "pointer", opacity: (mfaBusy || !enrolling) ? 0.6 : 1 }}>
+              style={{ width: "100%", marginTop: 14, background: "var(--brand)", color: "#fff", border: "none", borderRadius: 10, padding: "11px", fontSize: 14, fontWeight: 600, cursor: (mfaBusy || !enrolling) ? "default" : "pointer", opacity: (mfaBusy || !enrolling) ? 0.6 : 1 }}>
               {mfaBusy ? "Verifying…" : "Finish setup"}
             </button>
           </>
         )}
 
-        <button onClick={onCancel} style={{ width: "100%", marginTop: 8, background: "none", color: "#6b7280", border: "none", fontSize: 12, cursor: "pointer" }}>
+        <button onClick={onCancel} style={{ width: "100%", marginTop: 8, background: "none", color: "var(--text-muted)", border: "none", fontSize: 12, cursor: "pointer" }}>
           Cancel and sign out
         </button>
       </div>
@@ -469,40 +469,40 @@ export function SecurityModal({ onClose }) {
 
   return (
     <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 900, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
-      <div onClick={e => e.stopPropagation()} style={{ background: "#fff", borderRadius: 14, padding: 24, width: "100%", maxWidth: 420, maxHeight: "90vh", overflowY: "auto" }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: "var(--surface)", borderRadius: 14, padding: 24, width: "100%", maxWidth: 420, maxHeight: "90vh", overflowY: "auto" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             {view !== "menu" && (
-              <button onClick={goMenu} title="Back" style={{ background: "none", border: "none", padding: 0, cursor: "pointer", color: "#6b7280", display: "flex" }}><ChevronLeft size={20} /></button>
+              <button onClick={goMenu} title="Back" style={{ background: "none", border: "none", padding: 0, cursor: "pointer", color: "var(--text-muted)", display: "flex" }}><ChevronLeft size={20} /></button>
             )}
-            <div style={{ fontSize: 16, fontWeight: 700, color: "#111827" }}>
+            <div style={{ fontSize: 16, fontWeight: 700, color: "var(--text)" }}>
               {view === "password" ? "Password" : view === "2fa" ? "Two-step verification" : "Account security"}
             </div>
           </div>
-          <button onClick={onClose} style={{ background: "none", border: "none", fontSize: 18, color: "#9ca3af", cursor: "pointer" }}><X size={18} /></button>
+          <button onClick={onClose} style={{ background: "none", border: "none", fontSize: 18, color: "var(--text-faint)", cursor: "pointer" }}><X size={18} /></button>
         </div>
 
         {/* ── Menu: choose what to do ── */}
         {view === "menu" && (
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             <button onClick={() => { setPwErr(""); setPwMsg(""); setView("password"); }}
-              style={{ display: "flex", alignItems: "center", gap: 12, textAlign: "left", background: "#f7f9fb", border: "1px solid #e4e9f5", borderRadius: 10, padding: "13px 14px", cursor: "pointer" }}>
+              style={{ display: "flex", alignItems: "center", gap: 12, textAlign: "left", background: "var(--panel)", border: "1px solid var(--border-navy)", borderRadius: 10, padding: "13px 14px", cursor: "pointer" }}>
               <KeyRound size={20} color="#2a5357" />
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 14, fontWeight: 700, color: "#111827" }}>Password</div>
-                <div style={{ fontSize: 12, color: "#6b7280" }}>Change the password you use to sign in</div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text)" }}>Password</div>
+                <div style={{ fontSize: 12, color: "var(--text-muted)" }}>Change the password you use to sign in</div>
               </div>
               <ChevronRight size={18} color="#c0c8d8" />
             </button>
 
             <button onClick={() => setView("2fa")}
-              style={{ display: "flex", alignItems: "center", gap: 12, textAlign: "left", background: "#f7f9fb", border: "1px solid #e4e9f5", borderRadius: 10, padding: "13px 14px", cursor: "pointer" }}>
+              style={{ display: "flex", alignItems: "center", gap: 12, textAlign: "left", background: "var(--panel)", border: "1px solid var(--border-navy)", borderRadius: 10, padding: "13px 14px", cursor: "pointer" }}>
               <ShieldCheck size={20} color="#2a5357" />
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 14, fontWeight: 700, color: "#111827" }}>Two-step verification</div>
-                <div style={{ fontSize: 12, color: "#6b7280" }}>An extra code at sign-in from your authenticator app</div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text)" }}>Two-step verification</div>
+                <div style={{ fontSize: 12, color: "var(--text-muted)" }}>An extra code at sign-in from your authenticator app</div>
               </div>
-              <span style={{ fontSize: 11, fontWeight: 700, color: factor ? "#2a7a50" : "#9ca3af", background: factor ? "#e8f6ee" : "#eef1f6", borderRadius: 20, padding: "3px 10px" }}>{twoFaStatus}</span>
+              <span style={{ fontSize: 11, fontWeight: 700, color: factor ? "#2a7a50" : "#9ca3af", background: factor ? "var(--brand-tint-soft)" : "var(--panel)", borderRadius: 20, padding: "3px 10px" }}>{twoFaStatus}</span>
               <ChevronRight size={18} color="#c0c8d8" />
             </button>
           </div>
@@ -511,14 +511,14 @@ export function SecurityModal({ onClose }) {
         {/* ── Password ── */}
         {view === "password" && (
           <div>
-            <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 10, lineHeight: 1.5 }}>Enter your current password to confirm it's you, then choose a new one.</div>
+            <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 10, lineHeight: 1.5 }}>Enter your current password to confirm it's you, then choose a new one.</div>
             <PasswordInput value={curPw} onChange={e => setCurPw(e.target.value)} placeholder="Current password" small autoFocus />
             <PasswordInput value={pw} onChange={e => setPw(e.target.value)} placeholder="New password" small />
             <PasswordInput value={pw2} onChange={e => setPw2(e.target.value)} placeholder="Confirm new password" onEnter={changePassword} small />
             {pwErr && <div style={{ color: "#d05050", fontSize: 12, marginTop: 8 }}>{pwErr}</div>}
             {pwMsg && <div style={{ color: "#2a7a50", fontSize: 12, marginTop: 8 }}>{pwMsg}</div>}
             <button onClick={changePassword} disabled={pwBusy}
-              style={{ marginTop: 12, background: "#2a5357", color: "#fff", border: "none", borderRadius: 8, padding: "9px 16px", fontSize: 13, fontWeight: 600, cursor: pwBusy ? "default" : "pointer", opacity: pwBusy ? 0.6 : 1 }}>
+              style={{ marginTop: 12, background: "var(--brand)", color: "#fff", border: "none", borderRadius: 8, padding: "9px 16px", fontSize: 13, fontWeight: 600, cursor: pwBusy ? "default" : "pointer", opacity: pwBusy ? 0.6 : 1 }}>
               {pwBusy ? "Saving…" : "Save password"}
             </button>
           </div>
@@ -527,15 +527,15 @@ export function SecurityModal({ onClose }) {
         {/* ── Two-step verification ── */}
         {view === "2fa" && (
           <div>
-            {factor === undefined && <div style={{ color: "#9ca3af", fontSize: 13, padding: "12px 0" }}>Loading…</div>}
+            {factor === undefined && <div style={{ color: "var(--text-faint)", fontSize: 13, padding: "12px 0" }}>Loading…</div>}
 
             {/* Already enabled */}
             {factor && !enroll && (
               <div>
-                <div style={{ background: "#f0fff8", border: "1.5px solid #b0e8c8", borderRadius: 8, padding: "10px 12px", fontSize: 13, color: "#2a7a50", margin: "4px 0 10px" }}>
+                <div style={{ background: "var(--brand-tint-soft)", border: "1.5px solid #b0e8c8", borderRadius: 8, padding: "10px 12px", fontSize: 13, color: "#2a7a50", margin: "4px 0 10px" }}>
                   Two-step verification is <strong>on</strong> for your account.
                 </div>
-                <p style={{ fontSize: 12.5, color: "#6b7280", lineHeight: 1.6 }}>
+                <p style={{ fontSize: 12.5, color: "var(--text-muted)", lineHeight: 1.6 }}>
                   You'll be asked for a code from your authenticator app each time you sign in. If you lose your device, an admin can remove two-step verification for your account from the Supabase dashboard.
                 </p>
               </div>
@@ -544,28 +544,28 @@ export function SecurityModal({ onClose }) {
             {/* Not enabled, not yet enrolling */}
             {factor === null && !enroll && (
               <div>
-                <p style={{ fontSize: 12.5, color: "#6b7280", lineHeight: 1.6, margin: "4px 0 10px" }}>
+                <p style={{ fontSize: 12.5, color: "var(--text-muted)", lineHeight: 1.6, margin: "4px 0 10px" }}>
                   Add a second step at sign-in using an authenticator app (Google Authenticator, Authy, 1Password, etc.). This makes your account much harder to break into.
                 </p>
 
                 {!gateOpen ? (
                   <button onClick={() => { setGateErr(""); setGatePw(""); setGateOpen(true); }} disabled={busy}
-                    style={{ marginTop: 2, background: "#2a5357", color: "#fff", border: "none", borderRadius: 8, padding: "10px 16px", fontSize: 13, fontWeight: 600, cursor: "pointer", opacity: busy ? 0.6 : 1 }}>
+                    style={{ marginTop: 2, background: "var(--brand)", color: "#fff", border: "none", borderRadius: 8, padding: "10px 16px", fontSize: 13, fontWeight: 600, cursor: "pointer", opacity: busy ? 0.6 : 1 }}>
                     Set up two-step verification
                   </button>
                 ) : (
                   /* Confirm the password before the QR is ever shown. */
-                  <div style={{ background: "#f7f9fb", border: "1px solid #e4e9f5", borderRadius: 10, padding: "12px 14px" }}>
-                    <div style={{ fontSize: 12.5, color: "#374151", marginBottom: 8, lineHeight: 1.5 }}>Confirm your password to turn on two-step verification.</div>
+                  <div style={{ background: "var(--panel)", border: "1px solid var(--border-navy)", borderRadius: 10, padding: "12px 14px" }}>
+                    <div style={{ fontSize: 12.5, color: "var(--text-2)", marginBottom: 8, lineHeight: 1.5 }}>Confirm your password to turn on two-step verification.</div>
                     <PasswordInput value={gatePw} onChange={e => setGatePw(e.target.value)} placeholder="Your password" onEnter={confirmAndEnroll} small autoFocus />
                     {gateErr && <div style={{ color: "#d05050", fontSize: 12, marginTop: 8 }}>{gateErr}</div>}
                     <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
                       <button onClick={confirmAndEnroll} disabled={gateBusy}
-                        style={{ background: "#2a5357", color: "#fff", border: "none", borderRadius: 8, padding: "9px 16px", fontSize: 13, fontWeight: 600, cursor: gateBusy ? "default" : "pointer", opacity: gateBusy ? 0.6 : 1 }}>
+                        style={{ background: "var(--brand)", color: "#fff", border: "none", borderRadius: 8, padding: "9px 16px", fontSize: 13, fontWeight: 600, cursor: gateBusy ? "default" : "pointer", opacity: gateBusy ? 0.6 : 1 }}>
                         {gateBusy ? "Checking…" : "Continue"}
                       </button>
                       <button onClick={() => { setGateOpen(false); setGatePw(""); setGateErr(""); }} disabled={gateBusy}
-                        style={{ background: "none", border: "none", color: "#6b7280", fontSize: 12, cursor: "pointer" }}>
+                        style={{ background: "none", border: "none", color: "var(--text-muted)", fontSize: 12, cursor: "pointer" }}>
                         Cancel
                       </button>
                     </div>
@@ -577,17 +577,17 @@ export function SecurityModal({ onClose }) {
             {/* Enrolling: show QR + code entry */}
             {enroll && (
               <div style={{ textAlign: "center" }}>
-                <p style={{ fontSize: 12.5, color: "#6b7280", lineHeight: 1.6, margin: "4px 0 10px" }}>
+                <p style={{ fontSize: 12.5, color: "var(--text-muted)", lineHeight: 1.6, margin: "4px 0 10px" }}>
                   1. Scan this QR code with your authenticator app.
                 </p>
                 <div style={{ display: "flex", justifyContent: "center", margin: "8px 0" }}><QRCode value={enroll.qr} /></div>
                 {enroll.secret && (
-                  <div style={{ fontSize: 11, color: "#9ca3af", marginBottom: 12 }}>
+                  <div style={{ fontSize: 11, color: "var(--text-faint)", marginBottom: 12 }}>
                     Can't scan? Enter this key manually:<br />
-                    <code style={{ fontSize: 12, color: "#374151", wordBreak: "break-all" }}>{enroll.secret}</code>
+                    <code style={{ fontSize: 12, color: "var(--text-2)", wordBreak: "break-all" }}>{enroll.secret}</code>
                   </div>
                 )}
-                <p style={{ fontSize: 12.5, color: "#6b7280", lineHeight: 1.6 }}>2. Enter the 6-digit code it shows:</p>
+                <p style={{ fontSize: 12.5, color: "var(--text-muted)", lineHeight: 1.6 }}>2. Enter the 6-digit code it shows:</p>
                 <input
                   value={code}
                   onChange={e => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
@@ -597,12 +597,12 @@ export function SecurityModal({ onClose }) {
                 />
                 <div>
                   <button onClick={confirmEnroll} disabled={busy}
-                    style={{ marginTop: 14, background: "#2a5357", color: "#fff", border: "none", borderRadius: 8, padding: "10px 20px", fontSize: 13, fontWeight: 600, cursor: "pointer", opacity: busy ? 0.6 : 1 }}>
+                    style={{ marginTop: 14, background: "var(--brand)", color: "#fff", border: "none", borderRadius: 8, padding: "10px 20px", fontSize: 13, fontWeight: 600, cursor: "pointer", opacity: busy ? 0.6 : 1 }}>
                     {busy ? "Verifying…" : "Verify & turn on"}
                   </button>
                 </div>
                 <button onClick={() => { setEnroll(null); setCode(""); setError(""); }}
-                  style={{ marginTop: 8, background: "none", border: "none", color: "#9ca3af", fontSize: 12, cursor: "pointer" }}>
+                  style={{ marginTop: 8, background: "none", border: "none", color: "var(--text-faint)", fontSize: 12, cursor: "pointer" }}>
                   Cancel
                 </button>
               </div>
@@ -642,7 +642,7 @@ export function PhotoUploader({ value, onChange }) {
 
   return (
     <div style={{display:"flex",alignItems:"center",gap:14}}>
-      <div style={{width:64,height:64,borderRadius:"50%",background:"#f0f2f8",border:"1.5px solid #e4e9f5",display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden",flexShrink:0}}>
+      <div style={{width:64,height:64,borderRadius:"50%",background:"var(--panel)",border:"1.5px solid var(--border-navy)",display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden",flexShrink:0}}>
         {value ? <img src={value} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}} /> : <span style={{display:"flex",color:"#c0c8e0"}}><Camera size={24} /></span>}
       </div>
       <div style={{display:"flex",flexDirection:"column",gap:6}}>
@@ -875,7 +875,7 @@ export function Avatar({ member, size=40 }) {
         onClick={(e) => { e.stopPropagation(); open(member); }}
         title="Click to enlarge"
         style={{width:size,height:size,borderRadius:"50%",objectFit:"cover",flexShrink:0,cursor:"zoom-in",
-          opacity:member.is_active===false?0.6:1, background:"#e5e7eb",
+          opacity:member.is_active===false?0.6:1, background:"var(--border)",
           filter:member.is_active===false?"grayscale(0.6)":"none"}} />
     );
   }
@@ -901,16 +901,16 @@ export function SexBadge({ sex }) {
 }
 export function StatusBadge({ active }) {
   return active === false
-    ? <span style={{background:"#f0f0f8",border:"1.5px solid #c0c8e0",color:"#9ca3af",borderRadius:20,padding:"3px 10px",fontSize:12,fontWeight:700,display:"inline-block"}}>Inactive</span>
-    : <span style={{background:"#e8f8f0",border:"1.5px solid #a0dfc0",color:"#2a8a50",borderRadius:20,padding:"3px 10px",fontSize:12,fontWeight:700,display:"inline-block"}}>Active</span>;
+    ? <span style={{background:"var(--panel)",border:"1.5px solid #c0c8e0",color:"var(--text-faint)",borderRadius:20,padding:"3px 10px",fontSize:12,fontWeight:700,display:"inline-block"}}>Inactive</span>
+    : <span style={{background:"var(--brand-tint-soft)",border:"1.5px solid #a0dfc0",color:"#2a8a50",borderRadius:20,padding:"3px 10px",fontSize:12,fontWeight:700,display:"inline-block"}}>Active</span>;
 }
 export function InfoRow({ icon, label, value }) {
   return (
     <div style={{display:"flex",alignItems:"flex-start",gap:8,marginBottom:10}}>
       <span style={{fontSize:14,marginTop:1}}>{icon}</span>
       <div>
-        <div style={{fontSize:11,color:"#9ca3af",letterSpacing:0.5,textTransform:"uppercase",fontWeight:700}}>{label}</div>
-        <div style={{fontSize:14,color:"#111827",marginTop:2}}>{value}</div>
+        <div style={{fontSize:11,color:"var(--text-faint)",letterSpacing:0.5,textTransform:"uppercase",fontWeight:700}}>{label}</div>
+        <div style={{fontSize:14,color:"var(--text)",marginTop:2}}>{value}</div>
       </div>
     </div>
   );
@@ -922,12 +922,12 @@ export function EmptyState({ icon, title, subtitle, action, onAction }) {
       justifyContent:"center", padding:"56px 20px", textAlign:"center",
     }}>
       <div style={{
-        width:64, height:64, borderRadius:16, background:"#f3f4f6",
+        width:64, height:64, borderRadius:16, background:"var(--border-divider)",
         display:"flex", alignItems:"center", justifyContent:"center",
         fontSize:28, marginBottom:16,
       }}>{icon}</div>
-      <div style={{fontSize:16, fontWeight:600, color:"#111827", marginBottom:6}}>{title}</div>
-      {subtitle && <div style={{fontSize:14, color:"#9ca3af", maxWidth:280, lineHeight:1.6, marginBottom: action?20:0}}>{subtitle}</div>}
+      <div style={{fontSize:16, fontWeight:600, color:"var(--text)", marginBottom:6}}>{title}</div>
+      {subtitle && <div style={{fontSize:14, color:"var(--text-faint)", maxWidth:280, lineHeight:1.6, marginBottom: action?20:0}}>{subtitle}</div>}
       {action && onAction && (
         <button className="btn-primary" onClick={onAction} style={{marginTop:4}}>{action}</button>
       )}
@@ -936,7 +936,7 @@ export function EmptyState({ icon, title, subtitle, action, onAction }) {
 }
 
 export function Spinner() {
-  return <div style={{display:"flex",alignItems:"center",justifyContent:"center",padding:40,color:"#9ca3af",fontSize:13}}>Loading…</div>;
+  return <div style={{display:"flex",alignItems:"center",justifyContent:"center",padding:40,color:"var(--text-faint)",fontSize:13}}>Loading…</div>;
 }
 
 export function MemberForm({ value, onChange, onSubmit, onCancel, submitLabel="Save", saving, errors={}, members=[], households=[] }) {
@@ -962,7 +962,7 @@ export function MemberForm({ value, onChange, onSubmit, onCancel, submitLabel="S
     <>
       <div className="field-group">
         <label className="field-label">Member Photo</label>
-        <div style={{fontSize:11,color:"#b0b8d0",marginTop:2}}>A clear head-and-shoulders photo works best.</div>
+        <div style={{fontSize:11,color:"var(--border-navy-strong)",marginTop:2}}>A clear head-and-shoulders photo works best.</div>
         <div style={{marginTop:6}}>
           <PhotoUploader value={value.photo_url||""} onChange={url => onChange({...value, photo_url: url})} />
         </div>
@@ -982,7 +982,7 @@ export function MemberForm({ value, onChange, onSubmit, onCancel, submitLabel="S
             <button key={label}
               className={`marital-btn ${value.is_active === val ? "on" : ""}`}
               onClick={() => onChange({...value, is_active: val})}
-              style={{flex:1, color: val ? undefined : "#8a96b8"}}>
+              style={{flex:1, color: val ? undefined : "var(--text-muted-navy)"}}>
               {val ? "Active" : "Inactive"}
             </button>
           ))}
@@ -1015,7 +1015,7 @@ export function MemberForm({ value, onChange, onSubmit, onCancel, submitLabel="S
 
       {value.marital_status === "Married" && (
         <div className="field-group">
-          <label className="field-label">Spouse <span style={{color:"#d1d5db",fontWeight:400,fontSize:10}}>(links two members together)</span></label>
+          <label className="field-label">Spouse <span style={{color:"var(--border-strong)",fontWeight:400,fontSize:10}}>(links two members together)</span></label>
           <select value={value.spouse_id||""} onChange={u("spouse_id")}>
             <option value="">Not linked</option>
             {spouseCandidates.map(m => {
@@ -1023,7 +1023,7 @@ export function MemberForm({ value, onChange, onSubmit, onCancel, submitLabel="S
               return <option key={m.id} value={m.id}>{fullName(m)}{taken ? ", already linked" : ""}</option>;
             })}
           </select>
-          <div style={{fontSize:11,color:"#b0b8d0",marginTop:4}}>Selecting a spouse automatically links them back to this member.</div>
+          <div style={{fontSize:11,color:"var(--border-navy-strong)",marginTop:4}}>Selecting a spouse automatically links them back to this member.</div>
         </div>
       )}
 
@@ -1039,7 +1039,7 @@ export function MemberForm({ value, onChange, onSubmit, onCancel, submitLabel="S
       </div>
 
       <div className="field-group">
-        <label className="field-label">Household / Family <span style={{color:"#d1d5db",fontWeight:400,fontSize:10}}>(groups a whole family)</span></label>
+        <label className="field-label">Household / Family <span style={{color:"var(--border-strong)",fontWeight:400,fontSize:10}}>(groups a whole family)</span></label>
         <select value={value.household_id||""} onChange={e=>onChange({...value, household_id:e.target.value, new_household_name: e.target.value==="__new__" ? (value.new_household_name||"") : ""})}>
           <option value="">No household</option>
           {households.slice().sort((a,b)=>a.name.localeCompare(b.name)).map(h => {
@@ -1089,13 +1089,13 @@ export function MemberForm({ value, onChange, onSubmit, onCancel, submitLabel="S
       </div>
 
       <div className="field-group">
-        <label className="field-label">Instruments <span style={{color:"#9ca3af",fontWeight:400,fontSize:10}}>(for musicians, choose any)</span></label>
+        <label className="field-label">Instruments <span style={{color:"var(--text-faint)",fontWeight:400,fontSize:10}}>(for musicians, choose any)</span></label>
         <div style={{display:"flex",flexWrap:"wrap",gap:8,marginTop:4}}>
           {INSTRUMENTS.map(inst=>{
             const sel = (value.instruments||"").split(",").map(s=>s.trim()).filter(Boolean);
             const on = sel.includes(inst);
             return (
-              <label key={inst} style={{display:"inline-flex",alignItems:"center",gap:6,fontSize:12,color:"#374151",background:on?"#2a535712":"#f7f9fb",border:`1px solid ${on?"#2a535744":"#e4e9f5"}`,borderRadius:8,padding:"5px 10px",cursor:"pointer"}}>
+              <label key={inst} style={{display:"inline-flex",alignItems:"center",gap:6,fontSize:12,color:"var(--text-2)",background:on?"#2a535712":"var(--panel)",border:`1px solid ${on?"#2a535744":"#e4e9f5"}`,borderRadius:8,padding:"5px 10px",cursor:"pointer"}}>
                 <input type="checkbox" checked={on} onChange={e=>{
                   const next = sel.filter(x=>x!==inst);
                   if (e.target.checked) next.push(inst);
@@ -1117,7 +1117,7 @@ export function MemberForm({ value, onChange, onSubmit, onCancel, submitLabel="S
       </div>
 
       <div className="field-group">
-        <label className="field-label">Other Skills <span style={{color:"#d1d5db",fontWeight:400,fontSize:10}}>(not in list above)</span></label>
+        <label className="field-label">Other Skills <span style={{color:"var(--border-strong)",fontWeight:400,fontSize:10}}>(not in list above)</span></label>
         <input placeholder="e.g. Beekeeping, Sign Language, Pottery…" value={value.other_skills||""} onChange={u("other_skills")} />
       </div>
 
@@ -1136,11 +1136,11 @@ export function MemberForm({ value, onChange, onSubmit, onCancel, submitLabel="S
           ))}
         </div>
         {value.roles.length > 0 && (
-          <div style={{marginTop:12, background:"#f7f9fb", border:"1px solid #e4e9f5", borderRadius:8, padding:"10px 12px"}}>
-            <div style={{fontSize:11, fontWeight:700, color:"#6b7280", textTransform:"uppercase", letterSpacing:0.4, marginBottom:6}}>Leadership position <span style={{fontWeight:400, textTransform:"none"}}>(optional, per ministry)</span></div>
+          <div style={{marginTop:12, background:"var(--panel)", border:"1px solid var(--border-navy)", borderRadius:8, padding:"10px 12px"}}>
+            <div style={{fontSize:11, fontWeight:700, color:"var(--text-muted)", textTransform:"uppercase", letterSpacing:0.4, marginBottom:6}}>Leadership position <span style={{fontWeight:400, textTransform:"none"}}>(optional, per ministry)</span></div>
             {value.roles.map(r=>(
               <div key={r} style={{display:"flex", alignItems:"center", gap:8, marginTop:5}}>
-                <span style={{flex:1, fontSize:12, color:"#374151"}}>{r}</span>
+                <span style={{flex:1, fontSize:12, color:"var(--text-2)"}}>{r}</span>
                 <select value={(value.rolePositions||{})[r]||""} onChange={e=>setPos(r, e.target.value)} style={{width:150, fontSize:12, padding:"4px 8px"}}>
                   <option value="">Member</option>
                   {POSITION_OPTIONS.map(p=><option key={p} value={p}>{p}</option>)}

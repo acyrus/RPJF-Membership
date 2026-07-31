@@ -81,8 +81,8 @@ export default function HouseholdsPage({ profile, members, setMembers, household
     <div className="fade-in">
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10, marginBottom: 18 }}>
         <div>
-          <div style={{ fontFamily: "'Inter',sans-serif", color: "#111827", fontSize: 14, letterSpacing: 0.2, fontWeight: 600 }}>HOUSEHOLDS</div>
-          <div style={{ fontSize: 12, color: "#9ca3af", marginTop: 3 }}>
+          <div style={{ fontFamily: "'Inter',sans-serif", color: "var(--text)", fontSize: 14, letterSpacing: 0.2, fontWeight: 600 }}>HOUSEHOLDS</div>
+          <div style={{ fontSize: 12, color: "var(--text-faint)", marginTop: 3 }}>
             {households.length} household{households.length !== 1 ? "s" : ""} · {members.filter(m => m.household_id).length} of {members.length} members linked
           </div>
         </div>
@@ -100,7 +100,7 @@ export default function HouseholdsPage({ profile, members, setMembers, household
         </div>
       </div>
 
-      <div style={{ background: "#eef6f6", border: "1.5px solid #c9e3e1", borderRadius: 10, padding: "10px 14px", fontSize: 12, color: "#2a5357", marginBottom: 18, lineHeight: 1.6 }}>
+      <div style={{ background: "var(--brand-tint-soft)", border: "1.5px solid var(--brand-accent-border-soft)", borderRadius: 10, padding: "10px 14px", fontSize: 12, color: "var(--brand)", marginBottom: 18, lineHeight: 1.6 }}>
         To build a family from scratch: create the household above, then add each member to it below, even the very first person can be added before anyone else exists.
       </div>
 
@@ -108,9 +108,9 @@ export default function HouseholdsPage({ profile, members, setMembers, household
 
       {/* Household cards */}
       {sortedHouseholds.length === 0 ? (
-        <div style={{ textAlign: "center", padding: "40px 20px", color: "#d1d5db" }}>
+        <div style={{ textAlign: "center", padding: "40px 20px", color: "var(--border-strong)" }}>
           <div style={{ marginBottom: 12, display:"flex", justifyContent:"center" }}><Home size={36} color="#8a96b8" /></div>
-          <div style={{ fontWeight: 600, color: "#6b7280", marginBottom: 6 }}>No households yet</div>
+          <div style={{ fontWeight: 600, color: "var(--text-muted)", marginBottom: 6 }}>No households yet</div>
           <div style={{ fontSize: 12 }}>Create one above to start grouping families together.</div>
         </div>
       ) : (
@@ -119,7 +119,7 @@ export default function HouseholdsPage({ profile, members, setMembers, household
             const fam = byHousehold[h.id] || [];
             const addable = members.filter(m => m.household_id !== h.id).sort((a, b) => fullName(a).localeCompare(fullName(b)));
             return (
-              <div key={h.id} className="card" style={{ padding: 16, borderLeft: "3px solid #2a5357" }}>
+              <div key={h.id} className="card" style={{ padding: 16, borderLeft: "3px solid var(--brand)" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginBottom: 12 }}>
                   {editingId === h.id ? (
                     <input
@@ -134,28 +134,28 @@ export default function HouseholdsPage({ profile, members, setMembers, household
                     <div
                       onClick={() => { setEditingId(h.id); setEditName(h.name); }}
                       title="Click to rename"
-                      style={{ fontWeight: 700, fontSize: 14, color: "#111827", cursor: "pointer", flex: 1 }}
+                      style={{ fontWeight: 700, fontSize: 14, color: "var(--text)", cursor: "pointer", flex: 1 }}
                     >
                       <span style={{display:"inline-flex",alignItems:"center",gap:6}}><Home size={15} color="#2a5357" />{h.name}</span>
                     </div>
                   )}
                   {editingId !== h.id && (
                     <button onClick={() => { setEditingId(h.id); setEditName(h.name); }} title="Rename household"
-                      style={{ background: "none", border: "1px solid #d0d7e8", borderRadius: 6, color: "#5a6a8a", cursor: "pointer", fontSize: 12, padding: "3px 8px", flexShrink: 0 }}>Rename</button>
+                      style={{ background: "none", border: "1px solid var(--border-navy-strong)", borderRadius: 6, color: "var(--text-navy-muted)", cursor: "pointer", fontSize: 12, padding: "3px 8px", flexShrink: 0 }}>Rename</button>
                   )}
-                  <span style={{ background: "#2a535718", border: "1.5px solid #2a535744", color: "#2a5357", borderRadius: 20, padding: "2px 10px", fontSize: 12, fontWeight: 700, flexShrink: 0 }}>{fam.length}</span>
+                  <span style={{ background: "#2a535718", border: "1.5px solid #2a535744", color: "var(--brand)", borderRadius: 20, padding: "2px 10px", fontSize: 12, fontWeight: 700, flexShrink: 0 }}>{fam.length}</span>
                   {isAdmin && (
                     <button onClick={() => deleteHousehold(h.id)} title="Delete household" style={{ background: "none", border: "none", color: "#e0a0a0", cursor: "pointer", fontSize: 15, padding: 2, flexShrink: 0 }}><Trash2 size={15} /></button>
                   )}
                 </div>
 
                 {fam.length === 0
-                  ? <div style={{ fontSize: 12, color: "#d1d5db", marginBottom: 10 }}>No members yet</div>
+                  ? <div style={{ fontSize: 12, color: "var(--border-strong)", marginBottom: 10 }}>No members yet</div>
                   : <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 10 }}>
                       {fam.map(m => (
                         <div key={m.id} style={{ display: "flex", alignItems: "center", gap: 8 }}>
                           <Avatar member={m} size={26} />
-                          <div style={{ flex: 1, fontSize: 12, color: "#1f2937", fontWeight: 600, minWidth: 0 }}>{fullName(m)}</div>
+                          <div style={{ flex: 1, fontSize: 12, color: "var(--text)", fontWeight: 600, minWidth: 0 }}>{fullName(m)}</div>
                           <select value={m.household_role || ""} disabled={busy} onChange={e => setFamilyRole(m.id, e.target.value)}
                             title="Family role" style={{ fontSize: 11, padding: "3px 6px", width: 120, flexShrink: 0 }}>
                             <option value="">Role…</option>
@@ -190,11 +190,11 @@ export default function HouseholdsPage({ profile, members, setMembers, household
           </div>
           <div className="card" style={{ padding: 8 }}>
             {unassigned.map(m => (
-              <div key={m.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 8px", borderBottom: "1px solid #f3f4f6" }}>
+              <div key={m.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 8px", borderBottom: "1px solid var(--border-divider)" }}>
                 <Avatar member={m} size={32} />
-                <div style={{ flex: 1, fontSize: 13, fontWeight: 600, color: "#111827" }}>{fullName(m)}</div>
+                <div style={{ flex: 1, fontSize: 13, fontWeight: 600, color: "var(--text)" }}>{fullName(m)}</div>
                 {sortedHouseholds.length === 0
-                  ? <span style={{ fontSize: 11, color: "#d1d5db" }}>Create a household first</span>
+                  ? <span style={{ fontSize: 11, color: "var(--border-strong)" }}>Create a household first</span>
                   : <select value="" disabled={busy} onChange={e => { if (e.target.value) assignMember(m.id, e.target.value); }} style={{ width: 200, fontSize: 12 }}>
                       <option value="">Assign to household…</option>
                       {sortedHouseholds.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}

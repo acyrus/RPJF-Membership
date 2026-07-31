@@ -2,6 +2,7 @@ import { useState } from "react";
 import "../styles.css";
 import { supabase } from "../supabase";
 import { resizeImage } from "../components";
+import { branding } from "../branding";
 import { Check, User, ShieldCheck } from "lucide-react";
 
 const TEAL = "#2a5357";
@@ -55,12 +56,12 @@ export default function SubmitPhotoPage() {
   }
 
   const page = {
-    minHeight: "100vh", background: "#f4f6fa", display: "flex",
+    minHeight: "100vh", background: "var(--panel)", display: "flex",
     flexDirection: "column", alignItems: "center", padding: "0 0 40px",
     fontFamily: "'Inter',system-ui,sans-serif",
   };
   const card = {
-    width: "100%", maxWidth: 420, background: "#fff", minHeight: "100vh",
+    width: "100%", maxWidth: 420, background: "var(--surface)", minHeight: "100vh",
     boxShadow: "0 0 40px #0000000d",
   };
 
@@ -69,13 +70,13 @@ export default function SubmitPhotoPage() {
       <div style={page}>
         <div style={card}>
           <div style={{ background: TEAL, padding: "22px 22px 20px" }}>
-            <div style={{ fontSize: 12, color: "#9fe1cb", letterSpacing: 0.3 }}>Righteousness Peace and Joy Fellowship</div>
+            <div style={{ fontSize: 12, color: "#9fe1cb", letterSpacing: 0.3 }}>{branding.fullName}</div>
             <div style={{ fontSize: 20, color: "#fff", fontWeight: 700, marginTop: 3 }}>Photo submitted</div>
           </div>
           <div style={{ padding: 28, textAlign: "center" }}>
             <div style={{ width: 72, height: 72, borderRadius: "50%", background: "#e1f5ee", display: "flex", alignItems: "center", justifyContent: "center", margin: "10px auto 18px", }}><Check size={36} color="#2a7a50" /></div>
-            <div style={{ fontSize: 17, fontWeight: 700, color: "#111827", marginBottom: 8 }}>Thank you, {firstName}!</div>
-            <div style={{ fontSize: 14, color: "#6b7280", lineHeight: 1.7, maxWidth: 320, margin: "0 auto" }}>
+            <div style={{ fontSize: 17, fontWeight: 700, color: "var(--text)", marginBottom: 8 }}>Thank you, {firstName}!</div>
+            <div style={{ fontSize: 14, color: "var(--text-muted)", lineHeight: 1.7, maxWidth: 320, margin: "0 auto" }}>
               Your photo has been sent to the church office. An administrator will review and approve it, and then it will appear on your membership record.
             </div>
             <button
@@ -93,7 +94,7 @@ export default function SubmitPhotoPage() {
     <div style={page}>
       <div style={card}>
         <div style={{ background: TEAL, padding: "22px 22px 20px" }}>
-          <div style={{ fontSize: 12, color: "#9fe1cb", letterSpacing: 0.3 }}>Righteousness Peace and Joy Fellowship</div>
+          <div style={{ fontSize: 12, color: "#9fe1cb", letterSpacing: 0.3 }}>{branding.fullName}</div>
           <div style={{ fontSize: 20, color: "#fff", fontWeight: 700, marginTop: 3 }}>Submit your photo</div>
           <div style={{ fontSize: 13, color: "#cdeae3", marginTop: 5, lineHeight: 1.5 }}>Add a photo to your membership record.</div>
         </div>
@@ -102,7 +103,7 @@ export default function SubmitPhotoPage() {
           {/* Step 1 — name */}
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
             <span style={{ width: 22, height: 22, borderRadius: "50%", background: "#e1f5ee", color: "#0f6e56", fontSize: 12, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center" }}>1</span>
-            <span style={{ fontSize: 15, fontWeight: 700, color: "#111827" }}>Your name</span>
+            <span style={{ fontSize: 15, fontWeight: 700, color: "var(--text)" }}>Your name</span>
           </div>
           <div style={{ display: "flex", gap: 10, marginBottom: 6 }}>
             <div style={{ width: "50%" }}>
@@ -114,21 +115,21 @@ export default function SubmitPhotoPage() {
               <input placeholder="Last" value={lastName} onChange={e => setLastName(e.target.value)} />
             </div>
           </div>
-          <div style={{ fontSize: 12, color: "#9ca3af", marginTop: 6, lineHeight: 1.5 }}>
+          <div style={{ fontSize: 12, color: "var(--text-faint)", marginTop: 6, lineHeight: 1.5 }}>
             Used only to match you to your record, never shown publicly.
           </div>
 
           {/* Step 2 — photo */}
           <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "22px 0 8px" }}>
             <span style={{ width: 22, height: 22, borderRadius: "50%", background: "#e1f5ee", color: "#0f6e56", fontSize: 12, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center" }}>2</span>
-            <span style={{ fontSize: 15, fontWeight: 700, color: "#111827" }}>Your photo</span>
+            <span style={{ fontSize: 15, fontWeight: 700, color: "var(--text)" }}>Your photo</span>
           </div>
-          <div style={{ fontSize: 12.5, color: "#6b7280", marginBottom: 12, lineHeight: 1.5 }}>
+          <div style={{ fontSize: 12.5, color: "var(--text-muted)", marginBottom: 12, lineHeight: 1.5 }}>
             A clear head-and-shoulders photo of just yourself works best.
           </div>
 
           <div style={{ border: "1.5px dashed #cbd5e1", borderRadius: 14, padding: 20, textAlign: "center" }}>
-            <div style={{ width: 96, height: 96, borderRadius: "50%", background: photoUrl ? "transparent" : "#eef1f6", border: "1px solid #e4e9f5", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", margin: "0 auto 14px" }}>
+            <div style={{ width: 96, height: 96, borderRadius: "50%", background: photoUrl ? "transparent" : "var(--panel)", border: "1px solid var(--border-navy)", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", margin: "0 auto 14px" }}>
               {photoUrl
                 ? <img src={photoUrl} alt="Your preview" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                 : <span style={{ display:"flex", color: "#c0c8e0" }}><User size={40} /></span>}
@@ -140,7 +141,7 @@ export default function SubmitPhotoPage() {
             {photoUrl && !uploading && (
               <button onClick={() => setPhotoUrl("")} style={{ display: "block", margin: "10px auto 0", background: "none", border: "none", color: "#e05050", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Remove</button>
             )}
-            <div style={{ fontSize: 12, color: "#9ca3af", marginTop: 12 }}>JPG or PNG · automatically resized for you</div>
+            <div style={{ fontSize: 12, color: "var(--text-faint)", marginTop: 12 }}>JPG or PNG · automatically resized for you</div>
           </div>
 
           {/* Review note */}

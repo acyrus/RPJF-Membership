@@ -159,6 +159,38 @@ Open http://localhost:5173
 
 ---
 
+## Re-branding for a New Church (White-Label)
+
+The app is "one church, one copy": clone it, point it at your own Supabase, and change a
+few files. **Almost everything lives in one file — `src/branding.js`.**
+
+1. **Names and wording — `src/branding.js`.** Edit `name`, `shortName`, `fullName`,
+   `motto`, `tagline`, `portalNote`, and `reportLabel`. These flow to the header, login
+   screen, dashboard, the public photo page, and CSV export headers. No page files need
+   editing.
+
+2. **Logos — `src/logoData.js`.** Replace the three image data values, keeping the export
+   names `logoMark` (header emblem), `logoFull` (faint login-screen backdrop), and
+   `logoIcon`. Every place a logo appears updates automatically. Also replace the favicon
+   `public/logo-icon.png` and, if you like, the `<title>` in `index.html`.
+
+3. **Brand colours — `src/branding.js` → `colors` (light) and `colorsDark` (dark).** These
+   are injected into the theme at boot, so the whole app re-tints from these values in both
+   light and dark mode. You only set the brand family; all the neutral greys/text/borders
+   come from the theme tokens in `src/styles.css` and adapt to dark mode automatically.
+
+4. **Supabase** — set `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` for your own project
+   (see Step 6). This is not in `branding.js`.
+
+### Dark mode
+
+Users switch light/dark with the sun/moon button in the header; the choice is saved per
+device (`localStorage`) and applied before the page paints, so there's no flash. The dark
+palette is defined once in `src/styles.css` under `html.dark` (neutrals) plus
+`branding.js` `colorsDark` (brand). To retune dark mode, edit those.
+
+---
+
 ## File Structure
 
 ```

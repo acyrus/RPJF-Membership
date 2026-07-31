@@ -1,22 +1,23 @@
 import { useMemo } from "react";
 import { fullName, calcAge, daysUntilNext, Avatar, ROLES, ROLE_COLORS } from "../components";
+import { branding } from "../branding";
 import { Users, UserCheck, PauseCircle, Church, BarChart3, Calendar, TrendingUp, TrendingDown, ArrowRight, PartyPopper, Cake, Heart, Home, Link2, Baby, Circle, FileText } from "lucide-react";
 
 function StatCard({ icon, label, value, sub, color = "#2a5357", onClick }) {
   return (
     <div onClick={onClick} style={{
-      background: "#fff", border: "1.5px solid #e4e9f5", borderRadius: 14,
+      background: "var(--surface)", border: "1.5px solid var(--border-navy)", borderRadius: 14,
       padding: "18px 20px", flex: 1, minWidth: 140,
       cursor: onClick ? "pointer" : "default",
       transition: "box-shadow 0.15s, border-color 0.15s",
       boxShadow: "0 1px 4px #0000000a",
     }}
     onMouseEnter={e => { if (onClick) { e.currentTarget.style.borderColor = color; e.currentTarget.style.boxShadow = `0 2px 12px ${color}18`; }}}
-    onMouseLeave={e => { e.currentTarget.style.borderColor = "#e4e9f5"; e.currentTarget.style.boxShadow = "0 1px 4px #0000000a"; }}>
+    onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border-navy)"; e.currentTarget.style.boxShadow = "0 1px 4px #0000000a"; }}>
       <div style={{ fontSize: 22, marginBottom: 8 }}>{icon}</div>
       <div style={{ fontSize: 28, fontWeight: 700, color, fontFamily: "'Inter',sans-serif", lineHeight: 1 }}>{value}</div>
-      <div style={{ fontSize: 12, fontWeight: 600, color: "#2a3560", marginTop: 4 }}>{label}</div>
-      {sub && <div style={{ fontSize: 11, color: "#8a96b8", marginTop: 2 }}>{sub}</div>}
+      <div style={{ fontSize: 12, fontWeight: 600, color: "var(--text-navy)", marginTop: 4 }}>{label}</div>
+      {sub && <div style={{ fontSize: 11, color: "var(--text-muted-navy)", marginTop: 2 }}>{sub}</div>}
     </div>
   );
 }
@@ -40,17 +41,17 @@ function DonutBlock({ data, total, totalLabel }) {
           })}
         </svg>
         <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-          <span style={{ fontSize: 21, fontWeight: 700, color: "#1f2a44", lineHeight: 1 }}>{total}</span>
-          <span style={{ fontSize: 10, color: "#8a96b8", marginTop: 2 }}>{totalLabel}</span>
+          <span style={{ fontSize: 21, fontWeight: 700, color: "var(--text-heading)", lineHeight: 1 }}>{total}</span>
+          <span style={{ fontSize: 10, color: "var(--text-muted-navy)", marginTop: 2 }}>{totalLabel}</span>
         </div>
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         {data.map((d, i) => (
           <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
             <span style={{ width: 10, height: 10, borderRadius: 2, background: d.color, flexShrink: 0 }} />
-            <span style={{ fontSize: 12, color: "#374151", flex: 1 }}>{d.name}</span>
-            <span style={{ fontSize: 12, fontWeight: 700, color: "#1f2a44" }}>{d.value}</span>
-            <span style={{ fontSize: 11, color: "#9ca3af", width: 30, textAlign: "right" }}>{sum ? Math.round(d.value / sum * 100) : 0}%</span>
+            <span style={{ fontSize: 12, color: "var(--text-2)", flex: 1 }}>{d.name}</span>
+            <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text-heading)" }}>{d.value}</span>
+            <span style={{ fontSize: 11, color: "var(--text-faint)", width: 30, textAlign: "right" }}>{sum ? Math.round(d.value / sum * 100) : 0}%</span>
           </div>
         ))}
       </div>
@@ -120,7 +121,7 @@ export default function DashboardPage({ profile, members, services, attendance, 
       { label:"Babes & Toddlers", min:0,  max:4,   color:"#f0a0c0", icon:<span style={{width:9,height:9,borderRadius:"50%",background:"#f0a0c0",display:"inline-block"}} /> },
       { label:"Children",         min:5,  max:12,  color:"#f0c040", icon:<span style={{width:9,height:9,borderRadius:"50%",background:"#f0c040",display:"inline-block"}} /> },
       { label:"Teenagers",        min:13, max:17,  color:"#60b060", icon:<span style={{width:9,height:9,borderRadius:"50%",background:"#60b060",display:"inline-block"}} /> },
-      { label:"Young Adults",     min:18, max:29,  color:"#2a5357", icon:<span style={{width:9,height:9,borderRadius:"50%",background:"#2a5357",display:"inline-block"}} /> },
+      { label:"Young Adults",     min:18, max:29,  color:"var(--brand)", icon:<span style={{width:9,height:9,borderRadius:"50%",background:"var(--brand)",display:"inline-block"}} /> },
       { label:"Adults",           min:30, max:59,  color:"#a040c0", icon:<span style={{width:9,height:9,borderRadius:"50%",background:"#a040c0",display:"inline-block"}} /> },
       { label:"Seniors",          min:60, max:999, color:"#c07830", icon:<span style={{width:9,height:9,borderRadius:"50%",background:"#c07830",display:"inline-block"}} /> },
     ];
@@ -198,16 +199,16 @@ export default function DashboardPage({ profile, members, services, attendance, 
             return (
               <div key={t.name} style={{ marginBottom: 12 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 4 }}>
-                  <span style={{ fontSize: 13, fontWeight: 600, color: "#1f2a44" }}>{t.name}</span>
-                  <span style={{ fontSize: 13, color: "#6b7280" }}><strong style={{ color: "#2a5357" }}>{t.avg}</strong> avg · {pct}%</span>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-heading)" }}>{t.name}</span>
+                  <span style={{ fontSize: 13, color: "var(--text-muted)" }}><strong style={{ color: "var(--brand)" }}>{t.avg}</strong> avg · {pct}%</span>
                 </div>
-                <div style={{ height: 7, background: "#eef1f6", borderRadius: 4, overflow: "hidden" }}>
-                  <div style={{ width: `${Math.min(pct, 100)}%`, height: "100%", background: "#2a5357", borderRadius: 4 }} />
+                <div style={{ height: 7, background: "var(--panel)", borderRadius: 4, overflow: "hidden" }}>
+                  <div style={{ width: `${Math.min(pct, 100)}%`, height: "100%", background: "var(--brand)", borderRadius: 4 }} />
                 </div>
               </div>
             );
           })}
-          <div style={{ fontSize: 11, color: "#8a96b8", marginTop: 2 }}>Averaged across all recorded services of each type. Percentages are of total members.</div>
+          <div style={{ fontSize: 11, color: "var(--text-muted-navy)", marginTop: 2 }}>Averaged across all recorded services of each type. Percentages are of total members.</div>
         </div>
       )}
 
@@ -221,11 +222,11 @@ export default function DashboardPage({ profile, members, services, attendance, 
               const icon = t.direction === "up" ? <TrendingUp size={20} /> : t.direction === "down" ? <TrendingDown size={20} /> : <ArrowRight size={20} />;
               const label = t.direction === "up" ? "Growing" : t.direction === "down" ? "Declining" : t.direction === null ? "Not enough data" : "Steady";
               return (
-                <div key={t.name} style={{display:"flex", alignItems:"center", gap:14, padding:"10px 0", borderBottom:"1px solid #f0f2f8"}}>
+                <div key={t.name} style={{display:"flex", alignItems:"center", gap:14, padding:"10px 0", borderBottom:"1px solid var(--panel)"}}>
                   <span style={{fontSize:20, flexShrink:0}}>{icon}</span>
                   <div style={{flex:1}}>
-                    <div style={{fontSize:14, fontWeight:600, color:"#111827"}}>{t.name}</div>
-                    <div style={{fontSize:12, color:"#9ca3af", marginTop:2}}>
+                    <div style={{fontSize:14, fontWeight:600, color:"var(--text)"}}>{t.name}</div>
+                    <div style={{fontSize:12, color:"var(--text-faint)", marginTop:2}}>
                       {t.direction !== null
                         ? `Avg ${t.prevAvg} → ${t.recentAvg} per service`
                         : `Avg ${t.recentAvg} per service · need more data for trend`}
@@ -238,7 +239,7 @@ export default function DashboardPage({ profile, members, services, attendance, 
                       fontSize:12, fontWeight:700
                     }}>{label}</span>
                     {t.direction !== null && (
-                      <div style={{fontSize:11, color:"#d1d5db", marginTop:3}}>
+                      <div style={{fontSize:11, color:"var(--border-strong)", marginTop:3}}>
                         {t.recentAvg > t.prevAvg ? `+${t.recentAvg - t.prevAvg}` : t.recentAvg < t.prevAvg ? `-${t.prevAvg - t.recentAvg}` : "No change"} avg attendance
                       </div>
                     )}
@@ -256,16 +257,16 @@ export default function DashboardPage({ profile, members, services, attendance, 
         {/* Member Breakdown */}
         <div>
           <div className="section-title flush">Member Breakdown</div>
-          <div style={{ background: "#fff", border: "1.5px solid #e4e9f5", borderRadius: 14, padding: "16px 18px", boxShadow: "0 1px 4px #0000000a" }}>
+          <div style={{ background: "var(--surface)", border: "1.5px solid var(--border-navy)", borderRadius: 14, padding: "16px 18px", boxShadow: "0 1px 4px #0000000a" }}>
             {/* Sex */}
             <div style={{ marginBottom: 14 }}>
               <DonutBlock
                 data={[{ name: "Male", value: stats.male, color: "#3a8fd0" }, { name: "Female", value: stats.female, color: "#d060a0" }]}
                 total={stats.male + stats.female} totalLabel="members" />
             </div>
-            <div style={{ borderTop: "1.5px solid #f0f2f8", paddingTop: 14 }}>
+            <div style={{ borderTop: "1.5px solid var(--panel)", paddingTop: 14 }}>
               <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom: 12 }}>
-                <span style={{ fontSize: 10, fontWeight: 700, color: "#8a96b8", textTransform:"uppercase", letterSpacing: 0.5 }}>Marital Status (18+)</span>
+                <span style={{ fontSize: 10, fontWeight: 700, color: "var(--text-muted-navy)", textTransform:"uppercase", letterSpacing: 0.5 }}>Marital Status (18+)</span>
               </div>
               <DonutBlock
                 data={[
@@ -281,9 +282,9 @@ export default function DashboardPage({ profile, members, services, attendance, 
         {/* Celebrations this week */}
         <div>
           <div className="section-title flush">Celebrations This Week</div>
-          <div style={{ background: "#fff", border: "1.5px solid #e4e9f5", borderRadius: 14, padding: "16px 18px", boxShadow: "0 1px 4px #0000000a", minHeight: 140 }}>
+          <div style={{ background: "var(--surface)", border: "1.5px solid var(--border-navy)", borderRadius: 14, padding: "16px 18px", boxShadow: "0 1px 4px #0000000a", minHeight: 140 }}>
             {stats.birthdaysThisWeek.length === 0 && stats.anniversariesThisWeek.length === 0 ? (
-              <div style={{ textAlign: "center", padding: "24px 0", color: "#b0b8d0", fontSize: 12 }}>
+              <div style={{ textAlign: "center", padding: "24px 0", color: "var(--border-navy-strong)", fontSize: 12 }}>
                 <div style={{ marginBottom: 8 }}><PartyPopper size={28} color="#b0b8d0" /></div>
                 No celebrations this week
               </div>
@@ -293,8 +294,8 @@ export default function DashboardPage({ profile, members, services, attendance, 
                   <div key={m.id} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
                     <span style={{ display:"flex" }}><Cake size={16} color="#e07830" /></span>
                     <div>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: "#2a3560" }}>{fullName(m)}</div>
-                      <div style={{ fontSize: 11, color: "#8a96b8" }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-navy)" }}>{fullName(m)}</div>
+                      <div style={{ fontSize: 11, color: "var(--text-muted-navy)" }}>
                         Birthday · {daysUntilNext(m.dob) === 0 ? "Today!" : `${daysUntilNext(m.dob)} days away`}
                       </div>
                     </div>
@@ -304,8 +305,8 @@ export default function DashboardPage({ profile, members, services, attendance, 
                   <div key={m.id} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
                     <span style={{ display:"flex" }}><Heart size={16} color="#d060a0" /></span>
                     <div>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: "#2a3560" }}>{fullName(m)}</div>
-                      <div style={{ fontSize: 11, color: "#8a96b8" }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-navy)" }}>{fullName(m)}</div>
+                      <div style={{ fontSize: 11, color: "var(--text-muted-navy)" }}>
                         Anniversary · {daysUntilNext(m.anniversary) === 0 ? "Today!" : `${daysUntilNext(m.anniversary)} days away`}
                       </div>
                     </div>
@@ -319,7 +320,7 @@ export default function DashboardPage({ profile, members, services, attendance, 
 
       {/* Age Category Breakdown */}
       <SectionTitle>Members by Age Group</SectionTitle>
-      <div style={{ background:"#fff", border:"1.5px solid #e4e9f5", borderRadius:14, padding:"16px 18px", boxShadow:"0 1px 4px #0000000a", marginBottom:4 }}>
+      <div style={{ background:"var(--surface)", border:"1.5px solid var(--border-navy)", borderRadius:14, padding:"16px 18px", boxShadow:"0 1px 4px #0000000a", marginBottom:4 }}>
         {stats.ageCats.map(cat => {
           const pct = stats.active ? Math.round((cat.count / stats.active) * 100) : 0;
           return (
@@ -327,24 +328,24 @@ export default function DashboardPage({ profile, members, services, attendance, 
               <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:5 }}>
                 <div style={{ display:"flex", alignItems:"center", gap:6 }}>
                   <span style={{ fontSize:16 }}>{cat.icon}</span>
-                  <span style={{ fontSize:12, fontWeight:600, color:"#111827" }}>{cat.label}</span>
-                  <span style={{ fontSize:11, color:"#8a96b8" }}>
+                  <span style={{ fontSize:12, fontWeight:600, color:"var(--text)" }}>{cat.label}</span>
+                  <span style={{ fontSize:11, color:"var(--text-muted-navy)" }}>
                     ({cat.min === 0 ? "0" : cat.min}–{cat.max === 999 ? "60+" : cat.max})
                   </span>
                 </div>
                 <div style={{ display:"flex", alignItems:"center", gap:8 }}>
                   <span style={{ fontSize:12, color:cat.color, fontWeight:700 }}>{cat.count}</span>
-                  <span style={{ fontSize:12, color:"#6b7280", fontWeight:600 }}>{pct}%</span>
+                  <span style={{ fontSize:12, color:"var(--text-muted)", fontWeight:600 }}>{pct}%</span>
                 </div>
               </div>
-              <div style={{ height:7, background:"#f0f2f8", borderRadius:4, overflow:"hidden" }}>
+              <div style={{ height:7, background:"var(--panel)", borderRadius:4, overflow:"hidden" }}>
                 <div style={{ height:"100%", width:`${pct}%`, background:cat.color, borderRadius:4, transition:"width 0.5s" }} />
               </div>
             </div>
           );
         })}
         {stats.noAgeCount > 0 && (
-          <div style={{ marginTop:8, paddingTop:10, borderTop:"1px solid #f0f2f8", display:"flex", justifyContent:"space-between", fontSize:12, color:"#6b7280" }}>
+          <div style={{ marginTop:8, paddingTop:10, borderTop:"1px solid var(--panel)", display:"flex", justifyContent:"space-between", fontSize:12, color:"var(--text-muted)" }}>
             <span>No date of birth recorded</span>
             <span>{stats.noAgeCount} member{stats.noAgeCount !== 1 ? "s" : ""}</span>
           </div>
@@ -354,27 +355,27 @@ export default function DashboardPage({ profile, members, services, attendance, 
       {/* Households at a glance */}
       <SectionTitle>Households at a Glance</SectionTitle>
       {stats.household.count === 0 ? (
-        <div onClick={() => setTab("households")} style={{ background:"#fff", border:"1.5px solid #e4e9f5", borderRadius:14, padding:"18px 20px", boxShadow:"0 1px 4px #0000000a", cursor:"pointer", display:"flex", alignItems:"center", gap:14 }}>
+        <div onClick={() => setTab("households")} style={{ background:"var(--surface)", border:"1.5px solid var(--border-navy)", borderRadius:14, padding:"18px 20px", boxShadow:"0 1px 4px #0000000a", cursor:"pointer", display:"flex", alignItems:"center", gap:14 }}>
           <span style={{ display:"flex" }}><Home size={28} color="#8a96b8" /></span>
           <div>
-            <div style={{ fontSize:14, fontWeight:700, color:"#2a3560" }}>No households yet</div>
-            <div style={{ fontSize:12, color:"#8a96b8", marginTop:2 }}>Group families together in the Households tab →</div>
+            <div style={{ fontSize:14, fontWeight:700, color:"var(--text-navy)" }}>No households yet</div>
+            <div style={{ fontSize:12, color:"var(--text-muted-navy)", marginTop:2 }}>Group families together in the Households tab →</div>
           </div>
         </div>
       ) : (
-        <div style={{ background:"#fff", border:"1.5px solid #e4e9f5", borderRadius:14, padding:"18px 20px", boxShadow:"0 1px 4px #0000000a" }}>
+        <div style={{ background:"var(--surface)", border:"1.5px solid var(--border-navy)", borderRadius:14, padding:"18px 20px", boxShadow:"0 1px 4px #0000000a" }}>
           <div style={{ display:"flex", gap:12, flexWrap:"wrap" }}>
             {[
-              { icon:<Home size={18} color="#2a5357" />, label:"Households", value:stats.household.count, color:"#2a5357" },
+              { icon:<Home size={18} color="#2a5357" />, label:"Households", value:stats.household.count, color:"var(--brand)" },
               { icon:<Users size={18} color="#4caf82" />, label:"Avg Family Size", value:stats.household.avg ? stats.household.avg.toFixed(1) : "0", color:"#4caf82" },
               { icon:<Link2 size={18} color="#3a8fd0" />, label:"Members Linked", value:stats.household.inHousehold, color:"#3a8fd0", sub:`${members.length ? Math.round((stats.household.inHousehold/members.length)*100) : 0}% of members` },
-              { icon:<Circle size={18} color="#8a96b8" />, label:"Not Linked", value:stats.household.without, color:"#8a96b8" },
+              { icon:<Circle size={18} color="#8a96b8" />, label:"Not Linked", value:stats.household.without, color:"var(--text-muted-navy)" },
             ].map(s => (
               <div key={s.label} onClick={() => setTab("households")} style={{ flex:1, minWidth:120, cursor:"pointer" }}>
                 <div style={{ fontSize:18, marginBottom:4 }}>{s.icon}</div>
                 <div style={{ fontSize:24, fontWeight:700, color:s.color, lineHeight:1, fontFamily:"'Inter',sans-serif" }}>{s.value}</div>
-                <div style={{ fontSize:12, fontWeight:600, color:"#2a3560", marginTop:4 }}>{s.label}</div>
-                {s.sub && <div style={{ fontSize:11, color:"#8a96b8", marginTop:2 }}>{s.sub}</div>}
+                <div style={{ fontSize:12, fontWeight:600, color:"var(--text-navy)", marginTop:4 }}>{s.label}</div>
+                {s.sub && <div style={{ fontSize:11, color:"var(--text-muted-navy)", marginTop:2 }}>{s.sub}</div>}
               </div>
             ))}
           </div>
@@ -385,7 +386,7 @@ export default function DashboardPage({ profile, members, services, attendance, 
       {topRoles.length > 0 && (
         <>
           <SectionTitle>Ministry Distribution</SectionTitle>
-          <div style={{ background: "#fff", border: "1.5px solid #e4e9f5", borderRadius: 14, padding: "16px 18px", boxShadow: "0 1px 4px #0000000a" }}>
+          <div style={{ background: "var(--surface)", border: "1.5px solid var(--border-navy)", borderRadius: 14, padding: "16px 18px", boxShadow: "0 1px 4px #0000000a" }}>
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               {topRoles.map(([role, count]) => {
                 const color = ROLE_COLORS[role] || "#2a5357";
@@ -393,10 +394,10 @@ export default function DashboardPage({ profile, members, services, attendance, 
                 return (
                   <div key={role}>
                     <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                      <span style={{ fontSize: 12, fontWeight: 600, color: "#2a3560" }}>{role}</span>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-navy)" }}>{role}</span>
                       <span style={{ fontSize: 12, color, fontWeight: 700 }}>{count} member{count !== 1 ? "s" : ""}</span>
                     </div>
-                    <div style={{ height: 6, background: "#f0f2f8", borderRadius: 4, overflow: "hidden" }}>
+                    <div style={{ height: 6, background: "var(--panel)", borderRadius: 4, overflow: "hidden" }}>
                       <div style={{ height: "100%", width: `${pct}%`, background: color, borderRadius: 4, transition: "width 0.5s" }} />
                     </div>
                   </div>
@@ -411,13 +412,13 @@ export default function DashboardPage({ profile, members, services, attendance, 
       {isAdmin && recentLog.length > 0 && (
         <>
           <SectionTitle>Recent Activity</SectionTitle>
-          <div style={{ background: "#fff", border: "1.5px solid #e4e9f5", borderRadius: 14, padding: "6px", boxShadow: "0 1px 4px #0000000a" }}>
+          <div style={{ background: "var(--surface)", border: "1.5px solid var(--border-navy)", borderRadius: 14, padding: "6px", boxShadow: "0 1px 4px #0000000a" }}>
             {recentLog.map((entry, i) => (
-              <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: "10px 14px", borderBottom: i < recentLog.length-1 ? "1px solid #f0f2f8" : "none" }}>
+              <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: "10px 14px", borderBottom: i < recentLog.length-1 ? "1px solid var(--panel)" : "none" }}>
                 <span style={{ fontSize: 16, flexShrink: 0 }}>{entry.icon || <FileText size={16} />}</span>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 13, color: "#2a3560", fontWeight: 500 }}>{entry.description}</div>
-                  <div style={{ fontSize: 11, color: "#8a96b8", marginTop: 2 }}>{entry.user_name} · {new Date(entry.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</div>
+                  <div style={{ fontSize: 13, color: "var(--text-navy)", fontWeight: 500 }}>{entry.description}</div>
+                  <div style={{ fontSize: 11, color: "var(--text-muted-navy)", marginTop: 2 }}>{entry.user_name} · {new Date(entry.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</div>
                 </div>
               </div>
             ))}
@@ -427,10 +428,10 @@ export default function DashboardPage({ profile, members, services, attendance, 
 
       {/* Empty state for new installs */}
       {members.length === 0 && (
-        <div style={{ textAlign: "center", padding: "40px 20px", marginTop: 20, background: "#fff", border: "1.5px solid #e4e9f5", borderRadius: 14 }}>
+        <div style={{ textAlign: "center", padding: "40px 20px", marginTop: 20, background: "var(--surface)", border: "1.5px solid var(--border-navy)", borderRadius: 14 }}>
           <div style={{ marginBottom: 12 }}><Church size={36} color="#8a96b8" /></div>
-          <div style={{ fontSize: 15, fontWeight: 700, color: "#2a3560", marginBottom: 6 }}>Welcome to RPJF Membership</div>
-          <div style={{ fontSize: 13, color: "#8a96b8", maxWidth: 320, margin: "0 auto 20px" }}>Get started by adding your first member or importing existing members.</div>
+          <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text-navy)", marginBottom: 6 }}>Welcome to {branding.name}</div>
+          <div style={{ fontSize: 13, color: "var(--text-muted-navy)", maxWidth: 320, margin: "0 auto 20px" }}>Get started by adding your first member or importing existing members.</div>
           <button className="btn-primary" onClick={() => setTab("members")}>+ Add First Member</button>
         </div>
       )}
