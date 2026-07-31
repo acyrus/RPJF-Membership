@@ -17,14 +17,12 @@ builds, with the most complex left for last.
 
 ## In priority order
 
-7. **A section for church position.** A quick data addition on the member record.
-8. **Standardize styling between light and dark mode.** Cleaner to settle before more pages
-   are built. **Bundle white-label branding here:** pull church name, tagline, logo, and
-   theme colors into one config file, plus a README section telling a new church what to
-   change. Model is "each church runs their own copy" (own clone + own Supabase), so no
-   multi-tenancy or data-model changes. Meanwhile, new pages should read the church
-   name/logo from a single source rather than hardcoding it, so there's nothing scattered
-   to hunt down when this is built.
+7. **A section for church position.** ✅ Done — leadership position (Leader / Co-Leader) per
+   ministry, admin-set, preserved across import.
+8. **Standardize styling between light and dark mode.** ✅ Done — CSS token theme + manual
+   dark-mode toggle (Option A teal), plus white-label branding pulled into `src/branding.js`
+   (church name, tagline, logos, brand colours) and a README white-label section. Model is
+   "each church runs their own copy" (own clone + own Supabase).
 9. **Develop the family and household trees.** Core feature, builds on the households that
    already exist.
 10. **Improve the analytics pages for more meaningful, useful views.** Lands better after 6
@@ -34,6 +32,16 @@ builds, with the most complex left for last.
 13. **Explore mass / targeted communication capabilities.**
 14. **A printable letter template for the app.**
 15. **Offline capabilities.** Biggest and most complex; best left until the rest is stable.
+16. **Refine the membership form — add sections and enhance the flow.** The form is one long
+    flat list of ~20 fields in a scattered order (city ends up near instruments, anniversary
+    far from spouse). Group into labelled sections and reorder for a natural flow. Proposed
+    sections: (1) Photo & name, (2) Personal details — gender, DOB, marital status,
+    (3) Contact — phone, email, address, city, (4) Family — household, spouse, wedding
+    anniversary, (5) Church life — member status, join date, how they attend, ministries +
+    leadership position, (6) Gifts & skills — skills, instruments, other skills, (7) Notes.
+    Use the same section order on the admin form and the public submission form (subset);
+    consider collapsible sections on mobile. Pairs naturally with items 6 and 7. No data-model
+    change — purely form structure and UX.
 
 ## Sequencing rationale
 

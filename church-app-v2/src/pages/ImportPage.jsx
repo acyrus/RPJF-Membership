@@ -870,10 +870,10 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
         <div>
           {/* Google Sheets */}
           {/* Member Replace Mode */}
-          <div className="card" style={{padding:16, marginBottom:16, background: memberReplaceMode?"#fff8f0":"var(--surface)", border:`1.5px solid ${memberReplaceMode?"#f5a050":"#e4e9f5"}`}}>
+          <div className="card" style={{padding:16, marginBottom:16, background: memberReplaceMode?"var(--warn-amber-bg)":"var(--surface)", border:`1.5px solid ${memberReplaceMode?"var(--warn-amber-border)":"var(--border-navy)"}`}}>
             <div style={{display:"flex", alignItems:"center", justifyContent:"space-between"}}>
               <div>
-                <div style={{fontWeight:700, fontSize:14, color: memberReplaceMode?"#c06010":"#2a3560", marginBottom:3}}>
+                <div style={{fontWeight:700, fontSize:14, color: memberReplaceMode?"var(--warn-amber-text)":"var(--text-navy)", marginBottom:3}}>
                   {memberReplaceMode ? "Replace Mode: ON" : "Replace Mode"}
                 </div>
                 <div style={{fontSize:12, color:"var(--text-faint)", lineHeight:1.7}}>
@@ -884,14 +884,14 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
               </div>
               <button onClick={()=>setMemberReplaceMode(r=>!r)} style={{
                 flexShrink:0, marginLeft:16,
-                background: memberReplaceMode?"#e07830":"var(--panel)",
-                color: memberReplaceMode?"#fff":"#5a6a8a",
-                border:`1.5px solid ${memberReplaceMode?"#e07830":"#d0d7e8"}`,
+                background: memberReplaceMode?"var(--warn-amber-fill)":"var(--panel)",
+                color: memberReplaceMode?"#fff":"var(--text-navy-muted)",
+                border:`1.5px solid ${memberReplaceMode?"var(--warn-amber-fill)":"var(--border-navy-strong)"}`,
                 borderRadius:20, padding:"6px 16px", fontSize:12, fontWeight:700, cursor:"pointer", transition:"all 0.2s"
               }}>{memberReplaceMode ? "ON" : "OFF"}</button>
             </div>
             {memberReplaceMode && (
-              <div style={{marginTop:10, background:"#fff3e0", borderRadius:8, padding:"8px 12px", fontSize:12, color:"#a05010"}}>
+              <div style={{marginTop:10, background:"var(--warn-amber-inner-bg)", borderRadius:8, padding:"8px 12px", fontSize:12, color:"var(--warn-amber-inner-text)"}}>
                 <strong>Replace Mode:</strong> Members matched by first + last name will have their data overwritten. New members will be added normally.
               </div>
             )}
@@ -942,7 +942,7 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
                   <option value="DMY">DD/MM/YYYY (day first)</option>
                   <option value="MDY">MM/DD/YYYY (month first, US)</option>
                 </select>
-                <span style={{fontSize:11, color: dateDetect.confident ? "#2a8a50" : "#c06010"}}>
+                <span style={{fontSize:11, color: dateDetect.confident ? "#2a8a50" : "var(--warn-amber-text)"}}>
                   {dateDetect.confident
                     ? `Auto-detected from the data${dateOrderOverride ? " (overridden)" : ""}.`
                     : "Couldn't tell from the data. ISO yyyy-mm-dd values are always safe. Check this is right."}
@@ -968,7 +968,7 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
 
                 {/* Validation results */}
                 {memberValidation && (
-                  <div style={{marginBottom:14, background: memberValidation.issues.length?"#fff8f0":"var(--brand-tint-soft)", border:`1.5px solid ${memberValidation.issues.length?"#f5d088":"#b0e8c8"}`, borderRadius:8, padding:"12px 14px"}}>
+                  <div style={{marginBottom:14, background: memberValidation.issues.length?"var(--warn-amber-bg)":"var(--brand-tint-soft)", border:`1.5px solid ${memberValidation.issues.length?"#f5d088":"#b0e8c8"}`, borderRadius:8, padding:"12px 14px"}}>
                     <div style={{fontWeight:700, fontSize:12, color:"var(--text)", marginBottom:6}}>
                       {memberValidation.issues.length === 0 ? "Data looks good!" : `${memberValidation.issues.length} issue${memberValidation.issues.length!==1?"s":""} across ${memberValidation.badRows} row${memberValidation.badRows!==1?"s":""}`}
                     </div>
@@ -981,7 +981,7 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
                     {memberValidation.issues.length > 0 && (
                       <div style={{maxHeight:240, overflowY:"auto", paddingRight:4}}>
                         {memberValidation.issues.map((issue,i)=>(
-                          <div key={i} style={{fontSize:12, color:"#c06010", marginTop:3}}>
+                          <div key={i} style={{fontSize:12, color:"var(--warn-amber-text)", marginTop:3}}>
                             <strong>Row {issue.row}</strong> · {issue.name} · {issue.field}: {issue.msg}
                           </div>
                         ))}
@@ -991,7 +991,7 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
                 )}
 
                 {memberValidation && memberValidation.warnings && memberValidation.warnings.length > 0 && (
-                  <div style={{marginBottom:14, background:"#fff8ec", border:"1.5px solid #f0cf8a", borderRadius:8, padding:"12px 14px"}}>
+                  <div style={{marginBottom:14, background:"var(--warn-amber-bg)", border:"1.5px solid var(--warn-amber-border)", borderRadius:8, padding:"12px 14px"}}>
                     <div style={{fontWeight:700, fontSize:12, color:"#8a5a10", marginBottom:6}}>
                       {memberValidation.warnings.length} warning{memberValidation.warnings.length!==1?"s":""} (these won't block the import)
                     </div>
@@ -1034,10 +1034,10 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
           )}
 
           {memberResult && (
-            <div style={{background: memberResult.errors.length?"#fff8f0":"var(--brand-tint-soft)", border:`1.5px solid ${memberResult.errors.length?"#f5d0a0":"#b0e8c8"}`, borderRadius:10, padding:"14px 16px"}}>
+            <div style={{background: memberResult.errors.length?"var(--warn-amber-bg)":"var(--brand-tint-soft)", border:`1.5px solid ${memberResult.errors.length?"#f5d0a0":"#b0e8c8"}`, borderRadius:10, padding:"14px 16px"}}>
               <div style={{fontWeight:700, fontSize:14, color:"var(--text)", marginBottom:8, display:"flex", alignItems:"center", gap:8, flexWrap:"wrap"}}>
                 {memberResult.replaced ? "Update Complete" : "Import Complete"}
-                {memberResult.replaced && <span style={{fontSize:10, fontWeight:700, background:"#fbe4d0", color:"#b5581a", padding:"2px 9px", borderRadius:20, textTransform:"uppercase", letterSpacing:0.4}}>Replace mode: existing records overwritten</span>}
+                {memberResult.replaced && <span style={{fontSize:10, fontWeight:700, background:"var(--warn-amber-inner-bg)", color:"var(--warn-amber-text)", padding:"2px 9px", borderRadius:20, textTransform:"uppercase", letterSpacing:0.4}}>Replace mode: existing records overwritten</span>}
               </div>
               {memberResult.added > 0 && (
                 <div style={{fontSize:14, color:"#4caf82", marginBottom:4}}>{memberResult.added} new member{memberResult.added!==1?"s":""} added</div>
@@ -1083,10 +1083,10 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
                 </div>
               )}
               {memberResult.errorSkipped > 0 && (
-                <div style={{fontSize:12, color:"#c06010", marginBottom:4}}>{memberResult.errorSkipped} row{memberResult.errorSkipped!==1?"s":""} skipped due to validation issues (see Validate Data for details)</div>
+                <div style={{fontSize:12, color:"var(--warn-amber-text)", marginBottom:4}}>{memberResult.errorSkipped} row{memberResult.errorSkipped!==1?"s":""} skipped due to validation issues (see Validate Data for details)</div>
               )}
               {memberResult.nameSkipped > 0 && (
-                <div style={{fontSize:12, color:"#c06010", marginBottom:4}}>{memberResult.nameSkipped} row{memberResult.nameSkipped!==1?"s":""} skipped (missing first or last name)</div>
+                <div style={{fontSize:12, color:"var(--warn-amber-text)", marginBottom:4}}>{memberResult.nameSkipped} row{memberResult.nameSkipped!==1?"s":""} skipped (missing first or last name)</div>
               )}
               {memberResult.emptySkipped > 0 && (
                 <div style={{fontSize:12, color:"var(--text-faint)", marginBottom:4}}>{memberResult.emptySkipped} empty row{memberResult.emptySkipped!==1?"s":""} skipped</div>
@@ -1180,7 +1180,7 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
           <div className="card" style={{padding:"12px 16px", marginBottom:16, display:"flex", alignItems:"center", justifyContent:"space-between"}}>
             <div style={{fontSize:12, color:"var(--text-muted)"}}>Include inactive members in the comparison</div>
             <button onClick={()=>setIncludeInactive(v=>!v)} style={{
-              background: includeInactive?"#2a5357":"var(--panel)", color: includeInactive?"#fff":"#5a6a8a",
+              background: includeInactive?"#2a5357":"var(--panel)", color: includeInactive?"#fff":"var(--text-navy-muted)",
               border:`1.5px solid ${includeInactive?"#2a5357":"#d0d7e8"}`, borderRadius:20,
               padding:"6px 16px", fontSize:12, fontWeight:700, cursor:"pointer"
             }}>{includeInactive ? "ON" : "OFF"}</button>
@@ -1193,7 +1193,7 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
                 ["On the roster", rosterCheck.rosterCount, "#2a3560"],
                 ["In the app", rosterCheck.appCount, "#2a3560"],
                 ["Matched", rosterCheck.matched, "#2a8a50"],
-                ["Missing from app", rosterCheck.missingFromApp.length, "#c06010"],
+                ["Missing from app", rosterCheck.missingFromApp.length, "var(--warn-amber-text)"],
                 ["Not on roster", rosterCheck.notOnRoster.length, "#8a5a10"],
               ].map(([label, val, color]) => (
                 <div key={label} className="card" style={{padding:"14px 16px"}}>
@@ -1208,7 +1208,7 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
           {rosterCheck && rosterCheck.missingFromApp.length > 0 && (
             <div className="card" style={{padding:20, marginBottom:16, border:"1.5px solid #f5d088"}}>
               <div style={{display:"flex", alignItems:"center", gap:8, marginBottom:4}}>
-                <UserX size={17} color="#c06010" />
+                <UserX size={17} color="var(--warn-amber-text)" />
                 <div style={{fontWeight:700, fontSize:14, color:"var(--text)"}}>
                   {rosterCheck.missingFromApp.length} on the roster, not in the app
                 </div>
@@ -1257,7 +1257,7 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
 
           {/* Duplicates on the printed sheet */}
           {rosterCheck && rosterCheck.dupesOnRoster.length > 0 && (
-            <div className="card" style={{padding:"14px 16px", marginBottom:16, background:"#fff8ec", border:"1.5px solid #f0cf8a"}}>
+            <div className="card" style={{padding:"14px 16px", marginBottom:16, background:"var(--warn-amber-bg)", border:"1.5px solid var(--warn-amber-border)"}}>
               <div style={{fontWeight:700, fontSize:12, color:"#8a5a10", marginBottom:6}}>
                 {rosterCheck.dupesOnRoster.length} name{rosterCheck.dupesOnRoster.length!==1?"s":""} listed more than once on the roster
               </div>
@@ -1292,10 +1292,10 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
       {activeTab === "attendance" && (
         <div>
           {/* Replace mode toggle */}
-          <div className="card" style={{padding:16, marginBottom:16, background: replaceMode?"#fff8f0":"var(--surface)", border:`1.5px solid ${replaceMode?"#f5a050":"#e4e9f5"}`}}>
+          <div className="card" style={{padding:16, marginBottom:16, background: replaceMode?"var(--warn-amber-bg)":"var(--surface)", border:`1.5px solid ${replaceMode?"var(--warn-amber-border)":"var(--border-navy)"}`}}>
             <div style={{display:"flex", alignItems:"center", justifyContent:"space-between"}}>
               <div>
-                <div style={{fontWeight:700, fontSize:14, color: replaceMode?"#c06010":"#2a3560", marginBottom:3}}>
+                <div style={{fontWeight:700, fontSize:14, color: replaceMode?"var(--warn-amber-text)":"var(--text-navy)", marginBottom:3}}>
                   {replaceMode ? "Replace Mode: ON" : "Replace Mode"}
                 </div>
                 <div style={{fontSize:12, color:"var(--text-faint)", lineHeight:1.7}}>
@@ -1308,9 +1308,9 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
                 onClick={()=>setReplaceMode(r=>!r)}
                 style={{
                   flexShrink:0, marginLeft:16,
-                  background: replaceMode?"#e07830":"var(--panel)",
-                  color: replaceMode?"#fff":"#5a6a8a",
-                  border:`1.5px solid ${replaceMode?"#e07830":"#d0d7e8"}`,
+                  background: replaceMode?"var(--warn-amber-fill)":"var(--panel)",
+                  color: replaceMode?"#fff":"var(--text-navy-muted)",
+                  border:`1.5px solid ${replaceMode?"var(--warn-amber-fill)":"var(--border-navy-strong)"}`,
                   borderRadius:20, padding:"6px 16px",
                   fontSize:12, fontWeight:700, cursor:"pointer",
                   transition:"all 0.2s"
@@ -1319,7 +1319,7 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
               </button>
             </div>
             {replaceMode && (
-              <div style={{marginTop:10, background:"#fff3e0", borderRadius:8, padding:"8px 12px", fontSize:12, color:"#a05010"}}>
+              <div style={{marginTop:10, background:"var(--warn-amber-inner-bg)", borderRadius:8, padding:"8px 12px", fontSize:12, color:"var(--warn-amber-inner-text)"}}>
                 <strong>Warning:</strong> This will permanently delete existing attendance records for any service date found in your file before re-importing. This cannot be undone.
               </div>
             )}
@@ -1359,7 +1359,7 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
 
               {/* Validation results */}
               {attValidation && (
-                <div style={{marginBottom:14, background: (attValidation.issues.length||(attValidation.warnings||[]).length)?"#fff8f0":"var(--brand-tint-soft)", border:`1.5px solid ${(attValidation.issues.length||(attValidation.warnings||[]).length)?"#f5d088":"#b0e8c8"}`, borderRadius:8, padding:"12px 14px"}}>
+                <div style={{marginBottom:14, background: (attValidation.issues.length||(attValidation.warnings||[]).length)?"var(--warn-amber-bg)":"var(--brand-tint-soft)", border:`1.5px solid ${(attValidation.issues.length||(attValidation.warnings||[]).length)?"#f5d088":"#b0e8c8"}`, borderRadius:8, padding:"12px 14px"}}>
                   <div style={{fontWeight:700, fontSize:12, color:"var(--text)", marginBottom:6}}>
                     {attValidation.issues.length === 0 ? "Data looks good!" : `${attValidation.issues.length} issue${attValidation.issues.length!==1?"s":""} found`}
                   </div>
@@ -1368,7 +1368,7 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
                     {attValidation.emptyRows > 0 && ` · ${attValidation.emptyRows} empty row${attValidation.emptyRows!==1?"s":""} will be skipped`}
                   </div>
                   {attValidation.issues.slice(0,8).map((issue,i)=>(
-                    <div key={i} style={{fontSize:12, color:"#c06010", marginTop:3}}>
+                    <div key={i} style={{fontSize:12, color:"var(--warn-amber-text)", marginTop:3}}>
                       Row {issue.row} · {issue.field}: {issue.msg}
                     </div>
                   ))}
@@ -1422,7 +1422,7 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
           )}
 
           {attResult && (
-            <div style={{background: attResult.unmatchedNames?.length ? "#fffbf0" : "var(--brand-tint-soft)", border:`1.5px solid ${attResult.unmatchedNames?.length?"#f5d88a":"#b0e8c8"}`, borderRadius:10, padding:"14px 16px"}}>
+            <div style={{background: attResult.unmatchedNames?.length ? "var(--warn-amber-bg)" : "var(--brand-tint-soft)", border:`1.5px solid ${attResult.unmatchedNames?.length?"#f5d88a":"#b0e8c8"}`, borderRadius:10, padding:"14px 16px"}}>
               <div style={{fontWeight:700, fontSize:14, color:"var(--text)", marginBottom:8}}>
                 {attResult.replaced ? "Replace Complete" : "Import Complete"}
               </div>
@@ -1446,10 +1446,10 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
 
               {/* Unmatched names warning */}
               {attResult.unmatchedNames?.length > 0 && (
-                <div style={{marginTop:14, background:"#fffbeb", border:"1.5px solid #f59e0b", borderRadius:10, padding:"14px 16px"}}>
+                <div style={{marginTop:14, background:"var(--warn-amber-bg)", border:"1.5px solid var(--warn-amber-border)", borderRadius:10, padding:"14px 16px"}}>
                   <div style={{display:"flex", alignItems:"center", gap:8, marginBottom:8}}>
                     <span style={{display:"flex"}}><AlertTriangle size={18} color="#e0a020" /></span>
-                    <div style={{fontWeight:700, fontSize:13, color:"#92400e"}}>
+                    <div style={{fontWeight:700, fontSize:13, color:"var(--warn-amber-text)"}}>
                       {attResult.unmatchedNames.length} member{attResult.unmatchedNames.length!==1?"s":""} not found in database
                     </div>
                   </div>
@@ -1459,7 +1459,7 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
                     exactly what's in the Members tab, then re-import.
                   </div>
                   <div style={{background:"var(--surface)", border:"1px solid #fde68a", borderRadius:8, overflow:"hidden"}}>
-                    <div style={{display:"grid", gridTemplateColumns:"1fr 1fr 1fr", padding:"8px 12px", background:"#fef3c7", fontSize:10, fontWeight:700, color:"#92400e", textTransform:"uppercase", letterSpacing:0.5}}>
+                    <div style={{display:"grid", gridTemplateColumns:"1fr 1fr 1fr", padding:"8px 12px", background:"var(--warn-amber-inner-bg)", fontSize:10, fontWeight:700, color:"var(--warn-amber-text)", textTransform:"uppercase", letterSpacing:0.5}}>
                       <span>Name in CSV</span><span>Date</span><span>Service</span>
                     </div>
                     {attResult.unmatchedNames.map((u,i)=>(
@@ -1467,7 +1467,7 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
                         display:"grid", gridTemplateColumns:"1fr 1fr 1fr",
                         padding:"9px 12px", fontSize:12, color:"var(--text-2)",
                         borderTop:"1px solid #fde68a",
-                        background: i%2===0?"var(--surface)":"#fffbeb"
+                        background: i%2===0?"var(--surface)":"var(--warn-amber-bg)"
                       }}>
                         <span style={{fontWeight:600, color:"var(--text)"}}>{u.name}</span>
                         <span style={{color:"var(--text-muted)"}}>{u.date}</span>
@@ -1475,7 +1475,7 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
                       </div>
                     ))}
                   </div>
-                  <div style={{marginTop:10, fontSize:11, color:"#92400e", background:"#fef3c7", borderRadius:6, padding:"6px 10px", lineHeight:1.6}}>
+                  <div style={{marginTop:10, fontSize:11, color:"var(--warn-amber-text)", background:"var(--warn-amber-inner-bg)", borderRadius:6, padding:"6px 10px", lineHeight:1.6}}>
                     <strong>Common causes:</strong> Middle name included · Nickname used · Spelling difference · Member not yet added to the system
                   </div>
                 </div>
