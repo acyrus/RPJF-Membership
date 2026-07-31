@@ -66,6 +66,11 @@
   --pill-no-fg: #b03030;
   --pill-no-bd: #f3c8c8;
 
+  /* Amber info/instruction banner */
+  --info-amber-bg: #fffbf0;
+  --info-amber-border: #f5d88a;
+  --info-amber-text: #8a6800;
+
   /* Birthday banner */
   --birthday-from: #fffbeb;
   --birthday-to: #fdf2f8;
@@ -138,6 +143,11 @@ html.dark {
   --pill-no-bg: #2b1d1d;
   --pill-no-fg: #e79090;
   --pill-no-bd: #4d3232;
+
+  /* Amber info/instruction banner — dark */
+  --info-amber-bg: #241f10;
+  --info-amber-border: #4a3f1a;
+  --info-amber-text: #e0c070;
 
   /* Birthday banner */
   --birthday-from: #241f10;

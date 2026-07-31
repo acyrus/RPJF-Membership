@@ -48,7 +48,7 @@ function TabAccessModal({ user, onSave, onReset, onClose, saving }) {
           Tick the tabs <strong style={{color:"var(--text)"}}>{user.name}</strong> should see.
           Leave them on the role default unless there's a reason not to.
         </div>
-        <div style={{background:"#fffbf0", border:"1.5px solid #f5d88a", borderRadius:8, padding:"9px 12px", marginBottom:14, fontSize:11, color:"#8a6800", lineHeight:1.6}}>
+        <div style={{background:"var(--info-amber-bg)", border:"1.5px solid var(--info-amber-border)", borderRadius:8, padding:"9px 12px", marginBottom:14, fontSize:11, color:"var(--info-amber-text)", lineHeight:1.6}}>
           This controls <strong>navigation only</strong>. What a user may create, edit or
           delete is still governed by their role in the database.
         </div>
@@ -244,7 +244,7 @@ export default function UsersPage({ currentProfile }) {
       {/* Without the migration the Tabs editor looks usable but can't save, so say so
           up front rather than letting an admin find out by losing their work. */}
       {tabColumnMissing && (
-        <div style={{background:"#fffbf0", border:"1.5px solid #f5d88a", borderRadius:10, padding:"12px 16px", marginBottom:20, fontSize:12, color:"#8a6800", lineHeight:1.7}}>
+        <div style={{background:"var(--info-amber-bg)", border:"1.5px solid var(--info-amber-border)", borderRadius:10, padding:"12px 16px", marginBottom:20, fontSize:12, color:"var(--info-amber-text)", lineHeight:1.7}}>
           <strong>Per-user tabs aren't enabled on this database yet.</strong> Run{" "}
           <code style={{background:"#0001",padding:"1px 5px",borderRadius:4}}>supabase_migration_tab_access.sql</code>{" "}
           in the Supabase SQL editor, then reload. Until then everyone uses their role's
@@ -253,7 +253,7 @@ export default function UsersPage({ currentProfile }) {
       )}
 
       {/* How to add users */}
-      <div style={{background:"#fffbf0", border:"1.5px solid #f5d88a", borderRadius:10, padding:"12px 16px", marginBottom:20, fontSize:12, color:"#8a6800", lineHeight:1.7}}>
+      <div style={{background:"var(--info-amber-bg)", border:"1.5px solid var(--info-amber-border)", borderRadius:10, padding:"12px 16px", marginBottom:20, fontSize:12, color:"var(--info-amber-text)", lineHeight:1.7}}>
         <strong>How to add users:</strong> Go to <strong>Supabase Dashboard → Authentication → Users → Add user</strong>,
         create them there, copy their UUID, then add a row to the <code style={{background:"#0001",padding:"1px 5px",borderRadius:4}}>profiles</code> table with their UUID, name, and role.
       </div>
