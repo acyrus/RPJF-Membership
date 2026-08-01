@@ -71,6 +71,14 @@
   --info-amber-border: #f5d88a;
   --info-amber-text: #8a6800;
 
+  /* Amber "active/replace mode" warning card */
+  --warn-amber-bg: #fff8f0;
+  --warn-amber-border: #f5a050;
+  --warn-amber-text: #c06010;
+  --warn-amber-fill: #e07830;
+  --warn-amber-inner-bg: #fff3e0;
+  --warn-amber-inner-text: #a05010;
+
   /* Birthday banner */
   --birthday-from: #fffbeb;
   --birthday-to: #fdf2f8;
@@ -148,6 +156,14 @@ html.dark {
   --info-amber-bg: #241f10;
   --info-amber-border: #4a3f1a;
   --info-amber-text: #e0c070;
+
+  /* Amber "active/replace mode" warning card — dark */
+  --warn-amber-bg: #2a1d0f;
+  --warn-amber-border: #6a4520;
+  --warn-amber-text: #e6a862;
+  --warn-amber-fill: #e07830;
+  --warn-amber-inner-bg: #241a0e;
+  --warn-amber-inner-text: #e0a860;
 
   /* Birthday banner */
   --birthday-from: #241f10;

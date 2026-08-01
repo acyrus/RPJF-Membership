@@ -22,7 +22,36 @@ function formatDaysAway(days) {
 
 const MONTH_NAMES = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 
-function EventRow({ member, date, type, past, onMemberClick }) {
+// Build the month buckets for a date field. For ANNIVERSARIES, spouse-linked members
+// share one wedding date, so they'd otherwise appear twice — merge a couple into a single
+// entry (partner set) when both are linked, active, and carry the same date. A married
+// member whose spouse isn't in the app (no spouse_id, or a mismatched date) shows solo.
+// Birthdays are always per-person.
+function buildByMonth(members, dateField, currentMonth, currentDay, memberById, wantPast) {
+  const byMonth = {};
+  const consumed = new Set();
+  members.filter(m => m[dateField] && m.is_active !== false).forEach(m => {
+    if (consumed.has(m.id)) return;
+    const d = new Date(m[dateField] + "T00:00:00");
+    const month = d.getUTCMonth();
+    const day = d.getUTCDate();
+    const alreadyPassed = month < currentMonth || (month === currentMonth && day < currentDay);
+    if (wantPast ? !alreadyPassed : alreadyPassed) return;
+    let partner = null;
+    if (dateField === "anniversary" && m.spouse_id) {
+      const s = memberById[m.spouse_id];
+      if (s && s.is_active !== false && s.anniversary && s.anniversary === m.anniversary && !consumed.has(s.id)) {
+        partner = s; consumed.add(s.id);
+      }
+    }
+    consumed.add(m.id);
+    (byMonth[month] = byMonth[month] || []).push({ member: m, partner, date: m[dateField], days: daysUntilNext(m[dateField]), day });
+  });
+  Object.keys(byMonth).forEach(mo => byMonth[mo].sort((a, b) => a.day - b.day));
+  return byMonth;
+}
+
+function EventRow({ member, partner, date, type, past, onMemberClick }) {
   const days = daysUntilNext(date);
   const years = calcYears(date);
   const typeColor = type === "birthday" ? "#2a5357" : "#e07830";
@@ -51,7 +80,7 @@ function EventRow({ member, date, type, past, onMemberClick }) {
     onMouseLeave={e=>e.currentTarget.style.background=isToday?typeColor+"0a":"var(--surface)"}>
       <Avatar member={member} size={38} />
       <div style={{flex:1}}>
-        <div style={{fontWeight:700, fontSize:14, color:"var(--text)"}}>{fullName(member)}</div>
+        <div style={{fontWeight:700, fontSize:14, color:"var(--text)"}}>{partner ? `${fullName(member)} & ${fullName(partner)}` : fullName(member)}</div>
         <div style={{fontSize:12, color:"var(--text-muted)", marginTop:2, display:"flex", alignItems:"center", gap:5}}>
           {typeIcon} {formatShortDate(date)}
         </div>
@@ -91,7 +120,7 @@ function MonthSection({ monthIndex, entries, type, past, onMemberClick, isCurren
         {isCurrentMonth && <span style={{fontSize:12, color:typeColor, fontWeight:600}}>This Month</span>}
       </div>
       {entries.map(x => (
-        <EventRow key={x.member.id} member={x.member} date={x.date} type={type} past={past} onMemberClick={onMemberClick} />
+        <EventRow key={x.member.id} member={x.member} partner={x.partner} date={x.date} type={type} past={past} onMemberClick={onMemberClick} />
       ))}
     </div>
   );
@@ -108,56 +137,29 @@ export default function CelebrationsPage({ members, onMemberClick }) {
 
   const dateField = subtab === "birthdays" ? "dob" : "anniversary";
 
-  // UPCOMING: only dates that haven't happened yet this year (or today)
-  // A date is "past" if its month/day has already passed this calendar year
-  const upcomingByMonth = useMemo(() => {
-    const byMonth = {};
-    members
-      .filter(m => m[dateField] && m.is_active !== false)
-      .forEach(m => {
-        const d = new Date(m[dateField] + "T00:00:00");
-        const month = d.getUTCMonth();
-        const day = d.getUTCDate();
-        // Past = already happened this year (month before current, or same month but day already passed)
-        const alreadyPassed = month < currentMonth || (month === currentMonth && day < currentDay);
-        if (alreadyPassed) return; // goes to Past tab
-        if (!byMonth[month]) byMonth[month] = [];
-        const days = daysUntilNext(m[dateField]);
-        byMonth[month].push({ member: m, date: m[dateField], days, day });
-      });
-    Object.keys(byMonth).forEach(month => {
-      byMonth[month].sort((a, b) => a.day - b.day);
-    });
-    return byMonth;
-  }, [members, dateField, currentMonth, currentDay]);
+  const memberById = useMemo(() => Object.fromEntries(members.map(m => [m.id, m])), [members]);
 
-  // PAST: any date whose month/day has already passed this calendar year
-  // Includes days earlier in the current month
-  const pastByMonth = useMemo(() => {
-    const byMonth = {};
-    members
-      .filter(m => m[dateField] && m.is_active !== false)
-      .forEach(m => {
-        const d = new Date(m[dateField] + "T00:00:00");
-        const month = d.getUTCMonth();
-        const day = d.getUTCDate();
-        const alreadyPassed = month < currentMonth || (month === currentMonth && day < currentDay);
-        if (!alreadyPassed) return;
-        if (!byMonth[month]) byMonth[month] = [];
-        byMonth[month].push({ member: m, date: m[dateField], day });
-      });
-    Object.keys(byMonth).forEach(month => {
-      byMonth[month].sort((a, b) => a.day - b.day);
-    });
-    return byMonth;
-  }, [members, dateField, currentMonth, currentDay]);
+  // Upcoming = date hasn't passed yet this year; Past = already passed. Anniversaries
+  // merge spouse couples into one entry (see buildByMonth).
+  const upcomingByMonth = useMemo(() => buildByMonth(members, dateField, currentMonth, currentDay, memberById, false), [members, dateField, currentMonth, currentDay, memberById]);
+  const pastByMonth = useMemo(() => buildByMonth(members, dateField, currentMonth, currentDay, memberById, true), [members, dateField, currentMonth, currentDay, memberById]);
 
   const upcomingTotal = Object.values(upcomingByMonth).reduce((s, a) => s + a.length, 0);
   const pastTotal = Object.values(pastByMonth).reduce((s, a) => s + a.length, 0);
 
-  const thisMonthCount = subtab === "birthdays"
-    ? members.filter(m => m.dob && m.is_active !== false && new Date(m.dob+"T00:00:00").getUTCMonth() === currentMonth).length
-    : members.filter(m => m.anniversary && m.is_active !== false && new Date(m.anniversary+"T00:00:00").getUTCMonth() === currentMonth).length;
+  // This-month count: anniversaries are deduped by spouse so a couple counts once.
+  const thisMonthCount = useMemo(() => {
+    const inMonth = m => m[dateField] && m.is_active !== false && new Date(m[dateField] + "T00:00:00").getUTCMonth() === currentMonth;
+    if (subtab === "birthdays") return members.filter(inMonth).length;
+    const consumed = new Set(); let n = 0;
+    members.filter(inMonth).forEach(m => {
+      if (consumed.has(m.id)) return;
+      consumed.add(m.id);
+      if (m.spouse_id) { const s = memberById[m.spouse_id]; if (s && s.anniversary === m.anniversary) consumed.add(s.id); }
+      n++;
+    });
+    return n;
+  }, [members, subtab, dateField, currentMonth, memberById]);
 
   const type = subtab === "birthdays" ? "birthday" : "anniversary";
   const monthsUpcoming = Array.from({length: 12 - currentMonth}, (_, i) => currentMonth + i);  // current month onwards

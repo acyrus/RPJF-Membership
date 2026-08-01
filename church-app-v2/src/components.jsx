@@ -667,7 +667,7 @@ export const ROLES = ["Usher","Musician","Worship Team","Youth Worship Team","Mi
 // Uncaptured Members tab got missed on the Users page precisely because this was duplicated.
 export const TAB_LABELS = {
   dashboard:"Home", members:"Members", attendance:"Attendance", uncaptured:"Uncaptured Members",
-  photos:"Photos", roles:"Ministries", households:"Households", celebrations:"Celebrations",
+  photos:"Photos", roles:"Ministries", households:"Families", celebrations:"Celebrations",
   skills:"Skills", analytics:"Analytics", users:"Users", changelog:"Log", import:"Import",
 };
 
