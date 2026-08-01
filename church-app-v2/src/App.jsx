@@ -442,6 +442,7 @@ export default function App() {
           <HouseholdsPage
             profile={profile} members={members} setMembers={setMembers}
             households={households} setHouseholds={setHouseholds}
+            onMemberClick={m=>{ allowedTabs.includes("members") && setTab("members"); }}
           />
         )}
         {tab==="celebrations" && allowedTabs.includes("celebrations") && (

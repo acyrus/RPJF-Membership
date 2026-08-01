@@ -23,8 +23,14 @@ builds, with the most complex left for last.
    dark-mode toggle (Option A teal), plus white-label branding pulled into `src/branding.js`
    (church name, tagline, logos, brand colours) and a README white-label section. Model is
    "each church runs their own copy" (own clone + own Supabase).
-9. **Develop the family and household trees.** Core feature, builds on the households that
-   already exist.
+9. **Family view (households).** Core feature, builds on the households, `spouse_id`, and
+   `household_role` (FAMILY_TITLES) that already exist — see `ITEM9-FAMILY-VIEW-PLAN.md`. A
+   grouped read view per household (adults + couple link, children by age, titles, household
+   facts), NOT a drawn genealogical tree. Groups from existing data; age-based fallback so it
+   works before titles are filled. Includes a "Suggest families" grouping helper (cluster
+   un-householded members by surname + address, admin confirms) so setup isn't 60 manual
+   assignments. Keeps the household-role titles. Mostly presentation; no migration for the
+   core.
 10. **Improve the analytics pages for more meaningful, useful views.** Lands better after 6
     and 7 give it richer data to work with.
 11. **Create more freedom for attendance registers.**
