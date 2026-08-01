@@ -1,23 +1,28 @@
 import { useState, useMemo } from "react";
 import { supabase } from "../supabase";
 import { Avatar, fullName, calcAge } from "../components";
-import { Home, Trash2, X, Heart, Cake, Users, Sparkles, Pencil, Check, Search, Plus } from "lucide-react";
+import { Home, Trash2, X, Heart, Users, Sparkles, Pencil, Check, Search, Plus, ChevronRight, ChevronDown } from "lucide-react";
 
 export const FAMILY_TITLES = ["Father","Mother","Husband","Wife","Son","Daughter","Grandfather","Grandmother","Grandson","Granddaughter","Brother","Sister","Uncle","Aunt","Cousin","Guardian","Other"];
 export const CHILD_TITLES = ["Son","Daughter","Grandson","Granddaughter"];
 
-// Normalise for the grouping helper (surname + address clustering).
 const norm = s => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]/g, "");
 
-// Adult vs child: explicit child title wins; any other title = adult; no title
-// falls back to age (under-18 = child, 18+/unknown = adult).
 function isChild(m) {
   if (m.household_role && CHILD_TITLES.includes(m.household_role)) return true;
   if (m.household_role) return false;
   const age = calcAge(m.dob);
   return age !== null && age < 18;
 }
-const monthOf = d => { if (!d) return -1; const x = new Date(d + "T00:00:00"); return isNaN(x) ? -1 : x.getUTCMonth(); };
+// A real couple: only when the two are actually spouse-linked, or explicitly titled
+// Husband/Wife or Father/Mother. Never assume "two adults" means a couple.
+function isCouple(adults) {
+  if (adults.length !== 2) return false;
+  const [a, b] = adults;
+  if ((a.spouse_id && a.spouse_id === b.id) || (b.spouse_id && b.spouse_id === a.id)) return true;
+  const t = new Set([a.household_role, b.household_role]);
+  return (t.has("Husband") && t.has("Wife")) || (t.has("Father") && t.has("Mother"));
+}
 
 const badge = { fontSize: 10, fontWeight: 700, color: "var(--brand)", background: "var(--brand-tint)", border: "1px solid var(--brand-accent-border)", borderRadius: 20, padding: "1px 8px", flexShrink: 0, whiteSpace: "nowrap" };
 const sectionLabel = { fontSize: 10, fontWeight: 700, color: "var(--text-muted-navy)", textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 8px" };
@@ -26,15 +31,15 @@ export default function HouseholdsPage({ profile, members, setMembers, household
   const isAdmin = profile?.role === "admin";
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-  const [q, setQ] = useState("");
-  const [editCard, setEditCard] = useState(null);      // family whose members are being edited
-  const [editingId, setEditingId] = useState(null);    // family being renamed inline (edit mode)
+  const [qFam, setQFam] = useState("");
+  const [qPerson, setQPerson] = useState("");
+  const [expanded, setExpanded] = useState(() => new Set());
+  const [editCard, setEditCard] = useState(null);
+  const [editingId, setEditingId] = useState(null);
   const [editName, setEditName] = useState("");
-  // Create modal
   const [showCreate, setShowCreate] = useState(false);
   const [newName, setNewName] = useState("");
   const [creating, setCreating] = useState(false);
-  // Grouping helper
   const [showSuggest, setShowSuggest] = useState(false);
   const [suggestions, setSuggestions] = useState([]);
 
@@ -51,21 +56,21 @@ export default function HouseholdsPage({ profile, members, setMembers, household
     [...households].sort((a, b) => a.name.localeCompare(b.name))
   , [households]);
   const householdName = id => (households.find(h => h.id === id) || {}).name;
-  const curMonth = new Date().getMonth();
 
-  // Search filters families by their name or a member's name.
-  const ql = q.trim().toLowerCase();
-  const shownHouseholds = useMemo(() => {
-    if (!ql) return sortedHouseholds;
-    return sortedHouseholds.filter(h =>
-      h.name.toLowerCase().includes(ql) ||
-      (byHousehold[h.id] || []).some(m => fullName(m).toLowerCase().includes(ql)));
-  }, [sortedHouseholds, byHousehold, ql]);
-  const shownUnassigned = ql ? unassigned.filter(m => fullName(m).toLowerCase().includes(ql)) : unassigned;
+  const famQ = qFam.trim().toLowerCase();
+  const personQ = qPerson.trim().toLowerCase();
+  const shownHouseholds = useMemo(() => sortedHouseholds.filter(h => {
+    if (famQ && !h.name.toLowerCase().includes(famQ)) return false;
+    if (personQ && !(byHousehold[h.id] || []).some(m => fullName(m).toLowerCase().includes(personQ))) return false;
+    return true;
+  }), [sortedHouseholds, byHousehold, famQ, personQ]);
+  const shownUnassigned = personQ ? unassigned.filter(m => fullName(m).toLowerCase().includes(personQ)) : (famQ ? [] : unassigned);
+  // A person search auto-opens matching families so the person is visible.
+  const isOpen = h => !!personQ || expanded.has(h.id) || editCard === h.id;
+  const toggle = id => setExpanded(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
 
   async function createHousehold() {
-    const name = newName.trim();
-    if (!name) return;
+    const name = newName.trim(); if (!name) return;
     setCreating(true); setError("");
     const { data, error: e } = await supabase.from("households").insert({ name }).select().single();
     setCreating(false);
@@ -74,8 +79,7 @@ export default function HouseholdsPage({ profile, members, setMembers, household
     setNewName(""); setShowCreate(false);
   }
   async function renameHousehold(id) {
-    const name = editName.trim();
-    if (!name) { setEditingId(null); return; }
+    const name = editName.trim(); if (!name) { setEditingId(null); return; }
     setError("");
     const { error: e } = await supabase.from("households").update({ name }).eq("id", id);
     if (e) { setError(e.message); return; }
@@ -104,52 +108,39 @@ export default function HouseholdsPage({ profile, members, setMembers, household
     if (e) { setError(e.message); return; }
     setMembers(prev => prev.map(m => m.id === memberId ? { ...m, household_role: role || null } : m));
   }
-
   function buildSuggestions() {
     const groups = {};
-    unassigned.forEach(m => {
-      const addr = norm(m.address); if (!addr) return;
-      const key = norm(m.last_name) + "|" + addr;
-      (groups[key] = groups[key] || []).push(m);
-    });
+    unassigned.forEach(m => { const addr = norm(m.address); if (!addr) return; const key = norm(m.last_name) + "|" + addr; (groups[key] = groups[key] || []).push(m); });
     setSuggestions(Object.entries(groups).filter(([, ms]) => ms.length >= 2).map(([key, ms]) => ({
-      key, name: `The ${ms[0].last_name} Family`, ids: ms.map(m => m.id),
-      chosen: Object.fromEntries(ms.map(m => [m.id, true])),
+      key, name: `The ${ms[0].last_name} Family`, ids: ms.map(m => m.id), chosen: Object.fromEntries(ms.map(m => [m.id, true])),
     })).sort((a, b) => b.ids.length - a.ids.length));
     setShowSuggest(true);
   }
   async function createFromSuggestion(sug) {
-    const ids = sug.ids.filter(id => sug.chosen[id]);
-    if (!ids.length) return;
+    const ids = sug.ids.filter(id => sug.chosen[id]); if (!ids.length) return;
     setBusy(true); setError("");
     const { data, error: e } = await supabase.from("households").insert({ name: sug.name.trim() || "New Family" }).select().single();
     if (e) { setBusy(false); setError(e.message); return; }
-    for (const id of ids) {
-      const { error: ae } = await supabase.rpc("set_member_household", { p_member_id: id, p_household_id: data.id });
-      if (ae) { setBusy(false); setError(ae.message); return; }
-    }
+    for (const id of ids) { const { error: ae } = await supabase.rpc("set_member_household", { p_member_id: id, p_household_id: data.id }); if (ae) { setBusy(false); setError(ae.message); return; } }
     setBusy(false);
     setHouseholds(prev => [...prev, data].sort((a, b) => a.name.localeCompare(b.name)));
     setMembers(prev => prev.map(m => ids.includes(m.id) ? { ...m, household_id: data.id } : m));
     setSuggestions(prev => prev.filter(s => s.key !== sug.key));
   }
 
-  // ── read-mode people ──
   function Person({ m, align = "left" }) {
-    const spouse = m.spouse_id ? memberById[m.spouse_id] : null;
-    const spouseHere = spouse && spouse.household_id === m.household_id;
     return (
       <div onClick={() => onMemberClick(m)} title="Open member"
-        style={{ display: "flex", alignItems: "center", gap: 9, cursor: "pointer", flexDirection: align === "right" ? "row-reverse" : "row", textAlign: align === "right" ? "right" : "left" }}>
+        style={{ display: "flex", alignItems: "center", gap: 9, cursor: "pointer", flexDirection: align === "right" ? "row-reverse" : "row" }}>
         <Avatar member={m} size={34} />
-        <div style={{ minWidth: 0 }}>
+        <div style={{ minWidth: 0, textAlign: align === "right" ? "right" : "left" }}>
           <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text)" }}>{fullName(m)}</div>
           {m.household_role && <div style={{ fontSize: 11, color: "var(--brand)", fontWeight: 500 }}>{m.household_role}</div>}
         </div>
       </div>
     );
   }
-  function ChildRow({ m }) {
+  function PersonRow({ m }) {
     return (
       <div onClick={() => onMemberClick(m)} title="Open member"
         style={{ display: "flex", alignItems: "center", gap: 9, padding: "7px 10px", background: "var(--surface-alt)", border: "1px solid var(--border)", borderRadius: 10, cursor: "pointer" }}>
@@ -159,19 +150,16 @@ export default function HouseholdsPage({ profile, members, setMembers, household
       </div>
     );
   }
-  // ── edit-mode row (functional) ──
   function EditRow({ m, hid }) {
     return (
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
         <Avatar member={m} size={28} />
         <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: "var(--text)", minWidth: 0 }}>{fullName(m)}</span>
-        <select value={m.household_role || ""} disabled={busy} onChange={e => setFamilyRole(m.id, e.target.value)}
-          title="Family title" style={{ fontSize: 11, padding: "3px 6px", width: 120, flexShrink: 0 }}>
+        <select value={m.household_role || ""} disabled={busy} onChange={e => setFamilyRole(m.id, e.target.value)} title="Family title" style={{ fontSize: 11, padding: "3px 6px", width: 120, flexShrink: 0 }}>
           <option value="">Title…</option>
           {FAMILY_TITLES.map(t => <option key={t} value={t}>{t}</option>)}
         </select>
-        <button onClick={() => assignMember(m.id, null)} disabled={busy} title="Remove from family"
-          style={{ background: "none", border: "1px solid var(--danger-border)", borderRadius: 6, color: "var(--danger)", cursor: "pointer", padding: "2px 6px", flexShrink: 0 }}><X size={13} /></button>
+        <button onClick={() => assignMember(m.id, null)} disabled={busy} title="Remove from family" style={{ background: "none", border: "1px solid var(--danger-border)", borderRadius: 6, color: "var(--danger)", cursor: "pointer", padding: "2px 6px", flexShrink: 0 }}><X size={13} /></button>
       </div>
     );
   }
@@ -182,14 +170,16 @@ export default function HouseholdsPage({ profile, members, setMembers, household
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10, marginBottom: 16 }}>
         <div>
           <div style={{ fontFamily: "'Inter',sans-serif", color: "var(--text)", fontSize: 14, letterSpacing: 0.2, fontWeight: 600 }}>FAMILIES</div>
-          <div style={{ fontSize: 12, color: "var(--text-faint)", marginTop: 3 }}>
-            {households.length} famil{households.length !== 1 ? "ies" : "y"} · {members.filter(m => m.household_id).length} of {members.length} linked
-          </div>
+          <div style={{ fontSize: 12, color: "var(--text-faint)", marginTop: 3 }}>{households.length} famil{households.length !== 1 ? "ies" : "y"} · {members.filter(m => m.household_id).length} of {members.length} linked</div>
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
           <div style={{ position: "relative" }}>
-            <Search size={14} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "var(--text-faint)" }} />
-            <input placeholder="Search families or names…" value={q} onChange={e => setQ(e.target.value)} style={{ width: 230, paddingLeft: 30 }} />
+            <Home size={13} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "var(--text-faint)" }} />
+            <input placeholder="Search families…" value={qFam} onChange={e => setQFam(e.target.value)} style={{ width: 180, paddingLeft: 30 }} />
+          </div>
+          <div style={{ position: "relative" }}>
+            <Search size={13} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "var(--text-faint)" }} />
+            <input placeholder="Search a person…" value={qPerson} onChange={e => setQPerson(e.target.value)} style={{ width: 180, paddingLeft: 30 }} />
           </div>
           {isAdmin && unassigned.length > 0 && (
             <button className="btn-ghost" onClick={buildSuggestions} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Sparkles size={14} /> Suggest</button>
@@ -207,12 +197,9 @@ export default function HouseholdsPage({ profile, members, setMembers, household
             <h2>Create a family</h2>
             <div className="field-group">
               <label className="field-label">Family name</label>
-              <input autoFocus placeholder="e.g. The Clarke Family" value={newName}
-                onChange={e => setNewName(e.target.value)}
+              <input autoFocus placeholder="e.g. The Clarke Family" value={newName} onChange={e => setNewName(e.target.value)}
                 onKeyDown={e => { if (e.key === "Enter") createHousehold(); if (e.key === "Escape") setShowCreate(false); }} />
-              <div style={{ fontSize: 11, color: "var(--text-faint)", marginTop: 8, lineHeight: 1.6 }}>
-                Create the family first, then add members to it, or use “Suggest” to group members automatically.
-              </div>
+              <div style={{ fontSize: 11, color: "var(--text-faint)", marginTop: 8, lineHeight: 1.6 }}>Create the family first, then open it and add members — or use “Suggest” to group members automatically.</div>
             </div>
             <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
               <button className="btn-primary" style={{ flex: 1 }} onClick={createHousehold} disabled={creating || !newName.trim()}>{creating ? "Creating…" : "Create family"}</button>
@@ -253,7 +240,7 @@ export default function HouseholdsPage({ profile, members, setMembers, household
         </div>
       )}
 
-      {/* Family cards */}
+      {/* Family list (accordion) */}
       {sortedHouseholds.length === 0 ? (
         <div style={{ textAlign: "center", padding: "48px 20px", color: "var(--border-strong)" }}>
           <div style={{ marginBottom: 12, display: "flex", justifyContent: "center" }}><Home size={36} color="var(--text-muted-navy)" /></div>
@@ -261,80 +248,83 @@ export default function HouseholdsPage({ profile, members, setMembers, household
           <div style={{ fontSize: 12 }}>Use “Create family”, or “Suggest” to group members automatically.</div>
         </div>
       ) : shownHouseholds.length === 0 ? (
-        <div style={{ textAlign: "center", padding: "32px 20px", color: "var(--text-faint)", fontSize: 13 }}>No families or members match “{q}”.</div>
+        <div style={{ textAlign: "center", padding: "32px 20px", color: "var(--text-faint)", fontSize: 13 }}>Nothing matches your search.</div>
       ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(420px,1fr))", gap: 16 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {shownHouseholds.map(h => {
             const fam = byHousehold[h.id] || [];
             const adults = fam.filter(m => !isChild(m)).sort((a, b) => (calcAge(b.dob) ?? -1) - (calcAge(a.dob) ?? -1));
             const kids = fam.filter(isChild).sort((a, b) => (calcAge(b.dob) ?? -1) - (calcAge(a.dob) ?? -1));
-            const bdays = fam.filter(m => monthOf(m.dob) === curMonth).length;
-            const annis = fam.filter(m => monthOf(m.anniversary) === curMonth).length;
+            const open = isOpen(h);
             const editing = editCard === h.id;
-            const coupled = adults.length === 2;
+            const couple = isCouple(adults);
             return (
-              <div key={h.id} className="card" style={{ padding: 18, borderLeft: "3px solid var(--brand)" }}>
-                {/* Header */}
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8, marginBottom: 2 }}>
+              <div key={h.id} className="card" style={{ borderLeft: "3px solid var(--brand)" }}>
+                {/* Header row (click to expand) */}
+                <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 16px", cursor: "pointer" }}
+                  onClick={() => { if (!(editing && editingId === h.id)) toggle(h.id); }}>
+                  {open ? <ChevronDown size={16} color="var(--text-muted-navy)" /> : <ChevronRight size={16} color="var(--text-muted-navy)" />}
+                  <Home size={16} color="var(--brand)" style={{ flexShrink: 0 }} />
                   {editing && editingId === h.id ? (
-                    <input autoFocus value={editName} onChange={e => setEditName(e.target.value)}
-                      onKeyDown={e => { if (e.key === "Enter") renameHousehold(h.id); if (e.key === "Escape") setEditingId(null); }}
-                      onBlur={() => renameHousehold(h.id)} style={{ flex: 1, fontSize: 16, fontWeight: 700 }} />
+                    <input autoFocus value={editName} onClick={e => e.stopPropagation()} onChange={e => setEditName(e.target.value)}
+                      onKeyDown={e => { if (e.key === "Enter") renameHousehold(h.id); if (e.key === "Escape") setEditingId(null); }} onBlur={() => renameHousehold(h.id)}
+                      style={{ flex: 1, fontSize: 15, fontWeight: 700 }} />
                   ) : (
-                    <div onClick={() => { if (editing) { setEditingId(h.id); setEditName(h.name); } }} title={editing ? "Click to rename" : ""}
-                      style={{ fontWeight: 700, fontSize: 16, color: "var(--text)", flex: 1, minWidth: 0, cursor: editing ? "text" : "default", display: "flex", alignItems: "center", gap: 7 }}>
-                      <Home size={16} color="var(--brand)" />{h.name}
+                    <div onClick={editing ? (e => { e.stopPropagation(); setEditingId(h.id); setEditName(h.name); }) : undefined}
+                      style={{ flex: 1, minWidth: 0, fontSize: 15, fontWeight: 700, color: "var(--text)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                      {h.name}
                     </div>
                   )}
-                  <button onClick={() => { setEditCard(editing ? null : h.id); setEditingId(null); }} title={editing ? "Done" : "Edit family"}
+                  <span style={{ fontSize: 12, color: "var(--text-faint)", flexShrink: 0 }}>{fam.length} member{fam.length !== 1 ? "s" : ""}{kids.length ? ` · ${kids.length} child${kids.length !== 1 ? "ren" : ""}` : ""}</span>
+                  <button onClick={e => { e.stopPropagation(); setEditCard(editing ? null : h.id); setEditingId(null); if (!editing) setExpanded(prev => new Set(prev).add(h.id)); }}
+                    title={editing ? "Done" : "Edit family"}
                     style={{ background: editing ? "var(--brand-tint)" : "none", border: "1px solid var(--border-navy-strong)", borderRadius: 6, color: editing ? "var(--brand)" : "var(--text-navy-muted)", cursor: "pointer", fontSize: 12, padding: "3px 8px", flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 4 }}>
                     {editing ? <><Check size={12} /> Done</> : <><Pencil size={12} /> Edit</>}
                   </button>
                   {isAdmin && editing && (
-                    <button onClick={() => deleteHousehold(h.id)} title="Delete family" style={{ background: "none", border: "none", color: "var(--danger)", cursor: "pointer", padding: 2, flexShrink: 0 }}><Trash2 size={15} /></button>
+                    <button onClick={e => { e.stopPropagation(); deleteHousehold(h.id); }} title="Delete family" style={{ background: "none", border: "none", color: "var(--danger)", cursor: "pointer", padding: 2, flexShrink: 0 }}><Trash2 size={15} /></button>
                   )}
                 </div>
-                <div style={{ fontSize: 12, color: "var(--text-faint)", marginBottom: 16, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                  <span>{fam.length} member{fam.length !== 1 ? "s" : ""}{kids.length ? ` · ${kids.length} child${kids.length !== 1 ? "ren" : ""}` : ""}</span>
-                  {bdays > 0 && <span style={{ color: "var(--brand)", display: "inline-flex", alignItems: "center", gap: 4 }}><Cake size={12} /> {bdays} this month</span>}
-                  {annis > 0 && <span style={{ color: "var(--brand)", display: "inline-flex", alignItems: "center", gap: 4 }}><Heart size={12} /> {annis} this month</span>}
-                </div>
 
-                {fam.length === 0 && <div style={{ fontSize: 12, color: "var(--border-strong)", marginBottom: 6 }}>No members yet — click Edit to add someone.</div>}
-
-                {editing ? (
-                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                    {fam.map(m => <EditRow key={m.id} m={m} hid={h.id} />)}
-                    <select value="" disabled={busy} onChange={e => { if (e.target.value) assignMember(e.target.value, h.id); }} style={{ fontSize: 12, marginTop: 4 }}>
-                      <option value="">+ Add member to this family…</option>
-                      {members.filter(m => m.household_id !== h.id).sort((a, b) => fullName(a).localeCompare(fullName(b))).map(m => (
-                        <option key={m.id} value={m.id}>{fullName(m)}{m.household_id ? `, currently in ${householdName(m.household_id) || "another family"}` : ""}</option>
-                      ))}
-                    </select>
-                  </div>
-                ) : (
-                  <>
-                    {adults.length > 0 && (
-                      <div style={{ marginBottom: kids.length ? 16 : 0 }}>
-                        <div style={sectionLabel}>{coupled ? "Parents" : "Adults"}</div>
-                        {coupled ? (
-                          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                            <div style={{ flex: 1, minWidth: 0 }}><Person m={adults[0]} /></div>
-                            <Heart size={16} color="var(--brand)" style={{ flexShrink: 0 }} />
-                            <div style={{ flex: 1, minWidth: 0 }}><Person m={adults[1]} align="right" /></div>
+                {/* Body */}
+                {open && (
+                  <div style={{ padding: "0 16px 16px", borderTop: "1px solid var(--border-divider)", paddingTop: 14 }}>
+                    {fam.length === 0 && <div style={{ fontSize: 12, color: "var(--border-strong)" }}>No members yet — click Edit to add someone.</div>}
+                    {editing ? (
+                      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                        {fam.map(m => <EditRow key={m.id} m={m} hid={h.id} />)}
+                        <select value="" disabled={busy} onChange={e => { if (e.target.value) assignMember(e.target.value, h.id); }} style={{ fontSize: 12, marginTop: 4 }}>
+                          <option value="">+ Add member to this family…</option>
+                          {members.filter(m => m.household_id !== h.id).sort((a, b) => fullName(a).localeCompare(fullName(b))).map(m => (
+                            <option key={m.id} value={m.id}>{fullName(m)}{m.household_id ? `, currently in ${householdName(m.household_id) || "another family"}` : ""}</option>
+                          ))}
+                        </select>
+                      </div>
+                    ) : (
+                      <>
+                        {adults.length > 0 && (
+                          <div style={{ marginBottom: kids.length ? 16 : 0 }}>
+                            <div style={sectionLabel}>{couple ? (kids.length ? "Parents" : "Couple") : "Adults"}</div>
+                            {couple ? (
+                              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                                <div style={{ flex: 1, minWidth: 0 }}><Person m={adults[0]} /></div>
+                                <Heart size={16} color="var(--brand)" style={{ flexShrink: 0 }} />
+                                <div style={{ flex: 1, minWidth: 0 }}><Person m={adults[1]} align="right" /></div>
+                              </div>
+                            ) : (
+                              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>{adults.map(m => <PersonRow key={m.id} m={m} />)}</div>
+                            )}
                           </div>
-                        ) : (
-                          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>{adults.map(m => <Person key={m.id} m={m} />)}</div>
                         )}
-                      </div>
+                        {kids.length > 0 && (
+                          <div>
+                            <div style={sectionLabel}>Children</div>
+                            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>{kids.map(m => <PersonRow key={m.id} m={m} />)}</div>
+                          </div>
+                        )}
+                      </>
                     )}
-                    {kids.length > 0 && (
-                      <div>
-                        <div style={sectionLabel}>Children</div>
-                        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>{kids.map(m => <ChildRow key={m.id} m={m} />)}</div>
-                      </div>
-                    )}
-                  </>
+                  </div>
                 )}
               </div>
             );
