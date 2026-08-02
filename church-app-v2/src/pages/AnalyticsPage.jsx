@@ -200,7 +200,7 @@ function IndividualAttendance({ members, services, attendance, scope }) {
         {rows.map(({ m, attended, missed, pct }) => {
           const open = openId === m.id;
           return (
-            <div key={m.id} style={{ border: "1px solid var(--border)", borderRadius: 10, overflow: "hidden" }}>
+            <div key={m.id} style={{ border: "1px solid var(--border)", borderRadius: 10, overflow: "hidden", flexShrink: 0 }}>
               <div onClick={() => setOpenId(open ? null : m.id)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", cursor: "pointer", background: "var(--surface)", position: "sticky", top: 0, zIndex: 1 }}>
                 {open ? <ChevronDown size={15} color="var(--text-muted-navy)" /> : <ChevronRight size={15} color="var(--text-muted-navy)" />}
                 <Avatar member={m} size={30} />
