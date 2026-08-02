@@ -4,7 +4,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
 } from "recharts";
 import { ROLES, TRINIDAD_CITIES, calcAge, fullName, Avatar } from "../components";
-import { Search, Home } from "lucide-react";
+import { Search, Home, Check, X, ChevronDown, ChevronRight, ArrowUpDown } from "lucide-react";
 
 const TEAL      = "#2a5357";
 const TURQUOISE = "#5edcd1";
@@ -153,6 +153,82 @@ function MemberPicker({ members, selectedIds, onChange }) {
   );
 }
 
+// Per-member attendance across the filtered sessions: expand a person to see each
+// session with a present tick / absent X; right side shows attended, missed, rate.
+function IndividualAttendance({ members, services, attendance }) {
+  const [sort, setSort] = useState("name");   // "name" | "rate"
+  const [q, setQ] = useState("");
+  const [openId, setOpenId] = useState(null);
+  const total = services.length;
+
+  const rows = useMemo(() => {
+    const ql = q.trim().toLowerCase();
+    const r = members
+      .filter(m => !ql || fullName(m).toLowerCase().includes(ql))
+      .map(m => {
+        const attended = services.reduce((n, s) => n + ((attendance[s.id] || []).includes(m.id) ? 1 : 0), 0);
+        return { m, attended, missed: total - attended, pct: total ? Math.round(attended / total * 100) : 0 };
+      });
+    if (sort === "rate") r.sort((a, b) => b.pct - a.pct || a.m.last_name.localeCompare(b.m.last_name));
+    else r.sort((a, b) => { const ln = a.m.last_name.localeCompare(b.m.last_name); return ln !== 0 ? ln : a.m.first_name.localeCompare(b.m.first_name); });
+    return r;
+  }, [members, services, attendance, sort, q, total]);
+
+  const orderedServices = useMemo(() => [...services].sort((a, b) => b.service_date.localeCompare(a.service_date)), [services]);
+
+  if (total === 0) return <div style={{ textAlign: "center", padding: 30, color: "var(--text-faint)", fontSize: 13 }}>No sessions match the current filters.</div>;
+
+  return (
+    <div className="card" style={{ padding: 16 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap", marginBottom: 12 }}>
+        <div style={{ fontSize: 12, color: "var(--text-faint)" }}>{rows.length} member{rows.length !== 1 ? "s" : ""} · {total} session{total !== 1 ? "s" : ""} in view</div>
+        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+          <button onClick={() => setSort(s => s === "rate" ? "name" : "rate")}
+            style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 600, padding: "6px 12px", borderRadius: 20, cursor: "pointer", background: sort === "rate" ? "var(--brand)" : "var(--surface-alt)", color: sort === "rate" ? "var(--brand-contrast)" : "var(--text-2)", border: `1.5px solid ${sort === "rate" ? "var(--brand)" : "var(--border)"}` }}>
+            <ArrowUpDown size={13} /> Sort: {sort === "rate" ? "Attendance rate" : "Name"}
+          </button>
+          <div style={{ position: "relative" }}>
+            <Search size={13} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "var(--text-faint)" }} />
+            <input placeholder="Search a person…" value={q} onChange={e => setQ(e.target.value)} style={{ width: 200, paddingLeft: 30, fontSize: 12 }} />
+          </div>
+        </div>
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        {rows.map(({ m, attended, missed, pct }) => {
+          const open = openId === m.id;
+          return (
+            <div key={m.id} style={{ border: "1px solid var(--border)", borderRadius: 10, overflow: "hidden" }}>
+              <div onClick={() => setOpenId(open ? null : m.id)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", cursor: "pointer", background: "var(--surface)" }}>
+                {open ? <ChevronDown size={15} color="var(--text-muted-navy)" /> : <ChevronRight size={15} color="var(--text-muted-navy)" />}
+                <Avatar member={m} size={30} />
+                <div style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 600, color: "var(--text)" }}>{fullName(m)}</div>
+                <div style={{ display: "flex", gap: 14, alignItems: "center", flexShrink: 0 }}>
+                  <div style={{ textAlign: "center", minWidth: 42 }}><div style={{ fontSize: 14, fontWeight: 700, color: "var(--success)" }}>{attended}</div><div style={{ fontSize: 10, color: "var(--text-faint)" }}>attended</div></div>
+                  <div style={{ textAlign: "center", minWidth: 42 }}><div style={{ fontSize: 14, fontWeight: 700, color: "var(--danger)" }}>{missed}</div><div style={{ fontSize: 10, color: "var(--text-faint)" }}>missed</div></div>
+                  <div style={{ textAlign: "center", minWidth: 46 }}><div style={{ fontSize: 14, fontWeight: 700, color: "var(--brand)" }}>{pct}%</div><div style={{ fontSize: 10, color: "var(--text-faint)" }}>rate</div></div>
+                </div>
+              </div>
+              {open && (
+                <div style={{ padding: "10px 12px", borderTop: "1px solid var(--border-divider)", background: "var(--surface-alt)", display: "flex", flexWrap: "wrap", gap: 6 }}>
+                  {orderedServices.map(s => {
+                    const present = (attendance[s.id] || []).includes(m.id);
+                    return (
+                      <span key={s.id} title={`${s.name} · ${s.service_date}`}
+                        style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, padding: "3px 8px", borderRadius: 20, background: present ? "var(--pill-yes-bg)" : "var(--pill-no-bg)", color: present ? "var(--pill-yes-fg)" : "var(--pill-no-fg)", border: `1px solid ${present ? "var(--pill-yes-bd)" : "var(--pill-no-bd)"}` }}>
+                        {present ? <Check size={11} /> : <X size={11} />} {s.service_date.slice(5)}
+                      </span>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export default function AnalyticsPage({ members, services, attendance, households = [] }) {
   // ── All state hooks first ─────────────────────────────────
   const [quickRange, setQuickRange]     = useState("this_year");
@@ -221,6 +297,26 @@ export default function AnalyticsPage({ members, services, attendance, household
       return matchStatus && matchSex && matchCity && matchRole && matchAge && matchAttended;
     });
   }, [members, statusFilter, sexFilter, cityFilter, roleFilter, ageFilter, selectedMemberIds, attendingMemberIds]);
+
+  // Same member filters WITHOUT the attended-only restriction, so the by-individual
+  // list also shows people who attended none of the selected services (their "missed").
+  const attMembers = useMemo(() => {
+    const picked = new Set(selectedMemberIds);
+    return members.filter(m => {
+      if (picked.size > 0 && !picked.has(m.id)) return false;
+      const age = calcAge(m.dob);
+      const matchStatus = statusFilter === "all" ? true : statusFilter === "active" ? m.is_active !== false : m.is_active === false;
+      const matchSex  = sexFilter.length === 0 || sexFilter.includes(m.sex);
+      const matchCity = cityFilter.length === 0 || cityFilter.includes(m.city);
+      const matchRole = roleFilter.length === 0 || (m.roles||[]).some(r => roleFilter.includes(r));
+      const matchAge  = ageFilter.length === 0 || ageFilter.some(lbl => {
+        if (lbl === "Unknown") return age === null;
+        const cat = AGE_CATS.find(c => c.label === lbl);
+        return cat && age !== null && age >= cat.min && age <= cat.max;
+      });
+      return matchStatus && matchSex && matchCity && matchRole && matchAge;
+    });
+  }, [members, statusFilter, sexFilter, cityFilter, roleFilter, ageFilter, selectedMemberIds]);
 
   // Set of member IDs that pass the current member filters — used so the
   // Attendance charts also respond to gender/age/city/ministry/status filters.
@@ -656,6 +752,9 @@ export default function AnalyticsPage({ members, services, attendance, household
             <StatPill label="Avg per Service" value={avgAtt} color={TURQUOISE} />
             <StatPill label="Peak Attendance" value={peakAtt} color={ORANGE} />
           </div>
+
+          <SectionTitle>Attendance by Individual</SectionTitle>
+          <IndividualAttendance members={attMembers} services={filteredServices} attendance={attendance} />
 
           <SectionTitle>Attendance Trend</SectionTitle>
           {attendanceTrend.length === 0

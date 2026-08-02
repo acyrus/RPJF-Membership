@@ -1,7 +1,7 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState } from "react";
 import { supabase } from "../supabase";
 import { Avatar, RoleBadge, SERVICE_NAMES, fullName } from "../components";
-import { Check, ClipboardList, X, Search, Users, CalendarCheck } from "lucide-react";
+import { Check, ClipboardList, X, Search } from "lucide-react";
 
 async function logActivity(supabaseClient, action_type, description, user_id, user_name) {
   await supabaseClient.from("activity_log").insert({ action_type, description, user_id, user_name });
@@ -28,9 +28,7 @@ export default function AttendancePage({ profile, members, services, setServices
   const [monthFilter, setMonthFilter] = useState("All");
   const [yearFilter, setYearFilter] = useState("All");
   const [dateFilter, setDateFilter] = useState("");        // exact service date
-  const [viewMode, setViewMode] = useState("session");     // "session" | "individual"
-  const [indivSearch, setIndivSearch] = useState("");
-  const [loadingAll, setLoadingAll] = useState(false);
+  const [attSearch, setAttSearch] = useState("");          // search members within a service
 
   // Get unique service types
   const serviceTypes = ["All", ...new Set(services.map(s => s.name))];
@@ -44,40 +42,6 @@ export default function AttendancePage({ profile, members, services, setServices
     return matchType && matchYear && matchMonth && matchDate;
   });
   const anyFilter = typeFilter !== "All" || yearFilter !== "All" || monthFilter !== "All" || dateFilter !== "";
-
-  // In the by-individual view we need attendance for EVERY filtered session (it's
-  // otherwise loaded lazily per selected session). Fetch any that are missing.
-  useEffect(() => {
-    if (viewMode !== "individual") return;
-    const toFetch = filteredServices.filter(s => !attendance[s.id]);
-    if (!toFetch.length) return;
-    let cancelled = false;
-    (async () => {
-      setLoadingAll(true);
-      const { data } = await supabase.from("attendance").select("service_id, member_id").in("service_id", toFetch.map(s => s.id));
-      if (cancelled) return;
-      const newAtt = {};
-      (data || []).forEach(a => { (newAtt[a.service_id] = newAtt[a.service_id] || []).push(a.member_id); });
-      toFetch.forEach(s => { if (!newAtt[s.id]) newAtt[s.id] = []; });
-      setAttendance(prev => ({ ...prev, ...newAtt }));
-      setLoadingAll(false);
-    })();
-    return () => { cancelled = true; };
-  }, [viewMode, typeFilter, yearFilter, monthFilter, dateFilter, services]);
-
-  // Per-member attendance across the filtered sessions.
-  const individualRows = useMemo(() => {
-    if (viewMode !== "individual") return [];
-    const q = indivSearch.trim().toLowerCase();
-    return members
-      .filter(m => !q || fullName(m).toLowerCase().includes(q))
-      .map(m => {
-        const attended = filteredServices.filter(s => (attendance[s.id] || []).includes(m.id));
-        return { m, count: attended.length, dates: attended.map(s => s.service_date).sort() };
-      })
-      .sort((a, b) => { const ln = a.m.last_name.localeCompare(b.m.last_name); return ln !== 0 ? ln : a.m.first_name.localeCompare(b.m.first_name); });
-  }, [viewMode, filteredServices, attendance, members, indivSearch]);
-  const indivTotalSessions = filteredServices.length;
 
   async function selectService(id) {
     setActiveId(id);
@@ -243,15 +207,7 @@ export default function AttendancePage({ profile, members, services, setServices
   return (
     <div className="fade-in">
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14,flexWrap:"wrap",gap:10}}>
-        <div style={{display:"inline-flex",border:"1px solid var(--border)",borderRadius:8,overflow:"hidden"}}>
-          {[["session","By session"],["individual","By individual"]].map(([k,label])=>(
-            <button key={k} onClick={()=>{setViewMode(k);setActiveId(null);}}
-              style={{border:"none",cursor:"pointer",fontSize:12,fontWeight:600,padding:"7px 14px",display:"inline-flex",alignItems:"center",gap:6,
-                background:viewMode===k?"var(--brand)":"var(--surface)",color:viewMode===k?"var(--brand-contrast)":"var(--text-muted)"}}>
-              {k==="session"?<ClipboardList size={13}/>:<Users size={13}/>}{label}
-            </button>
-          ))}
-        </div>
+        <div style={{fontFamily:"'Inter',sans-serif",color:"var(--text)",fontSize:14,letterSpacing:0.2,fontWeight:600}}>SERVICE SESSIONS</div>
         <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
           <select
             value={typeFilter}
@@ -296,7 +252,6 @@ export default function AttendancePage({ profile, members, services, setServices
         </div>
       )}
 
-      {viewMode === "session" ? (
       <div className="att-grid" style={{display:"grid",gridTemplateColumns:"260px 1fr",gap:20}}>
         <div style={{display:"flex",flexDirection:"column",gap:10}}>
           {filteredServices.length === 0 && <div style={{color:"var(--text-faint)",fontSize:14,textAlign:"center",padding:20}}>{typeFilter==="All"?"No services yet":"No "+typeFilter+" sessions found"}</div>}
@@ -334,13 +289,17 @@ export default function AttendancePage({ profile, members, services, setServices
                     <div className="stat-box"><div className="stat-num">{total?Math.round((present/total)*100):0}%</div><div className="stat-label">Rate</div></div>
                   </div>
                 </div>
-                <div style={{display:"flex",gap:8,marginBottom:14}}>
+                <div style={{display:"flex",gap:8,marginBottom:12,flexWrap:"wrap",alignItems:"center"}}>
                   <button className="btn-ghost" style={{fontSize:11}} onClick={markAll}>Mark All Present</button>
                   <button className="btn-ghost" style={{fontSize:11}} onClick={clearAll}>Clear All</button>
                   <button className="btn-ghost" style={{fontSize:11}} onClick={exportAttendanceCSV}>Export CSV</button>
+                  <div style={{position:"relative",marginLeft:"auto"}}>
+                    <Search size={13} style={{position:"absolute",left:9,top:"50%",transform:"translateY(-50%)",color:"var(--text-faint)"}} />
+                    <input placeholder="Search this list…" value={attSearch} onChange={e=>setAttSearch(e.target.value)} style={{width:190,paddingLeft:28,fontSize:12}} />
+                  </div>
                 </div>
                 <div style={{display:"flex",flexDirection:"column",gap:2}}>
-                  {[...members].sort((a,b) => { const ln = a.last_name.localeCompare(b.last_name); return ln !== 0 ? ln : a.first_name.localeCompare(b.first_name); }).map(m => {
+                  {[...members].filter(m => { const q=attSearch.trim().toLowerCase(); return !q || fullName(m).toLowerCase().includes(q); }).sort((a,b) => { const ln = a.last_name.localeCompare(b.last_name); return ln !== 0 ? ln : a.first_name.localeCompare(b.first_name); }).map(m => {
                     const isPresent = presentIds.has(m.id);
                     return (
                       <div key={m.id} className="att-row" onClick={()=>toggle(m.id)}>
@@ -367,44 +326,6 @@ export default function AttendancePage({ profile, members, services, setServices
           </div>
         )}
       </div>
-      ) : (
-        <div className="card fade-in" style={{padding:20}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:12,flexWrap:"wrap",marginBottom:14}}>
-            <div>
-              <div style={{fontSize:15,fontWeight:600,color:"var(--text)",display:"flex",alignItems:"center",gap:7}}><CalendarCheck size={16} color="var(--brand)"/> Attendance by individual</div>
-              <div style={{fontSize:12,color:"var(--text-faint)",marginTop:3}}>{indivTotalSessions} session{indivTotalSessions!==1?"s":""} in view{anyFilter?" (filtered)":""}{loadingAll?" · loading…":""}</div>
-            </div>
-            <div style={{position:"relative"}}>
-              <Search size={14} style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",color:"var(--text-faint)"}} />
-              <input placeholder="Search a person…" value={indivSearch} onChange={e=>setIndivSearch(e.target.value)} style={{width:220,paddingLeft:30}} />
-            </div>
-          </div>
-          {indivTotalSessions === 0 ? (
-            <div style={{textAlign:"center",color:"var(--text-faint)",fontSize:13,padding:30}}>No sessions match the current filters.</div>
-          ) : (
-            <div style={{display:"flex",flexDirection:"column",gap:2}}>
-              {individualRows.map(({m,count})=>{
-                const pct = indivTotalSessions ? Math.round(count/indivTotalSessions*100) : 0;
-                return (
-                  <div key={m.id} className="att-row" style={{cursor:"default"}}>
-                    <Avatar member={m} size={34} />
-                    <div style={{flex:1,minWidth:0}}>
-                      <div style={{fontWeight:600,fontSize:14,color:"var(--text)"}}>{fullName(m)}</div>
-                      <div className="progress-bar-track" style={{marginTop:5,maxWidth:220}}>
-                        <div className="progress-bar-fill" style={{width:`${pct}%`,background:"var(--brand)"}} />
-                      </div>
-                    </div>
-                    <div style={{textAlign:"right",flexShrink:0,minWidth:56}}>
-                      <div style={{fontSize:14,fontWeight:700,color:"var(--brand)"}}>{count}<span style={{color:"var(--text-faint)",fontWeight:500}}>/{indivTotalSessions}</span></div>
-                      <div style={{fontSize:11,color:"var(--text-faint)"}}>{pct}%</div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      )}
 
       {showAdd && (
         <div className="modal-bg" onClick={()=>setShowAdd(false)}>
