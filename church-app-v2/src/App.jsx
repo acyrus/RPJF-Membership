@@ -238,14 +238,24 @@ export default function App() {
   }
 
   async function loadAll(userId) {
-    const [profileRes, membersRes, rolesRes, servicesRes, attRes, householdsRes] = await Promise.all([
+    const [profileRes, membersRes, rolesRes, servicesRes, householdsRes] = await Promise.all([
       supabase.from("profiles").select("*").eq("id", userId).single(),
       supabase.from("members").select("*").order("last_name").order("first_name"),
       supabase.from("member_roles").select("*"),
       supabase.from("services").select("*").order("service_date", { ascending: false }),
-      supabase.from("attendance").select("service_id, member_id"),
       supabase.from("households").select("*").order("name"),
     ]);
+    // A single Supabase select returns at most 1000 rows, and a church's attendance
+    // easily exceeds that (it's the whole history). Page through it so counts and the
+    // in-memory map are complete — otherwise most service cards read 0 and a background
+    // reload blanks the open session.
+    const allAtt = [];
+    for (let from = 0; ; from += 1000) {
+      const { data, error } = await supabase.from("attendance").select("service_id, member_id").range(from, from + 999);
+      if (error || !data || data.length === 0) break;
+      allAtt.push(...data);
+      if (data.length < 1000) break;
+    }
     const prof = profileRes.data;
     setProfile(prof);
     setHouseholds(householdsRes.data || []);
@@ -278,7 +288,7 @@ export default function App() {
     // Count attendance per service for display
     const attCountMap = {};
     const attMap = {};
-    (attRes.data||[]).forEach(a => {
+    allAtt.forEach(a => {
       attCountMap[a.service_id] = (attCountMap[a.service_id]||0)+1;
       if (!attMap[a.service_id]) attMap[a.service_id] = [];
       attMap[a.service_id].push(a.member_id);
