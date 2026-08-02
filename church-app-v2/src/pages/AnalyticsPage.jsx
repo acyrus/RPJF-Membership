@@ -4,7 +4,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
 } from "recharts";
 import { ROLES, TRINIDAD_CITIES, calcAge, fullName, Avatar } from "../components";
-import { Search, Home } from "lucide-react";
+import { Search, Home, Check, X, ChevronDown, ChevronRight, ArrowUpDown } from "lucide-react";
 
 const TEAL      = "#2a5357";
 const TURQUOISE = "#5edcd1";
@@ -15,6 +15,8 @@ const GOLD      = "#d97706";
 const GREEN     = "#059669";
 const PINK      = "#db2777";
 const CHART_COLORS = [TEAL, TURQUOISE, ORANGE, RED, PURPLE, GOLD, GREEN, PINK];
+// Calmer, harmonised palette for multi-line charts (less visual noise than CHART_COLORS).
+const LINE_COLORS = ["#2a5357", "#4a7fa0", "#c98a3e", "#6f9a5e", "#8e6e9e", "#b79a4a", "#6f8a8a", "#a8737f"];
 
 const AGE_CATS = [
   { label:"Babes & Toddlers", min:0,  max:4,   color:"#f0a0c0" },
@@ -153,6 +155,88 @@ function MemberPicker({ members, selectedIds, onChange }) {
   );
 }
 
+// Per-member attendance across the filtered sessions: expand a person to see each
+// session with a present tick / absent X; right side shows attended, missed, rate.
+function IndividualAttendance({ members, services, attendance, scope }) {
+  const [sort, setSort] = useState("name");   // "name" | "rate"
+  const [q, setQ] = useState("");
+  const [openId, setOpenId] = useState(null);
+  const total = services.length;
+
+  const rows = useMemo(() => {
+    const ql = q.trim().toLowerCase();
+    const r = members
+      .filter(m => !ql || fullName(m).toLowerCase().includes(ql))
+      .map(m => {
+        const attended = services.reduce((n, s) => n + ((attendance[s.id] || []).includes(m.id) ? 1 : 0), 0);
+        return { m, attended, missed: total - attended, pct: total ? Math.round(attended / total * 100) : 0 };
+      });
+    if (sort === "rate") r.sort((a, b) => b.pct - a.pct || a.m.last_name.localeCompare(b.m.last_name));
+    else r.sort((a, b) => { const ln = a.m.last_name.localeCompare(b.m.last_name); return ln !== 0 ? ln : a.m.first_name.localeCompare(b.m.first_name); });
+    return r;
+  }, [members, services, attendance, sort, q, total]);
+
+  const orderedServices = useMemo(() => [...services].sort((a, b) => b.service_date.localeCompare(a.service_date)), [services]);
+
+  if (total === 0) return <div style={{ textAlign: "center", padding: 30, color: "var(--text-faint)", fontSize: 13 }}>No services match the current filters.</div>;
+
+  return (
+    <div className="card" style={{ padding: 16 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, flexWrap: "wrap", marginBottom: 12 }}>
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontSize: 12, color: "var(--text-faint)" }}>{rows.length} member{rows.length !== 1 ? "s" : ""} · {total} service{total !== 1 ? "s" : ""} in view</div>
+          {scope && <div style={{ fontSize: 11.5, color: "var(--brand)", fontWeight: 600, marginTop: 3 }}>{scope}</div>}
+        </div>
+        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+          <button onClick={() => setSort(s => s === "rate" ? "name" : "rate")}
+            style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 600, padding: "6px 12px", borderRadius: 20, cursor: "pointer", background: sort === "rate" ? "var(--brand)" : "var(--surface-alt)", color: sort === "rate" ? "var(--brand-contrast)" : "var(--text-2)", border: `1.5px solid ${sort === "rate" ? "var(--brand)" : "var(--border)"}` }}>
+            <ArrowUpDown size={13} /> Sort: {sort === "rate" ? "Attendance rate" : "Name"}
+          </button>
+          <div style={{ position: "relative" }}>
+            <Search size={13} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "var(--text-faint)" }} />
+            <input placeholder="Search a person…" value={q} onChange={e => setQ(e.target.value)} style={{ width: 200, paddingLeft: 30, fontSize: 12 }} />
+          </div>
+        </div>
+      </div>
+      <div style={{ maxHeight: "65vh", overflowY: "auto", display: "flex", flexDirection: "column", gap: 6, paddingRight: 2 }}>
+        {rows.map(({ m, attended, missed, pct }) => {
+          const open = openId === m.id;
+          return (
+            <div key={m.id} style={{ border: "1px solid var(--border)", borderRadius: 10, flexShrink: 0 }}>
+              <div onClick={() => setOpenId(open ? null : m.id)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", cursor: "pointer", background: "var(--surface)", position: "sticky", top: 0, zIndex: 2, borderRadius: open ? "9px 9px 0 0" : 9, borderBottom: open ? "1px solid var(--border-divider)" : "none" }}>
+                {open ? <ChevronDown size={15} color="var(--text-muted-navy)" /> : <ChevronRight size={15} color="var(--text-muted-navy)" />}
+                <Avatar member={m} size={30} />
+                <div style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 600, color: "var(--text)" }}>{fullName(m)}</div>
+                <div style={{ display: "flex", gap: 14, alignItems: "center", flexShrink: 0 }}>
+                  <div style={{ textAlign: "center", minWidth: 42 }}><div style={{ fontSize: 14, fontWeight: 700, color: "var(--success)" }}>{attended}</div><div style={{ fontSize: 10, color: "var(--text-faint)" }}>attended</div></div>
+                  <div style={{ textAlign: "center", minWidth: 42 }}><div style={{ fontSize: 14, fontWeight: 700, color: "var(--danger)" }}>{missed}</div><div style={{ fontSize: 10, color: "var(--text-faint)" }}>missed</div></div>
+                  <div style={{ textAlign: "center", minWidth: 46 }}><div style={{ fontSize: 14, fontWeight: 700, color: "var(--brand)" }}>{pct}%</div><div style={{ fontSize: 10, color: "var(--text-faint)" }}>rate</div></div>
+                </div>
+              </div>
+              {open && (
+                <div style={{ padding: "10px 12px", borderTop: "1px solid var(--border-divider)", background: "var(--surface-alt)", display: "flex", flexDirection: "column", gap: 4 }}>
+                  {orderedServices.map(s => {
+                    const present = (attendance[s.id] || []).includes(m.id);
+                    return (
+                      <div key={s.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "9px 12px", borderRadius: 8, background: "var(--surface)", border: "1px solid var(--border)" }}>
+                        <div style={{ width: 92, flexShrink: 0, fontSize: 12, fontWeight: 500, color: "var(--text-2)" }}>{s.service_date.split("-").reverse().join("-")}</div>
+                        <div style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 600, color: "var(--text)" }}>{s.name}</div>
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 20, background: present ? "var(--pill-yes-bg)" : "var(--pill-no-bg)", color: present ? "var(--pill-yes-fg)" : "var(--pill-no-fg)", border: `1px solid ${present ? "var(--pill-yes-bd)" : "var(--pill-no-bd)"}` }}>
+                          {present ? <Check size={12} /> : <X size={12} />} {present ? "Present" : "Absent"}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export default function AnalyticsPage({ members, services, attendance, households = [] }) {
   // ── All state hooks first ─────────────────────────────────
   const [quickRange, setQuickRange]     = useState("this_year");
@@ -166,6 +250,8 @@ export default function AnalyticsPage({ members, services, attendance, household
   const [selectedMemberIds, setSelectedMemberIds] = useState([]);
   const [statusFilter, setStatusFilter] = useState("active");
   const [activeSection, setActiveSection] = useState("attendance");
+  const [attSub, setAttSub] = useState("overview"); // attendance sub-tab: "overview" | "bymember"
+  const [svcTypeAxis, setSvcTypeAxis] = useState("month"); // service-type chart x-axis: "month" | "date"
 
   // ── All useMemo hooks in dependency order ─────────────────
 
@@ -222,6 +308,33 @@ export default function AnalyticsPage({ members, services, attendance, household
     });
   }, [members, statusFilter, sexFilter, cityFilter, roleFilter, ageFilter, selectedMemberIds, attendingMemberIds]);
 
+  // Same member filters WITHOUT the attended-only restriction, so the by-individual
+  // list also shows people who attended none of the selected services (their "missed").
+  const attMembers = useMemo(() => {
+    const picked = new Set(selectedMemberIds);
+    return members.filter(m => {
+      if (picked.size > 0 && !picked.has(m.id)) return false;
+      const age = calcAge(m.dob);
+      const matchStatus = statusFilter === "all" ? true : statusFilter === "active" ? m.is_active !== false : m.is_active === false;
+      const matchSex  = sexFilter.length === 0 || sexFilter.includes(m.sex);
+      const matchCity = cityFilter.length === 0 || cityFilter.includes(m.city);
+      const matchRole = roleFilter.length === 0 || (m.roles||[]).some(r => roleFilter.includes(r));
+      const matchAge  = ageFilter.length === 0 || ageFilter.some(lbl => {
+        if (lbl === "Unknown") return age === null;
+        const cat = AGE_CATS.find(c => c.label === lbl);
+        return cat && age !== null && age >= cat.min && age <= cat.max;
+      });
+      return matchStatus && matchSex && matchCity && matchRole && matchAge;
+    });
+  }, [members, statusFilter, sexFilter, cityFilter, roleFilter, ageFilter, selectedMemberIds]);
+
+  // A one-line summary of what the By-Member list is currently scoped to, shown
+  // (and kept visible) in its toolbar so the active filters stay in view.
+  const bymemberScope = [
+    svcTypeFilter.length ? `Service types: ${svcTypeFilter.join(", ")}` : "All service types",
+    roleFilter.length ? `Ministry: ${roleFilter.join(", ")}` : null,
+  ].filter(Boolean).join("   ·   ");
+
   // Set of member IDs that pass the current member filters — used so the
   // Attendance charts also respond to gender/age/city/ministry/status filters.
   const filteredMemberIds = useMemo(() => new Set(filteredMembers.map(m => m.id)), [filteredMembers]);
@@ -229,14 +342,14 @@ export default function AnalyticsPage({ members, services, attendance, household
 
   // 6. Summary stats
   const summaryStats = useMemo(() => {
-    const total = filteredServices.reduce((sum, s) => sum + presentCount(s), 0);
-    const avg   = filteredServices.length ? Math.round(total / filteredServices.length) : 0;
-    const peak  = filteredServices.length
-      ? Math.max(...filteredServices.map(s => presentCount(s)).concat([0]))
-      : 0;
+    const counts = filteredServices.map(s => presentCount(s));
+    const total = counts.reduce((sum, c) => sum + c, 0);
+    const avg   = counts.length ? Math.round(total / counts.length) : 0;
+    const peak  = counts.length ? Math.max(...counts) : 0;
+    const low   = counts.length ? Math.min(...counts) : 0;
     const ids = new Set();
     filteredServices.forEach(s => (attendance[s.id]||[]).forEach(id => { if (filteredMemberIds.has(id)) ids.add(id); }));
-    return { totalAtt: total, avgAtt: avg, peakAtt: peak, distinctAttendees: ids.size };
+    return { totalAtt: total, avgAtt: avg, peakAtt: peak, lowestAtt: low, distinctAttendees: ids.size };
   }, [filteredServices, attendance, filteredMemberIds]);
 
   // 7. Attendance trend by month
@@ -281,6 +394,19 @@ export default function AnalyticsPage({ members, services, attendance, household
       .map(d => ({ ...d, label: MONTH_NAMES[parseInt(d.month.slice(5,7))-1] + " " + d.month.slice(2,4) }));
   }, [filteredServices, attendance, members, filteredMemberIds]);
 
+  // 7c. Monthly attendance by service type — one line per type, per month
+  const attByTypeMonthly = useMemo(() => {
+    const byMonth = {};
+    filteredServices.forEach(s => {
+      const month = s.service_date.slice(0,7);
+      byMonth[month] = byMonth[month] || { month };
+      byMonth[month][s.name] = (byMonth[month][s.name] || 0) + presentCount(s);
+    });
+    return Object.values(byMonth)
+      .sort((a,b) => a.month.localeCompare(b.month))
+      .map(d => ({ ...d, label: MONTH_NAMES[parseInt(d.month.slice(5,7))-1] + " " + d.month.slice(2,4) }));
+  }, [filteredServices, attendance, filteredMemberIds]);
+
   // 8. Attendance by service type
   const attByType = useMemo(() => {
     const byType = {};
@@ -293,6 +419,39 @@ export default function AnalyticsPage({ members, services, attendance, household
       .map(d => ({ ...d, avg: d.sessions ? Math.round(d.total / d.sessions) : 0 }))
       .sort((a,b) => b.avg - a.avg);
   }, [filteredServices, attendance, filteredMemberIds]);
+
+  // 8a2. Attendance by service type, one point per service DATE (for the date-axis view)
+  const attByTypeByDate = useMemo(() => {
+    const byDate = {};
+    filteredServices.forEach(s => {
+      byDate[s.service_date] = byDate[s.service_date] || { date: s.service_date, label: s.service_date.split("-").reverse().join("-") };
+      byDate[s.service_date][s.name] = (byDate[s.service_date][s.name] || 0) + presentCount(s);
+    });
+    return Object.values(byDate).sort((a, b) => a.date.localeCompare(b.date));
+  }, [filteredServices, attendance, filteredMemberIds]);
+
+  // 8b. Monthly attendance by age band (same bands as the demographics/summary)
+  const attByAgeMonthly = useMemo(() => {
+    const bandById = {};
+    members.forEach(m => {
+      const age = calcAge(m.dob);
+      const cat = age === null ? null : AGE_CATS.find(c => age >= c.min && age <= c.max);
+      bandById[m.id] = cat ? cat.label : "Unknown";
+    });
+    const byMonth = {};
+    filteredServices.forEach(s => {
+      const month = s.service_date.slice(0,7);
+      byMonth[month] = byMonth[month] || { month };
+      (attendance[s.id]||[]).forEach(id => {
+        if (!filteredMemberIds.has(id)) return;
+        const band = bandById[id] || "Unknown";
+        byMonth[month][band] = (byMonth[month][band] || 0) + 1;
+      });
+    });
+    return Object.values(byMonth)
+      .sort((a,b) => a.month.localeCompare(b.month))
+      .map(d => ({ ...d, label: MONTH_NAMES[parseInt(d.month.slice(5,7))-1] + " " + d.month.slice(2,4) }));
+  }, [filteredServices, attendance, members, filteredMemberIds]);
 
   // 9. Member attendance rates
   const memberAttRates = useMemo(() => {
@@ -314,13 +473,14 @@ export default function AnalyticsPage({ members, services, attendance, household
     };
   }, [filteredServices, filteredMembers, attendance]);
 
-  // 10. Session ranking
-  const sessionRanking = useMemo(() =>
+  // 10. Service ranking — best and least attended
+  const rankedServices = useMemo(() =>
     filteredServices
-      .map(s => ({ name:`${s.name} (${s.service_date.split("-").reverse().join("/")})`, count:presentCount(s) }))
+      .map(s => ({ name:`${s.name} (${s.service_date.split("-").reverse().join("-")})`, count:presentCount(s) }))
       .sort((a,b) => b.count - a.count)
-      .slice(0,8)
   , [filteredServices, attendance, filteredMemberIds]);
+  const sessionRanking = useMemo(() => rankedServices.slice(0,8), [rankedServices]);
+  const lowestServices = useMemo(() => [...rankedServices].sort((a,b) => a.count - b.count).slice(0,8), [rankedServices]);
 
   // 11. Age breakdown
   const ageBreakdown = useMemo(() => {
@@ -559,7 +719,11 @@ export default function AnalyticsPage({ members, services, attendance, household
     setSvcTypeFilter(prev => prev.includes(name) ? prev.filter(x => x !== name) : [...prev, name]);
   }
 
-  const { totalAtt, avgAtt, peakAtt, distinctAttendees } = summaryStats;
+  const { totalAtt, avgAtt, peakAtt, lowestAtt, distinctAttendees } = summaryStats;
+  // Average attendance as a share of the active members in scope.
+  const activeInScope = attMembers.filter(m => m.is_active !== false).length;
+  const avgTurnoutPct = activeInScope ? Math.round(avgAtt / activeInScope * 100) : 0;
+  const svcTypeData = svcTypeAxis === "date" ? attByTypeByDate : attByTypeMonthly;
 
   // ── RENDER ────────────────────────────────────────────────
   return (
@@ -650,44 +814,94 @@ export default function AnalyticsPage({ members, services, attendance, household
       {/* ── ATTENDANCE ── */}
       {activeSection === "attendance" && (
         <div>
+          <div style={{display:"flex",gap:4,marginBottom:16}}>
+            {[["overview","Overview"],["bymember","By Member"]].map(([k,label])=>(
+              <button key={k} onClick={()=>setAttSub(k)} style={{
+                background:attSub===k?TEAL:"var(--surface-alt)",color:attSub===k?"#fff":"var(--text-2)",
+                border:`1.5px solid ${attSub===k?TEAL:"var(--border)"}`,borderRadius:20,cursor:"pointer",
+                fontSize:12.5,fontWeight:600,padding:"6px 16px"}}>{label}</button>
+            ))}
+          </div>
+
+          {attSub === "overview" && (<>
           <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(130px,1fr))",gap:12,marginBottom:4}}>
-            <StatPill label="Total Sessions" value={filteredServices.length} />
-            <StatPill label="Distinct Members" value={distinctAttendees} />
+            <StatPill label="Total Services" value={filteredServices.length} />
+            <StatPill label="Total Members" value={distinctAttendees} />
             <StatPill label="Avg per Service" value={avgAtt} color={TURQUOISE} />
+            <StatPill label="Avg Turnout" value={`${avgTurnoutPct}%`} color={GREEN} />
             <StatPill label="Peak Attendance" value={peakAtt} color={ORANGE} />
+            <StatPill label="Lowest Attendance" value={lowestAtt} color={RED} />
           </div>
 
           <SectionTitle>Attendance Trend</SectionTitle>
           {attendanceTrend.length === 0
             ? <div style={{textAlign:"center",padding:40,color:"var(--text-faint)",fontSize:13}}>No attendance data for this period</div>
-            : <ChartCard title="Monthly Attendance" subtitle="Total and average attendance per month">
-                <ResponsiveContainer width="100%" height={260}>
-                  <LineChart data={attendanceTrend} margin={{top:4,right:16,bottom:4,left:0}}>
+            : <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(320px,1fr))",gap:14}}>
+                <ChartCard title="Total Members per Month" subtitle="Distinct members who attended each month">
+                  <ResponsiveContainer width="100%" height={240}>
+                    <LineChart data={attendanceTrend} margin={{top:4,right:16,bottom:4,left:0}}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+                      <XAxis dataKey="label" tick={{fontSize:11,fill:"var(--text-faint)"}} />
+                      <YAxis tick={{fontSize:11,fill:"var(--text-faint)"}} />
+                      <Tooltip content={<CustomTooltip />} />
+                      <Line type="monotone" dataKey="total" name="Total Members" stroke={TEAL} strokeWidth={2.5} dot={{r:4,fill:TEAL}} activeDot={{r:6}} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </ChartCard>
+                <ChartCard title="Average Attendance per Service" subtitle="Mean attendance per service each month">
+                  <ResponsiveContainer width="100%" height={240}>
+                    <LineChart data={attendanceTrend} margin={{top:4,right:16,bottom:4,left:0}}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+                      <XAxis dataKey="label" tick={{fontSize:11,fill:"var(--text-faint)"}} />
+                      <YAxis tick={{fontSize:11,fill:"var(--text-faint)"}} />
+                      <Tooltip content={<CustomTooltip />} />
+                      <Line type="monotone" dataKey="avg" name="Avg per Service" stroke={TURQUOISE} strokeWidth={2.5} dot={{r:4,fill:TURQUOISE}} activeDot={{r:6}} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </ChartCard>
+              </div>
+          }
+
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",flexWrap:"wrap",gap:8}}>
+            <SectionTitle>Attendance by Service Type</SectionTitle>
+            <div style={{display:"inline-flex",border:"1px solid var(--border)",borderRadius:20,overflow:"hidden",marginBottom:14}}>
+              {[["month","By month"],["date","By date"]].map(([k,label])=>(
+                <button key={k} onClick={()=>setSvcTypeAxis(k)} style={{border:"none",cursor:"pointer",fontSize:11.5,fontWeight:600,padding:"5px 14px",background:svcTypeAxis===k?TEAL:"var(--surface)",color:svcTypeAxis===k?"#fff":"var(--text-muted)"}}>{label}</button>
+              ))}
+            </div>
+          </div>
+          {svcTypeData.length === 0
+            ? <div style={{textAlign:"center",padding:40,color:"var(--text-faint)",fontSize:13}}>No attendance data for this period</div>
+            : <ChartCard title={svcTypeAxis==="date"?"Attendance by Service Type (by date)":"Monthly Attendance by Service Type"} subtitle={svcTypeAxis==="date"?"Total attendance per service on each date":"Total attendance per service type each month"}>
+                <ResponsiveContainer width="100%" height={280}>
+                  <LineChart data={svcTypeData} margin={{top:4,right:16,bottom:svcTypeAxis==="date"?44:4,left:0}}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
-                    <XAxis dataKey="label" tick={{fontSize:11,fill:"var(--text-faint)"}} />
-                    <YAxis tick={{fontSize:11,fill:"var(--text-faint)"}} />
+                    <XAxis dataKey="label" tick={{fontSize:svcTypeAxis==="date"?9:11,fill:"var(--text-faint)"}} angle={svcTypeAxis==="date"?-40:0} textAnchor={svcTypeAxis==="date"?"end":"middle"} interval={svcTypeAxis==="date"?"preserveStartEnd":0} height={svcTypeAxis==="date"?54:30} />
+                    <YAxis tick={{fontSize:11,fill:"var(--text-faint)"}} allowDecimals={false} />
                     <Tooltip content={<CustomTooltip />} />
                     <Legend wrapperStyle={{fontSize:12}} />
-                    <Line type="monotone" dataKey="total" name="Distinct Members" stroke={TEAL} strokeWidth={2.5} dot={{r:4,fill:TEAL}} activeDot={{r:6}} />
-                    <Line type="monotone" dataKey="avg" name="Avg per Service" stroke={TURQUOISE} strokeWidth={2} strokeDasharray="5 5" dot={{r:3}} />
+                    {attByType.map((t,i) => (
+                      <Line key={t.name} type="monotone" dataKey={t.name} name={t.name} stroke={LINE_COLORS[i%LINE_COLORS.length]} strokeWidth={2.5} dot={{r:2.5}} activeDot={{r:6}} connectNulls />
+                    ))}
                   </LineChart>
                 </ResponsiveContainer>
               </ChartCard>
           }
 
-          <SectionTitle>Attendance by Gender</SectionTitle>
-          {attendanceByGender.length === 0
+          <SectionTitle>Attendance by Age Group</SectionTitle>
+          {attByAgeMonthly.length === 0
             ? <div style={{textAlign:"center",padding:40,color:"var(--text-faint)",fontSize:13}}>No attendance data for this period</div>
-            : <ChartCard title="Monthly Attendance by Gender" subtitle="Total male vs female attendance each month">
+            : <ChartCard title="Monthly Attendance by Age Group" subtitle="Total attendance per age band each month">
                 <ResponsiveContainer width="100%" height={260}>
-                  <LineChart data={attendanceByGender} margin={{top:4,right:16,bottom:4,left:0}}>
+                  <LineChart data={attByAgeMonthly} margin={{top:4,right:16,bottom:4,left:0}}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
                     <XAxis dataKey="label" tick={{fontSize:11,fill:"var(--text-faint)"}} />
                     <YAxis tick={{fontSize:11,fill:"var(--text-faint)"}} allowDecimals={false} />
                     <Tooltip content={<CustomTooltip />} />
                     <Legend wrapperStyle={{fontSize:12}} />
-                    <Line type="monotone" dataKey="Male" name="Male" stroke={TEAL} strokeWidth={2.5} dot={{r:4,fill:TEAL}} activeDot={{r:6}} />
-                    <Line type="monotone" dataKey="Female" name="Female" stroke={PINK} strokeWidth={2.5} dot={{r:4,fill:PINK}} activeDot={{r:6}} />
+                    {AGE_CATS.map(c => (
+                      <Line key={c.label} type="monotone" dataKey={c.label} name={c.label} stroke={c.color} strokeWidth={2.5} dot={{r:3}} activeDot={{r:6}} />
+                    ))}
                   </LineChart>
                 </ResponsiveContainer>
               </ChartCard>
@@ -695,7 +909,7 @@ export default function AnalyticsPage({ members, services, attendance, household
 
           <SectionTitle>By Service Type</SectionTitle>
           <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:14}}>
-            <ChartCard title="Average Attendance by Type" subtitle="Mean attendance per session">
+            <ChartCard title="Average Attendance by Type" subtitle="Mean attendance per service">
               {attByType.length === 0 ? <div style={{textAlign:"center",padding:30,color:"var(--text-faint)",fontSize:12}}>No data</div>
                 : <ResponsiveContainer width="100%" height={220}>
                     <BarChart data={attByType} margin={{top:4,right:8,bottom:40,left:0}}>
@@ -710,7 +924,7 @@ export default function AnalyticsPage({ members, services, attendance, household
                   </ResponsiveContainer>
               }
             </ChartCard>
-            <ChartCard title="Sessions per Type" subtitle="How many times each service ran">
+            <ChartCard title="Services per Type" subtitle="How many times each service ran">
               {attByType.length === 0 ? <div style={{textAlign:"center",padding:30,color:"var(--text-faint)",fontSize:12}}>No data</div>
                 : <ResponsiveContainer width="100%" height={220}>
                     <BarChart data={attByType} margin={{top:4,right:8,bottom:40,left:0}}>
@@ -718,7 +932,7 @@ export default function AnalyticsPage({ members, services, attendance, household
                       <XAxis dataKey="name" tick={{fontSize:10,fill:"var(--text-faint)"}} angle={-25} textAnchor="end" interval={0} />
                       <YAxis tick={{fontSize:11,fill:"var(--text-faint)"}} />
                       <Tooltip content={<CustomTooltip />} />
-                      <Bar dataKey="sessions" name="Sessions" radius={[6,6,0,0]}>
+                      <Bar dataKey="sessions" name="Services" radius={[6,6,0,0]}>
                         {attByType.map((_,i) => <Cell key={i} fill={CHART_COLORS[i%CHART_COLORS.length]} />)}
                       </Bar>
                     </BarChart>
@@ -744,7 +958,7 @@ export default function AnalyticsPage({ members, services, attendance, household
                 ))}
               </div>
             </ChartCard>
-            <ChartCard title="Top Sessions by Attendance" subtitle="Best attended services in period">
+            <ChartCard title="Top Services by Attendance" subtitle="Best attended services in period">
               {sessionRanking.length === 0 ? <div style={{textAlign:"center",padding:30,color:"var(--text-faint)",fontSize:12}}>No data</div>
                 : <div style={{maxHeight:200,overflowY:"auto"}}>
                     {sessionRanking.map((s,i) => (
@@ -761,24 +975,24 @@ export default function AnalyticsPage({ members, services, attendance, household
                   </div>
               }
             </ChartCard>
+            <ChartCard title="Least Attended Services" subtitle="Lowest turnout in period">
+              {lowestServices.length === 0 ? <div style={{textAlign:"center",padding:30,color:"var(--text-faint)",fontSize:12}}>No data</div>
+                : <div style={{maxHeight:200,overflowY:"auto"}}>
+                    {lowestServices.map((s,i) => (
+                      <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"7px 0",borderBottom:i<lowestServices.length-1?"1px solid var(--border-divider)":"none"}}>
+                        <div style={{fontSize:12,color:"var(--text-2)",flex:1,marginRight:8}}>{s.name}</div>
+                        <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
+                          <div style={{width:60,height:6,background:"var(--border-divider)",borderRadius:3,overflow:"hidden"}}>
+                            <div style={{width:`${sessionRanking[0]&&sessionRanking[0].count>0?(s.count/sessionRanking[0].count)*100:0}%`,height:"100%",background:ORANGE,borderRadius:3}} />
+                          </div>
+                          <span style={{fontSize:12,fontWeight:600,color:ORANGE,minWidth:20}}>{s.count}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+              }
+            </ChartCard>
           </div>
-
-          <SectionTitle>Day-of-Week Patterns</SectionTitle>
-          <ChartCard title="Average Attendance by Day of Week" subtitle="Which days draw the best turnout (service time is reflected in the service name)">
-            {filteredServices.length === 0 ? <div style={{textAlign:"center",padding:30,color:"var(--text-faint)",fontSize:12}}>No data</div>
-              : <ResponsiveContainer width="100%" height={220}>
-                  <BarChart data={dayOfWeekPatterns} margin={{top:4,right:8,bottom:4,left:0}}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" vertical={false} />
-                    <XAxis dataKey="day" tick={{fontSize:11,fill:"var(--text-faint)"}} />
-                    <YAxis tick={{fontSize:11,fill:"var(--text-faint)"}} allowDecimals={false} />
-                    <Tooltip content={<CustomTooltip />} />
-                    <Bar dataKey="avg" name="Avg Attendance" radius={[6,6,0,0]}>
-                      {dayOfWeekPatterns.map((d,i) => <Cell key={i} fill={d.sessions ? CHART_COLORS[i%CHART_COLORS.length] : "#e5e7eb"} />)}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-            }
-          </ChartCard>
 
           <SectionTitle>Slipping Away</SectionTitle>
           <ChartCard title="Members Who've Gone Quiet" subtitle="Previously regular members with no attendance in the last 28 days, a pastoral-care follow-up list">
@@ -820,10 +1034,14 @@ export default function AnalyticsPage({ members, services, attendance, household
                 </div>
             }
           </ChartCard>
+          </>)}
+
+          {attSub === "bymember" && (
+            <IndividualAttendance members={attMembers} services={filteredServices} attendance={attendance} scope={bymemberScope} />
+          )}
         </div>
       )}
 
-      {/* ── MEMBERS ── */}
       {activeSection === "members" && (
         <div>
           <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(130px,1fr))",gap:12,marginBottom:4}}>

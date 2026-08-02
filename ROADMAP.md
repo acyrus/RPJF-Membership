@@ -23,14 +23,12 @@ builds, with the most complex left for last.
    dark-mode toggle (Option A teal), plus white-label branding pulled into `src/branding.js`
    (church name, tagline, logos, brand colours) and a README white-label section. Model is
    "each church runs their own copy" (own clone + own Supabase).
-9. **Family view (households).** Core feature, builds on the households, `spouse_id`, and
-   `household_role` (FAMILY_TITLES) that already exist — see `ITEM9-FAMILY-VIEW-PLAN.md`. A
-   grouped read view per household (adults + couple link, children by age, titles, household
-   facts), NOT a drawn genealogical tree. Groups from existing data; age-based fallback so it
-   works before titles are filled. Includes a "Suggest families" grouping helper (cluster
-   un-householded members by surname + address, admin confirms) so setup isn't 60 manual
-   assignments. Keeps the household-role titles. Mostly presentation; no migration for the
-   core.
+9. **Family view (households).** ✅ Done — renamed the tab to **Families**; accordion of
+   family cards (collapsed by default), split family/person search, couple shown only when
+   spouse-linked or titled Husband/Wife or Father/Mother, age-based adult/child grouping,
+   inline title editing, and a "Suggest families" grouping helper (surname + address). Spouse
+   link also de-duplicates anniversaries in Celebrations (one entry, both names). See
+   `ITEM9-FAMILY-VIEW-PLAN.md`.
 10. **Improve the analytics pages for more meaningful, useful views.** Lands better after 6
     and 7 give it richer data to work with.
 11. **Create more freedom for attendance registers.**
@@ -38,16 +36,11 @@ builds, with the most complex left for last.
 13. **Explore mass / targeted communication capabilities.**
 14. **A printable letter template for the app.**
 15. **Offline capabilities.** Biggest and most complex; best left until the rest is stable.
-16. **Refine the membership form — add sections and enhance the flow.** The form is one long
-    flat list of ~20 fields in a scattered order (city ends up near instruments, anniversary
-    far from spouse). Group into labelled sections and reorder for a natural flow. Proposed
-    sections: (1) Photo & name, (2) Personal details — gender, DOB, marital status,
-    (3) Contact — phone, email, address, city, (4) Family — household, spouse, wedding
-    anniversary, (5) Church life — member status, join date, how they attend, ministries +
-    leadership position, (6) Gifts & skills — skills, instruments, other skills, (7) Notes.
-    Use the same section order on the admin form and the public submission form (subset);
-    consider collapsible sections on mobile. Pairs naturally with items 6 and 7. No data-model
-    change — purely form structure and UX.
+16. **Refine the membership form — add sections and enhance the flow.** ✅ Done — grouped into
+    five sections with intros: (1) About You, (2) Contact and Address, (3) Your Church Life,
+    (4) Skills and Talents, (5) Anything Else. Conditional fields (wedding anniversary if
+    married; instruments if they play). Admin-managed fields (leadership position, spouse,
+    family, photo, active status) stay off the public form.
 
 ## Sequencing rationale
 

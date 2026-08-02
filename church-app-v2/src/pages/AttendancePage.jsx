@@ -1,7 +1,7 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { supabase } from "../supabase";
 import { Avatar, RoleBadge, SERVICE_NAMES, fullName } from "../components";
-import { Check, ClipboardList, X } from "lucide-react";
+import { Check, ClipboardList, X, Search } from "lucide-react";
 
 async function logActivity(supabaseClient, action_type, description, user_id, user_name) {
   await supabaseClient.from("activity_log").insert({ action_type, description, user_id, user_name });
@@ -21,23 +21,27 @@ export default function AttendancePage({ profile, members, services, setServices
   const [exportFrom, setExportFrom] = useState("");
   const [exportTo, setExportTo] = useState("");
   const [exportLoading, setExportLoading] = useState(false);
-  const [newSvc, setNewSvc] = useState({ name: SERVICE_NAMES[0], service_date: "" });
+  const [newSvc, setNewSvc] = useState({ name: SERVICE_NAMES[0], service_date: "", description: "" });
   const [error, setError] = useState("");
   const [typeFilter, setTypeFilter] = useState("All");
   const [exportServiceFilter, setExportServiceFilter] = useState("All");
   const [monthFilter, setMonthFilter] = useState("All");
   const [yearFilter, setYearFilter] = useState("All");
+  const [dateFilter, setDateFilter] = useState("");        // exact service date
+  const [attSearch, setAttSearch] = useState("");          // search members within a service
 
   // Get unique service types
   const serviceTypes = ["All", ...new Set(services.map(s => s.name))];
 
-  // Filter services by type
+  // Filter services by type / year / month / exact date
   const filteredServices = services.filter(s => {
     const matchType  = typeFilter === "All" || s.name === typeFilter;
     const matchYear  = yearFilter === "All" || s.service_date.slice(0,4) === yearFilter;
     const matchMonth = monthFilter === "All" || parseInt(s.service_date.slice(5,7)) === parseInt(monthFilter);
-    return matchType && matchYear && matchMonth;
+    const matchDate  = !dateFilter || s.service_date === dateFilter;
+    return matchType && matchYear && matchMonth && matchDate;
   });
+  const anyFilter = typeFilter !== "All" || yearFilter !== "All" || monthFilter !== "All" || dateFilter !== "";
 
   async function selectService(id) {
     setActiveId(id);
@@ -86,7 +90,7 @@ export default function AttendancePage({ profile, members, services, setServices
     setServices(prev => [{ ...data, attendance_count: 0 }, ...prev]);
     setAttendance(prev => ({ ...prev, [data.id]: [] }));
     try { await logAct('service_created', `Created service: ${newSvc.name} on ${newSvc.service_date}`, profile.id, profile.name); } catch(e) {}
-    setShowAdd(false); setNewSvc({ name: SERVICE_NAMES[0], service_date: "" }); setError("");
+    setShowAdd(false); setNewSvc({ name: SERVICE_NAMES[0], service_date: "", description: "" }); setError("");
   }
 
   async function deleteService(id) {
@@ -203,7 +207,7 @@ export default function AttendancePage({ profile, members, services, setServices
   return (
     <div className="fade-in">
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14,flexWrap:"wrap",gap:10}}>
-        <div style={{fontFamily:"'Inter',sans-serif",color:"var(--text)",fontSize:14,letterSpacing:0.2,fontWeight:600}}>SERVICE SESSIONS</div>
+        <div style={{fontFamily:"'Inter',sans-serif",color:"var(--text)",fontSize:14,letterSpacing:0.2,fontWeight:600}}>SERVICES</div>
         <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
           <select
             value={typeFilter}
@@ -232,23 +236,25 @@ export default function AttendancePage({ profile, members, services, setServices
               <option key={name} value={String(i+1)}>{name}</option>
             ))}
           </select>
+          <input type="date" value={dateFilter} onChange={e=>{setDateFilter(e.target.value);setActiveId(null);}} title="Filter by exact date" style={{width:150,fontSize:12}} />
           <button className="btn-ghost" onClick={()=>setShowExport(true)}>Export</button>
           {canCreateService && <button className="btn-primary" onClick={()=>{setShowAdd(true);setError("");}}>+ New Service</button>}
         </div>
       </div>
-      {(typeFilter !== "All" || yearFilter !== "All" || monthFilter !== "All") && (
+      {anyFilter && (
         <div style={{fontSize:12,color:"var(--brand)",marginBottom:12,fontWeight:500,display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
-          Showing {filteredServices.length} session{filteredServices.length!==1?"s":""}
+          Showing {filteredServices.length} service{filteredServices.length!==1?"s":""}
           {typeFilter !== "All" && <> · {typeFilter}</>}
+          {dateFilter && <> · {dateFilter}</>}
           {monthFilter !== "All" && <> · {["January","February","March","April","May","June","July","August","September","October","November","December"][parseInt(monthFilter)-1]}</>}
           {yearFilter !== "All" && <> · {yearFilter}</>}
-          <button onClick={()=>{setTypeFilter("All");setYearFilter("All");setMonthFilter("All");setActiveId(null);}} style={{background:"none",border:"1px solid var(--border-navy-strong)",borderRadius:20,color:"var(--text-faint)",cursor:"pointer",fontSize:12,padding:"1px 8px"}}>Clear</button>
+          <button onClick={()=>{setTypeFilter("All");setYearFilter("All");setMonthFilter("All");setDateFilter("");setActiveId(null);}} style={{background:"none",border:"1px solid var(--border-navy-strong)",borderRadius:20,color:"var(--text-faint)",cursor:"pointer",fontSize:12,padding:"1px 8px"}}>Clear</button>
         </div>
       )}
 
       <div className="att-grid" style={{display:"grid",gridTemplateColumns:"260px 1fr",gap:20}}>
         <div style={{display:"flex",flexDirection:"column",gap:10}}>
-          {filteredServices.length === 0 && <div style={{color:"var(--text-faint)",fontSize:14,textAlign:"center",padding:20}}>{typeFilter==="All"?"No services yet":"No "+typeFilter+" sessions found"}</div>}
+          {filteredServices.length === 0 && <div style={{color:"var(--text-faint)",fontSize:14,textAlign:"center",padding:20}}>{typeFilter==="All"?"No services yet":"No "+typeFilter+" services found"}</div>}
           {filteredServices.map(s => {
             const d = new Date(s.service_date+"T12:00:00");
             return (
@@ -272,9 +278,10 @@ export default function AttendancePage({ profile, members, services, setServices
             {loadingAtt ? <div style={{textAlign:"center",color:"var(--text-faint)",padding:40}}>Loading…</div> : (
               <>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16,flexWrap:"wrap",gap:12}}>
-                  <div>
+                  <div style={{minWidth:0}}>
                     <div style={{fontFamily:"'Inter',sans-serif",fontSize:15,color:"var(--text)",fontWeight:600}}>{active?.name}</div>
                     <div style={{fontSize:12,color:"var(--text-faint)",marginTop:2}}>{active?.service_date}</div>
+                    {active?.description && <div style={{fontSize:12,color:"var(--text-muted)",marginTop:5,lineHeight:1.5,maxWidth:420}}>{active.description}</div>}
                   </div>
                   <div style={{display:"flex",gap:10}}>
                     <div className="stat-box"><div className="stat-num">{present}</div><div className="stat-label">Present</div></div>
@@ -282,13 +289,17 @@ export default function AttendancePage({ profile, members, services, setServices
                     <div className="stat-box"><div className="stat-num">{total?Math.round((present/total)*100):0}%</div><div className="stat-label">Rate</div></div>
                   </div>
                 </div>
-                <div style={{display:"flex",gap:8,marginBottom:14}}>
+                <div style={{display:"flex",gap:8,marginBottom:12,flexWrap:"wrap",alignItems:"center"}}>
                   <button className="btn-ghost" style={{fontSize:11}} onClick={markAll}>Mark All Present</button>
                   <button className="btn-ghost" style={{fontSize:11}} onClick={clearAll}>Clear All</button>
                   <button className="btn-ghost" style={{fontSize:11}} onClick={exportAttendanceCSV}>Export CSV</button>
+                  <div style={{position:"relative",marginLeft:"auto"}}>
+                    <Search size={13} style={{position:"absolute",left:9,top:"50%",transform:"translateY(-50%)",color:"var(--text-faint)"}} />
+                    <input placeholder="Search this list…" value={attSearch} onChange={e=>setAttSearch(e.target.value)} style={{width:190,paddingLeft:28,fontSize:12}} />
+                  </div>
                 </div>
                 <div style={{display:"flex",flexDirection:"column",gap:2}}>
-                  {[...members].sort((a,b) => { const ln = a.last_name.localeCompare(b.last_name); return ln !== 0 ? ln : a.first_name.localeCompare(b.first_name); }).map(m => {
+                  {[...members].filter(m => { const q=attSearch.trim().toLowerCase(); return !q || fullName(m).toLowerCase().includes(q); }).sort((a,b) => { const ln = a.last_name.localeCompare(b.last_name); return ln !== 0 ? ln : a.first_name.localeCompare(b.first_name); }).map(m => {
                     const isPresent = presentIds.has(m.id);
                     return (
                       <div key={m.id} className="att-row" onClick={()=>toggle(m.id)}>
@@ -319,16 +330,18 @@ export default function AttendancePage({ profile, members, services, setServices
       {showAdd && (
         <div className="modal-bg" onClick={()=>setShowAdd(false)}>
           <div className="modal fade-in" onClick={e=>e.stopPropagation()}>
-            <h2>NEW SERVICE SESSION</h2>
+            <h2>NEW SERVICE</h2>
             <div className="field-group"><label className="field-label">Service Name</label>
               <select value={newSvc.name} onChange={e=>setNewSvc({...newSvc,name:e.target.value})}>
                 {SERVICE_NAMES.map(n=><option key={n} value={n}>{n}</option>)}
               </select></div>
             <div className="field-group"><label className="field-label">Date *</label>
               <input type="date" value={newSvc.service_date} onChange={e=>setNewSvc({...newSvc,service_date:e.target.value})} /></div>
+            <div className="field-group"><label className="field-label">Description (optional)</label>
+              <textarea rows={2} value={newSvc.description} onChange={e=>setNewSvc({...newSvc,description:e.target.value})} placeholder="e.g. Guest speaker, combined service, special theme…" style={{resize:"vertical"}} /></div>
             {error && <div className="error-msg">{error}</div>}
             <div style={{display:"flex",gap:10,marginTop:6}}>
-              <button className="btn-primary" style={{flex:1}} onClick={addService}>Create Session</button>
+              <button className="btn-primary" style={{flex:1}} onClick={addService}>Create Service</button>
               <button className="btn-ghost" onClick={()=>setShowAdd(false)}>Cancel</button>
             </div>
           </div>
@@ -353,7 +366,7 @@ export default function AttendancePage({ profile, members, services, setServices
               </select>
               {exportServiceFilter !== "All" && (
                 <div style={{fontSize:12,color:"var(--brand)",marginTop:4,fontWeight:500}}>
-                  Exporting {exportServiceFilter} sessions only
+                  Exporting {exportServiceFilter} services only
                 </div>
               )}
             </div>
