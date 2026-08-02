@@ -209,14 +209,19 @@ function IndividualAttendance({ members, services, attendance }) {
                 </div>
               </div>
               {open && (
-                <div style={{ padding: "10px 12px", borderTop: "1px solid var(--border-divider)", background: "var(--surface-alt)", display: "flex", flexWrap: "wrap", gap: 6 }}>
+                <div style={{ padding: "10px 12px", borderTop: "1px solid var(--border-divider)", background: "var(--surface-alt)", display: "flex", flexDirection: "column", gap: 4 }}>
                   {orderedServices.map(s => {
                     const present = (attendance[s.id] || []).includes(m.id);
                     return (
-                      <span key={s.id} title={`${s.name} · ${s.service_date}`}
-                        style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, padding: "3px 8px", borderRadius: 20, background: present ? "var(--pill-yes-bg)" : "var(--pill-no-bg)", color: present ? "var(--pill-yes-fg)" : "var(--pill-no-fg)", border: `1px solid ${present ? "var(--pill-yes-bd)" : "var(--pill-no-bd)"}` }}>
-                        {present ? <Check size={11} /> : <X size={11} />} {s.service_date.slice(5)}
-                      </span>
+                      <div key={s.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "7px 10px", borderRadius: 8, background: "var(--surface)", border: "1px solid var(--border)" }}>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>{s.name}</div>
+                          <div style={{ fontSize: 11, color: "var(--text-faint)", marginTop: 1 }}>{s.service_date}</div>
+                        </div>
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 20, background: present ? "var(--pill-yes-bg)" : "var(--pill-no-bg)", color: present ? "var(--pill-yes-fg)" : "var(--pill-no-fg)", border: `1px solid ${present ? "var(--pill-yes-bd)" : "var(--pill-no-bd)"}` }}>
+                          {present ? <Check size={12} /> : <X size={12} />} {present ? "Present" : "Absent"}
+                        </span>
+                      </div>
                     );
                   })}
                 </div>
@@ -733,7 +738,7 @@ export default function AnalyticsPage({ members, services, attendance, household
 
       {/* ── SECTION TABS ── */}
       <div style={{display:"flex",gap:4,borderBottom:"1.5px solid var(--border)",marginBottom:20}}>
-        {[["attendance","Attendance"],["members","Members"],["ministry","Ministry"]].map(([key,label]) => (
+        {[["attendance","Attendance"],["bymember","By Member"],["members","Members"],["ministry","Ministry"]].map(([key,label]) => (
           <button key={key} onClick={()=>setActiveSection(key)} style={{
             background:"none",border:"none",cursor:"pointer",fontFamily:"Inter,sans-serif",
             fontSize:13,fontWeight:600,padding:"10px 18px",
@@ -752,9 +757,6 @@ export default function AnalyticsPage({ members, services, attendance, household
             <StatPill label="Avg per Service" value={avgAtt} color={TURQUOISE} />
             <StatPill label="Peak Attendance" value={peakAtt} color={ORANGE} />
           </div>
-
-          <SectionTitle>Attendance by Individual</SectionTitle>
-          <IndividualAttendance members={attMembers} services={filteredServices} attendance={attendance} />
 
           <SectionTitle>Attendance Trend</SectionTitle>
           {attendanceTrend.length === 0
@@ -923,6 +925,16 @@ export default function AnalyticsPage({ members, services, attendance, household
       )}
 
       {/* ── MEMBERS ── */}
+      {activeSection === "bymember" && (
+        <div>
+          <div style={{fontSize:12,color:"var(--text-muted)",marginBottom:14,lineHeight:1.6}}>
+            Each member's attendance across the sessions in view. Use the Service Type and Ministry
+            filters above to scope it, and expand a person to see every session.
+          </div>
+          <IndividualAttendance members={attMembers} services={filteredServices} attendance={attendance} />
+        </div>
+      )}
+
       {activeSection === "members" && (
         <div>
           <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(130px,1fr))",gap:12,marginBottom:4}}>
