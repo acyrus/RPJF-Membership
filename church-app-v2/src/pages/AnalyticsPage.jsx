@@ -15,6 +15,8 @@ const GOLD      = "#d97706";
 const GREEN     = "#059669";
 const PINK      = "#db2777";
 const CHART_COLORS = [TEAL, TURQUOISE, ORANGE, RED, PURPLE, GOLD, GREEN, PINK];
+// Calmer, harmonised palette for multi-line charts (less visual noise than CHART_COLORS).
+const LINE_COLORS = ["#2a5357", "#4a7fa0", "#c98a3e", "#6f9a5e", "#8e6e9e", "#b79a4a", "#6f8a8a", "#a8737f"];
 
 const AGE_CATS = [
   { label:"Babes & Toddlers", min:0,  max:4,   color:"#f0a0c0" },
@@ -249,6 +251,7 @@ export default function AnalyticsPage({ members, services, attendance, household
   const [statusFilter, setStatusFilter] = useState("active");
   const [activeSection, setActiveSection] = useState("attendance");
   const [attSub, setAttSub] = useState("overview"); // attendance sub-tab: "overview" | "bymember"
+  const [svcTypeAxis, setSvcTypeAxis] = useState("month"); // service-type chart x-axis: "month" | "date"
 
   // ── All useMemo hooks in dependency order ─────────────────
 
@@ -415,6 +418,16 @@ export default function AnalyticsPage({ members, services, attendance, household
     return Object.values(byType)
       .map(d => ({ ...d, avg: d.sessions ? Math.round(d.total / d.sessions) : 0 }))
       .sort((a,b) => b.avg - a.avg);
+  }, [filteredServices, attendance, filteredMemberIds]);
+
+  // 8a2. Attendance by service type, one point per service DATE (for the date-axis view)
+  const attByTypeByDate = useMemo(() => {
+    const byDate = {};
+    filteredServices.forEach(s => {
+      byDate[s.service_date] = byDate[s.service_date] || { date: s.service_date, label: s.service_date.split("-").reverse().join("-") };
+      byDate[s.service_date][s.name] = (byDate[s.service_date][s.name] || 0) + presentCount(s);
+    });
+    return Object.values(byDate).sort((a, b) => a.date.localeCompare(b.date));
   }, [filteredServices, attendance, filteredMemberIds]);
 
   // 8b. Monthly attendance by age band (same bands as the demographics/summary)
@@ -710,6 +723,7 @@ export default function AnalyticsPage({ members, services, attendance, household
   // Average attendance as a share of the active members in scope.
   const activeInScope = attMembers.filter(m => m.is_active !== false).length;
   const avgTurnoutPct = activeInScope ? Math.round(avgAtt / activeInScope * 100) : 0;
+  const svcTypeData = svcTypeAxis === "date" ? attByTypeByDate : attByTypeMonthly;
 
   // ── RENDER ────────────────────────────────────────────────
   return (
@@ -822,34 +836,52 @@ export default function AnalyticsPage({ members, services, attendance, household
           <SectionTitle>Attendance Trend</SectionTitle>
           {attendanceTrend.length === 0
             ? <div style={{textAlign:"center",padding:40,color:"var(--text-faint)",fontSize:13}}>No attendance data for this period</div>
-            : <ChartCard title="Monthly Attendance" subtitle="Total and average attendance per month">
-                <ResponsiveContainer width="100%" height={260}>
-                  <LineChart data={attendanceTrend} margin={{top:4,right:16,bottom:4,left:0}}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
-                    <XAxis dataKey="label" tick={{fontSize:11,fill:"var(--text-faint)"}} />
-                    <YAxis tick={{fontSize:11,fill:"var(--text-faint)"}} />
-                    <Tooltip content={<CustomTooltip />} />
-                    <Legend wrapperStyle={{fontSize:12}} />
-                    <Line type="monotone" dataKey="total" name="Distinct Members" stroke={TEAL} strokeWidth={2.5} dot={{r:4,fill:TEAL}} activeDot={{r:6}} />
-                    <Line type="monotone" dataKey="avg" name="Avg per Service" stroke={TURQUOISE} strokeWidth={2} strokeDasharray="5 5" dot={{r:3}} />
-                  </LineChart>
-                </ResponsiveContainer>
-              </ChartCard>
+            : <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(320px,1fr))",gap:14}}>
+                <ChartCard title="Total Members per Month" subtitle="Distinct members who attended each month">
+                  <ResponsiveContainer width="100%" height={240}>
+                    <LineChart data={attendanceTrend} margin={{top:4,right:16,bottom:4,left:0}}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+                      <XAxis dataKey="label" tick={{fontSize:11,fill:"var(--text-faint)"}} />
+                      <YAxis tick={{fontSize:11,fill:"var(--text-faint)"}} />
+                      <Tooltip content={<CustomTooltip />} />
+                      <Line type="monotone" dataKey="total" name="Total Members" stroke={TEAL} strokeWidth={2.5} dot={{r:4,fill:TEAL}} activeDot={{r:6}} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </ChartCard>
+                <ChartCard title="Average Attendance per Service" subtitle="Mean attendance per service each month">
+                  <ResponsiveContainer width="100%" height={240}>
+                    <LineChart data={attendanceTrend} margin={{top:4,right:16,bottom:4,left:0}}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+                      <XAxis dataKey="label" tick={{fontSize:11,fill:"var(--text-faint)"}} />
+                      <YAxis tick={{fontSize:11,fill:"var(--text-faint)"}} />
+                      <Tooltip content={<CustomTooltip />} />
+                      <Line type="monotone" dataKey="avg" name="Avg per Service" stroke={TURQUOISE} strokeWidth={2.5} dot={{r:4,fill:TURQUOISE}} activeDot={{r:6}} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </ChartCard>
+              </div>
           }
 
-          <SectionTitle>Attendance by Service Type</SectionTitle>
-          {attByTypeMonthly.length === 0
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",flexWrap:"wrap",gap:8}}>
+            <SectionTitle>Attendance by Service Type</SectionTitle>
+            <div style={{display:"inline-flex",border:"1px solid var(--border)",borderRadius:20,overflow:"hidden",marginBottom:14}}>
+              {[["month","By month"],["date","By date"]].map(([k,label])=>(
+                <button key={k} onClick={()=>setSvcTypeAxis(k)} style={{border:"none",cursor:"pointer",fontSize:11.5,fontWeight:600,padding:"5px 14px",background:svcTypeAxis===k?TEAL:"var(--surface)",color:svcTypeAxis===k?"#fff":"var(--text-muted)"}}>{label}</button>
+              ))}
+            </div>
+          </div>
+          {svcTypeData.length === 0
             ? <div style={{textAlign:"center",padding:40,color:"var(--text-faint)",fontSize:13}}>No attendance data for this period</div>
-            : <ChartCard title="Monthly Attendance by Service Type" subtitle="Total attendance per service type each month">
-                <ResponsiveContainer width="100%" height={260}>
-                  <LineChart data={attByTypeMonthly} margin={{top:4,right:16,bottom:4,left:0}}>
+            : <ChartCard title={svcTypeAxis==="date"?"Attendance by Service Type (by date)":"Monthly Attendance by Service Type"} subtitle={svcTypeAxis==="date"?"Total attendance per service on each date":"Total attendance per service type each month"}>
+                <ResponsiveContainer width="100%" height={280}>
+                  <LineChart data={svcTypeData} margin={{top:4,right:16,bottom:svcTypeAxis==="date"?44:4,left:0}}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
-                    <XAxis dataKey="label" tick={{fontSize:11,fill:"var(--text-faint)"}} />
+                    <XAxis dataKey="label" tick={{fontSize:svcTypeAxis==="date"?9:11,fill:"var(--text-faint)"}} angle={svcTypeAxis==="date"?-40:0} textAnchor={svcTypeAxis==="date"?"end":"middle"} interval={svcTypeAxis==="date"?"preserveStartEnd":0} height={svcTypeAxis==="date"?54:30} />
                     <YAxis tick={{fontSize:11,fill:"var(--text-faint)"}} allowDecimals={false} />
                     <Tooltip content={<CustomTooltip />} />
                     <Legend wrapperStyle={{fontSize:12}} />
                     {attByType.map((t,i) => (
-                      <Line key={t.name} type="monotone" dataKey={t.name} name={t.name} stroke={CHART_COLORS[i%CHART_COLORS.length]} strokeWidth={2.5} dot={{r:3}} activeDot={{r:6}} />
+                      <Line key={t.name} type="monotone" dataKey={t.name} name={t.name} stroke={LINE_COLORS[i%LINE_COLORS.length]} strokeWidth={2.5} dot={{r:2.5}} activeDot={{r:6}} connectNulls />
                     ))}
                   </LineChart>
                 </ResponsiveContainer>
