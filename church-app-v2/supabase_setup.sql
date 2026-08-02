@@ -53,6 +53,7 @@ create table if not exists services (
   id uuid primary key default gen_random_uuid(),
   name text not null,
   service_date date not null,
+  description text,
   created_by uuid references auth.users(id),
   created_at timestamptz default now()
 );
