@@ -396,15 +396,19 @@ export default function AnalyticsPage({ members, services, attendance, household
 
   // 7c. Monthly attendance by service type — one line per type, per month
   const attByTypeMonthly = useMemo(() => {
-    const byMonth = {};
+    // Distinct members per type per month (a member attending 4 Sundays counts once).
+    const sets = {}; // month -> { type -> Set(memberId) }
     filteredServices.forEach(s => {
       const month = s.service_date.slice(0,7);
-      byMonth[month] = byMonth[month] || { month };
-      byMonth[month][s.name] = (byMonth[month][s.name] || 0) + presentCount(s);
+      sets[month] = sets[month] || {};
+      sets[month][s.name] = sets[month][s.name] || new Set();
+      (attendance[s.id]||[]).forEach(id => { if (filteredMemberIds.has(id)) sets[month][s.name].add(id); });
     });
-    return Object.values(byMonth)
-      .sort((a,b) => a.month.localeCompare(b.month))
-      .map(d => ({ ...d, label: MONTH_NAMES[parseInt(d.month.slice(5,7))-1] + " " + d.month.slice(2,4) }));
+    return Object.keys(sets).sort().map(month => {
+      const row = { month, label: MONTH_NAMES[parseInt(month.slice(5,7))-1] + " " + month.slice(2,4) };
+      Object.entries(sets[month]).forEach(([type, set]) => { row[type] = set.size; });
+      return row;
+    });
   }, [filteredServices, attendance, filteredMemberIds]);
 
   // 8. Attendance by service type
@@ -438,19 +442,22 @@ export default function AnalyticsPage({ members, services, attendance, household
       const cat = age === null ? null : AGE_CATS.find(c => age >= c.min && age <= c.max);
       bandById[m.id] = cat ? cat.label : "Unknown";
     });
-    const byMonth = {};
+    // Distinct members per age band per month.
+    const sets = {}; // month -> { band -> Set(memberId) }
     filteredServices.forEach(s => {
       const month = s.service_date.slice(0,7);
-      byMonth[month] = byMonth[month] || { month };
+      sets[month] = sets[month] || {};
       (attendance[s.id]||[]).forEach(id => {
         if (!filteredMemberIds.has(id)) return;
         const band = bandById[id] || "Unknown";
-        byMonth[month][band] = (byMonth[month][band] || 0) + 1;
+        (sets[month][band] = sets[month][band] || new Set()).add(id);
       });
     });
-    return Object.values(byMonth)
-      .sort((a,b) => a.month.localeCompare(b.month))
-      .map(d => ({ ...d, label: MONTH_NAMES[parseInt(d.month.slice(5,7))-1] + " " + d.month.slice(2,4) }));
+    return Object.keys(sets).sort().map(month => {
+      const row = { month, label: MONTH_NAMES[parseInt(month.slice(5,7))-1] + " " + month.slice(2,4) };
+      Object.entries(sets[month]).forEach(([band, set]) => { row[band] = set.size; });
+      return row;
+    });
   }, [filteredServices, attendance, members, filteredMemberIds]);
 
   // 9. Member attendance rates
@@ -872,7 +879,7 @@ export default function AnalyticsPage({ members, services, attendance, household
           </div>
           {svcTypeData.length === 0
             ? <div style={{textAlign:"center",padding:40,color:"var(--text-faint)",fontSize:13}}>No attendance data for this period</div>
-            : <ChartCard title={svcTypeAxis==="date"?"Attendance by Service Type (by date)":"Monthly Attendance by Service Type"} subtitle={svcTypeAxis==="date"?"Total attendance per service on each date":"Total attendance per service type each month"}>
+            : <ChartCard title={svcTypeAxis==="date"?"Attendance by Service Type (by date)":"Monthly Attendance by Service Type"} subtitle={svcTypeAxis==="date"?"Members present at each service, by date":"Distinct members per service type each month"}>
                 <ResponsiveContainer width="100%" height={280}>
                   <LineChart data={svcTypeData} margin={{top:4,right:16,bottom:svcTypeAxis==="date"?44:4,left:0}}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
@@ -891,7 +898,7 @@ export default function AnalyticsPage({ members, services, attendance, household
           <SectionTitle>Attendance by Age Group</SectionTitle>
           {attByAgeMonthly.length === 0
             ? <div style={{textAlign:"center",padding:40,color:"var(--text-faint)",fontSize:13}}>No attendance data for this period</div>
-            : <ChartCard title="Monthly Attendance by Age Group" subtitle="Total attendance per age band each month">
+            : <ChartCard title="Monthly Attendance by Age Group" subtitle="Distinct members per age band each month">
                 <ResponsiveContainer width="100%" height={260}>
                   <LineChart data={attByAgeMonthly} margin={{top:4,right:16,bottom:4,left:0}}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
