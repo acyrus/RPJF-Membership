@@ -207,7 +207,7 @@ export default function AttendancePage({ profile, members, services, setServices
   return (
     <div className="fade-in">
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14,flexWrap:"wrap",gap:10}}>
-        <div style={{fontFamily:"'Inter',sans-serif",color:"var(--text)",fontSize:14,letterSpacing:0.2,fontWeight:600}}>SERVICE SESSIONS</div>
+        <div style={{fontFamily:"'Inter',sans-serif",color:"var(--text)",fontSize:14,letterSpacing:0.2,fontWeight:600}}>SERVICES</div>
         <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
           <select
             value={typeFilter}
@@ -243,7 +243,7 @@ export default function AttendancePage({ profile, members, services, setServices
       </div>
       {anyFilter && (
         <div style={{fontSize:12,color:"var(--brand)",marginBottom:12,fontWeight:500,display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
-          Showing {filteredServices.length} session{filteredServices.length!==1?"s":""}
+          Showing {filteredServices.length} service{filteredServices.length!==1?"s":""}
           {typeFilter !== "All" && <> · {typeFilter}</>}
           {dateFilter && <> · {dateFilter}</>}
           {monthFilter !== "All" && <> · {["January","February","March","April","May","June","July","August","September","October","November","December"][parseInt(monthFilter)-1]}</>}
@@ -254,7 +254,7 @@ export default function AttendancePage({ profile, members, services, setServices
 
       <div className="att-grid" style={{display:"grid",gridTemplateColumns:"260px 1fr",gap:20}}>
         <div style={{display:"flex",flexDirection:"column",gap:10}}>
-          {filteredServices.length === 0 && <div style={{color:"var(--text-faint)",fontSize:14,textAlign:"center",padding:20}}>{typeFilter==="All"?"No services yet":"No "+typeFilter+" sessions found"}</div>}
+          {filteredServices.length === 0 && <div style={{color:"var(--text-faint)",fontSize:14,textAlign:"center",padding:20}}>{typeFilter==="All"?"No services yet":"No "+typeFilter+" services found"}</div>}
           {filteredServices.map(s => {
             const d = new Date(s.service_date+"T12:00:00");
             return (
@@ -330,7 +330,7 @@ export default function AttendancePage({ profile, members, services, setServices
       {showAdd && (
         <div className="modal-bg" onClick={()=>setShowAdd(false)}>
           <div className="modal fade-in" onClick={e=>e.stopPropagation()}>
-            <h2>NEW SERVICE SESSION</h2>
+            <h2>NEW SERVICE</h2>
             <div className="field-group"><label className="field-label">Service Name</label>
               <select value={newSvc.name} onChange={e=>setNewSvc({...newSvc,name:e.target.value})}>
                 {SERVICE_NAMES.map(n=><option key={n} value={n}>{n}</option>)}
@@ -341,7 +341,7 @@ export default function AttendancePage({ profile, members, services, setServices
               <textarea rows={2} value={newSvc.description} onChange={e=>setNewSvc({...newSvc,description:e.target.value})} placeholder="e.g. Guest speaker, combined service, special theme…" style={{resize:"vertical"}} /></div>
             {error && <div className="error-msg">{error}</div>}
             <div style={{display:"flex",gap:10,marginTop:6}}>
-              <button className="btn-primary" style={{flex:1}} onClick={addService}>Create Session</button>
+              <button className="btn-primary" style={{flex:1}} onClick={addService}>Create Service</button>
               <button className="btn-ghost" onClick={()=>setShowAdd(false)}>Cancel</button>
             </div>
           </div>
@@ -366,7 +366,7 @@ export default function AttendancePage({ profile, members, services, setServices
               </select>
               {exportServiceFilter !== "All" && (
                 <div style={{fontSize:12,color:"var(--brand)",marginTop:4,fontWeight:500}}>
-                  Exporting {exportServiceFilter} sessions only
+                  Exporting {exportServiceFilter} services only
                 </div>
               )}
             </div>
