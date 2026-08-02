@@ -155,7 +155,7 @@ function MemberPicker({ members, selectedIds, onChange }) {
 
 // Per-member attendance across the filtered sessions: expand a person to see each
 // session with a present tick / absent X; right side shows attended, missed, rate.
-function IndividualAttendance({ members, services, attendance }) {
+function IndividualAttendance({ members, services, attendance, scope }) {
   const [sort, setSort] = useState("name");   // "name" | "rate"
   const [q, setQ] = useState("");
   const [openId, setOpenId] = useState(null);
@@ -180,8 +180,11 @@ function IndividualAttendance({ members, services, attendance }) {
 
   return (
     <div className="card" style={{ padding: 16 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap", marginBottom: 12 }}>
-        <div style={{ fontSize: 12, color: "var(--text-faint)" }}>{rows.length} member{rows.length !== 1 ? "s" : ""} · {total} session{total !== 1 ? "s" : ""} in view</div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, flexWrap: "wrap", marginBottom: 12 }}>
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontSize: 12, color: "var(--text-faint)" }}>{rows.length} member{rows.length !== 1 ? "s" : ""} · {total} session{total !== 1 ? "s" : ""} in view</div>
+          {scope && <div style={{ fontSize: 11.5, color: "var(--brand)", fontWeight: 600, marginTop: 3 }}>{scope}</div>}
+        </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
           <button onClick={() => setSort(s => s === "rate" ? "name" : "rate")}
             style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 600, padding: "6px 12px", borderRadius: 20, cursor: "pointer", background: sort === "rate" ? "var(--brand)" : "var(--surface-alt)", color: sort === "rate" ? "var(--brand-contrast)" : "var(--text-2)", border: `1.5px solid ${sort === "rate" ? "var(--brand)" : "var(--border)"}` }}>
@@ -193,12 +196,12 @@ function IndividualAttendance({ members, services, attendance }) {
           </div>
         </div>
       </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+      <div style={{ maxHeight: "65vh", overflowY: "auto", display: "flex", flexDirection: "column", gap: 6, paddingRight: 2 }}>
         {rows.map(({ m, attended, missed, pct }) => {
           const open = openId === m.id;
           return (
             <div key={m.id} style={{ border: "1px solid var(--border)", borderRadius: 10, overflow: "hidden" }}>
-              <div onClick={() => setOpenId(open ? null : m.id)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", cursor: "pointer", background: "var(--surface)" }}>
+              <div onClick={() => setOpenId(open ? null : m.id)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", cursor: "pointer", background: "var(--surface)", position: "sticky", top: 0, zIndex: 1 }}>
                 {open ? <ChevronDown size={15} color="var(--text-muted-navy)" /> : <ChevronRight size={15} color="var(--text-muted-navy)" />}
                 <Avatar member={m} size={30} />
                 <div style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 600, color: "var(--text)" }}>{fullName(m)}</div>
@@ -247,6 +250,7 @@ export default function AnalyticsPage({ members, services, attendance, household
   const [selectedMemberIds, setSelectedMemberIds] = useState([]);
   const [statusFilter, setStatusFilter] = useState("active");
   const [activeSection, setActiveSection] = useState("attendance");
+  const [attSub, setAttSub] = useState("overview"); // attendance sub-tab: "overview" | "bymember"
 
   // ── All useMemo hooks in dependency order ─────────────────
 
@@ -322,6 +326,13 @@ export default function AnalyticsPage({ members, services, attendance, household
       return matchStatus && matchSex && matchCity && matchRole && matchAge;
     });
   }, [members, statusFilter, sexFilter, cityFilter, roleFilter, ageFilter, selectedMemberIds]);
+
+  // A one-line summary of what the By-Member list is currently scoped to, shown
+  // (and kept visible) in its toolbar so the active filters stay in view.
+  const bymemberScope = [
+    svcTypeFilter.length ? `Service types: ${svcTypeFilter.join(", ")}` : "All service types",
+    roleFilter.length ? `Ministry: ${roleFilter.join(", ")}` : null,
+  ].filter(Boolean).join("   ·   ");
 
   // Set of member IDs that pass the current member filters — used so the
   // Attendance charts also respond to gender/age/city/ministry/status filters.
@@ -738,7 +749,7 @@ export default function AnalyticsPage({ members, services, attendance, household
 
       {/* ── SECTION TABS ── */}
       <div style={{display:"flex",gap:4,borderBottom:"1.5px solid var(--border)",marginBottom:20}}>
-        {[["attendance","Attendance"],["bymember","By Member"],["members","Members"],["ministry","Ministry"]].map(([key,label]) => (
+        {[["attendance","Attendance"],["members","Members"],["ministry","Ministry"]].map(([key,label]) => (
           <button key={key} onClick={()=>setActiveSection(key)} style={{
             background:"none",border:"none",cursor:"pointer",fontFamily:"Inter,sans-serif",
             fontSize:13,fontWeight:600,padding:"10px 18px",
@@ -751,6 +762,16 @@ export default function AnalyticsPage({ members, services, attendance, household
       {/* ── ATTENDANCE ── */}
       {activeSection === "attendance" && (
         <div>
+          <div style={{display:"flex",gap:4,marginBottom:16}}>
+            {[["overview","Overview"],["bymember","By Member"]].map(([k,label])=>(
+              <button key={k} onClick={()=>setAttSub(k)} style={{
+                background:attSub===k?TEAL:"var(--surface-alt)",color:attSub===k?"#fff":"var(--text-2)",
+                border:`1.5px solid ${attSub===k?TEAL:"var(--border)"}`,borderRadius:20,cursor:"pointer",
+                fontSize:12.5,fontWeight:600,padding:"6px 16px"}}>{label}</button>
+            ))}
+          </div>
+
+          {attSub === "overview" && (<>
           <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(130px,1fr))",gap:12,marginBottom:4}}>
             <StatPill label="Total Sessions" value={filteredServices.length} />
             <StatPill label="Distinct Members" value={distinctAttendees} />
@@ -921,17 +942,11 @@ export default function AnalyticsPage({ members, services, attendance, household
                 </div>
             }
           </ChartCard>
-        </div>
-      )}
+          </>)}
 
-      {/* ── MEMBERS ── */}
-      {activeSection === "bymember" && (
-        <div>
-          <div style={{fontSize:12,color:"var(--text-muted)",marginBottom:14,lineHeight:1.6}}>
-            Each member's attendance across the sessions in view. Use the Service Type and Ministry
-            filters above to scope it, and expand a person to see every session.
-          </div>
-          <IndividualAttendance members={attMembers} services={filteredServices} attendance={attendance} />
+          {attSub === "bymember" && (
+            <IndividualAttendance members={attMembers} services={filteredServices} attendance={attendance} scope={bymemberScope} />
+          )}
         </div>
       )}
 
