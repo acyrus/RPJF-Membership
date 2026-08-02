@@ -217,8 +217,8 @@ function IndividualAttendance({ members, services, attendance, scope }) {
                     const present = (attendance[s.id] || []).includes(m.id);
                     return (
                       <div key={s.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "9px 12px", borderRadius: 8, background: "var(--surface)", border: "1px solid var(--border)" }}>
-                        <div style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 600, color: "var(--text)" }}>{s.name}</div>
                         <div style={{ width: 100, flexShrink: 0, fontSize: 12, color: "var(--text-faint)" }}>{s.service_date}</div>
+                        <div style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 600, color: "var(--text)" }}>{s.name}</div>
                         <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 20, background: present ? "var(--pill-yes-bg)" : "var(--pill-no-bg)", color: present ? "var(--pill-yes-fg)" : "var(--pill-no-fg)", border: `1px solid ${present ? "var(--pill-yes-bd)" : "var(--pill-no-bd)"}` }}>
                           {present ? <Check size={12} /> : <X size={12} />} {present ? "Present" : "Absent"}
                         </span>
