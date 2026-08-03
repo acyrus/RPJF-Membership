@@ -5,7 +5,7 @@ import {
 } from "recharts";
 import { ROLES, TRINIDAD_CITIES, calcAge, fullName, Avatar } from "../components";
 import { supabase } from "../supabase";
-import { Search, Home, Check, X, ChevronDown, ChevronRight, ArrowUpDown, UserMinus } from "lucide-react";
+import { Search, Home, Check, X, ChevronDown, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown, UserMinus } from "lucide-react";
 
 const TEAL      = "#2a5357";
 const TURQUOISE = "#5edcd1";
@@ -159,7 +159,8 @@ function MemberPicker({ members, selectedIds, onChange }) {
 // Per-member attendance across the filtered sessions: expand a person to see each
 // session with a present tick / absent X; right side shows attended, missed, rate.
 function IndividualAttendance({ members, services, attendance, scope }) {
-  const [sort, setSort] = useState("name");   // "name" | "rate"
+  const [sort, setSort] = useState("name");   // name | attended | missed | rate
+  const [dir, setDir] = useState("desc");     // asc | desc
   const [q, setQ] = useState("");
   const [openId, setOpenId] = useState(null);
   const total = services.length;
@@ -173,12 +174,10 @@ function IndividualAttendance({ members, services, attendance, scope }) {
         return { m, attended, missed: total - attended, pct: total ? Math.round(attended / total * 100) : 0 };
       });
     const byName = (a, b) => { const ln = a.m.last_name.localeCompare(b.m.last_name); return ln !== 0 ? ln : a.m.first_name.localeCompare(b.m.first_name); };
-    if (sort === "rate") r.sort((a, b) => b.pct - a.pct || byName(a, b));
-    else if (sort === "attended") r.sort((a, b) => b.attended - a.attended || byName(a, b));
-    else if (sort === "missed") r.sort((a, b) => b.missed - a.missed || byName(a, b));
-    else r.sort(byName);
+    const asc = ({ name: byName, attended: (a, b) => a.attended - b.attended, missed: (a, b) => a.missed - b.missed, rate: (a, b) => a.pct - b.pct })[sort] || byName;
+    r.sort((a, b) => (dir === "asc" ? asc(a, b) : -asc(a, b)) || byName(a, b));
     return r;
-  }, [members, services, attendance, sort, q, total]);
+  }, [members, services, attendance, sort, dir, q, total]);
 
   const orderedServices = useMemo(() => [...services].sort((a, b) => b.service_date.localeCompare(a.service_date)), [services]);
 
@@ -201,6 +200,12 @@ function IndividualAttendance({ members, services, attendance, scope }) {
               <option value="missed">Sort: Missed</option>
               <option value="rate">Sort: Rate</option>
             </select>
+            <button onClick={() => setDir(d => d === "desc" ? "asc" : "desc")}
+              title={dir === "desc" ? "Descending (high to low)" : "Ascending (low to high)"}
+              aria-label={dir === "desc" ? "Descending" : "Ascending"}
+              style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", padding: "6px 8px", borderRadius: 8, cursor: "pointer", background: "var(--surface-alt)", color: "var(--text-2)", border: "1.5px solid var(--border)" }}>
+              {dir === "desc" ? <ArrowDown size={14} /> : <ArrowUp size={14} />}
+            </button>
           </div>
           <div style={{ position: "relative" }}>
             <Search size={13} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "var(--text-faint)" }} />
