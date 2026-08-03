@@ -172,8 +172,11 @@ function IndividualAttendance({ members, services, attendance, scope }) {
         const attended = services.reduce((n, s) => n + ((attendance[s.id] || []).includes(m.id) ? 1 : 0), 0);
         return { m, attended, missed: total - attended, pct: total ? Math.round(attended / total * 100) : 0 };
       });
-    if (sort === "rate") r.sort((a, b) => b.pct - a.pct || a.m.last_name.localeCompare(b.m.last_name));
-    else r.sort((a, b) => { const ln = a.m.last_name.localeCompare(b.m.last_name); return ln !== 0 ? ln : a.m.first_name.localeCompare(b.m.first_name); });
+    const byName = (a, b) => { const ln = a.m.last_name.localeCompare(b.m.last_name); return ln !== 0 ? ln : a.m.first_name.localeCompare(b.m.first_name); };
+    if (sort === "rate") r.sort((a, b) => b.pct - a.pct || byName(a, b));
+    else if (sort === "attended") r.sort((a, b) => b.attended - a.attended || byName(a, b));
+    else if (sort === "missed") r.sort((a, b) => b.missed - a.missed || byName(a, b));
+    else r.sort(byName);
     return r;
   }, [members, services, attendance, sort, q, total]);
 
@@ -189,10 +192,16 @@ function IndividualAttendance({ members, services, attendance, scope }) {
           {scope && <div style={{ fontSize: 11.5, color: "var(--brand)", fontWeight: 600, marginTop: 3 }}>{scope}</div>}
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-          <button onClick={() => setSort(s => s === "rate" ? "name" : "rate")}
-            style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 600, padding: "6px 12px", borderRadius: 20, cursor: "pointer", background: sort === "rate" ? "var(--brand)" : "var(--surface-alt)", color: sort === "rate" ? "var(--brand-contrast)" : "var(--text-2)", border: `1.5px solid ${sort === "rate" ? "var(--brand)" : "var(--border)"}` }}>
-            <ArrowUpDown size={13} /> Sort: {sort === "rate" ? "Attendance rate" : "Name"}
-          </button>
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+            <ArrowUpDown size={13} color="var(--text-faint)" />
+            <select value={sort} onChange={e => setSort(e.target.value)} title="Sort the list"
+              style={{ fontSize: 12, fontWeight: 600, padding: "6px 8px", width: "auto" }}>
+              <option value="name">Sort: Name</option>
+              <option value="attended">Sort: Attended</option>
+              <option value="missed">Sort: Missed</option>
+              <option value="rate">Sort: Rate</option>
+            </select>
+          </div>
           <div style={{ position: "relative" }}>
             <Search size={13} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "var(--text-faint)" }} />
             <input placeholder="Search a person…" value={q} onChange={e => setQ(e.target.value)} style={{ width: 200, paddingLeft: 30, fontSize: 12 }} />
