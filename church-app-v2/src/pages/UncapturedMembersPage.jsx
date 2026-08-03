@@ -387,20 +387,20 @@ export default function UncapturedMembersPage({ members = [] }) {
         ) : (
           <div>
             <div style={{
-              display:"grid", gridTemplateColumns:"1fr 74px 66px 74px", gap:8,
+              display:"grid", gridTemplateColumns:isMobile?"1fr 38px 58px 44px":"1fr 74px 66px 74px", gap:8,
               padding:"6px 6px", fontSize:10, fontWeight:700, color:"var(--text-faint)",
               textTransform:"uppercase", letterSpacing:0.4, borderBottom:"1.5px solid var(--panel)",
             }}>
               <span>Usher</span>
-              <span style={{textAlign:"right"}}>Assigned</span>
+              <span style={{textAlign:"right"}}>{isMobile?"Asg":"Assigned"}</span>
               <span style={{textAlign:"right"}}>Done</span>
-              <span style={{textAlign:"right"}}>Remaining</span>
+              <span style={{textAlign:"right"}}>{isMobile?"Rem":"Remaining"}</span>
             </div>
 
             {byUsher.rows.map(u => (
               <div key={u.id} onClick={()=>setUsherFilter(u.id)} title="Filter the list to this usher's names"
-                style={{display:"grid", gridTemplateColumns:"1fr 74px 66px 74px", gap:8, alignItems:"center", padding:"8px 6px", cursor:"pointer", borderBottom:"1px solid var(--panel)"}}>
-                <span style={{fontSize:13, fontWeight:600, color:"var(--text-navy)", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap"}}>{u.name}</span>
+                style={{display:"grid", gridTemplateColumns:isMobile?"1fr 38px 58px 44px":"1fr 74px 66px 74px", gap:8, alignItems:"center", padding:"8px 6px", cursor:"pointer", borderBottom:"1px solid var(--panel)"}}>
+                <span style={{fontSize:13, fontWeight:600, color:"var(--text-navy)", lineHeight:1.25, wordBreak:"break-word"}}>{u.name}</span>
                 <span style={{textAlign:"right", fontSize:13, fontWeight:700, color:"var(--text-navy)"}}>{u.assigned}</span>
                 <span style={{textAlign:"right", fontSize:13, fontWeight:700, color:"#2a8a50"}}>{u.complete}<span style={{fontSize:10, color:"var(--text-faint)", fontWeight:600}}> · {u.pct}%</span></span>
                 <span style={{textAlign:"right", fontSize:13, fontWeight:700, color: u.remaining ? "#c06010" : "#c0c8d8"}}>{u.remaining}</span>
@@ -409,7 +409,7 @@ export default function UncapturedMembersPage({ members = [] }) {
 
             {byUsher.unassigned.assigned > 0 && (
               <div onClick={()=>setUsherFilter("unassigned")} title="Filter to names with no usher yet"
-                style={{display:"grid", gridTemplateColumns:"1fr 74px 66px 74px", gap:8, alignItems:"center", padding:"8px 6px", cursor:"pointer", background:"var(--surface-alt)"}}>
+                style={{display:"grid", gridTemplateColumns:isMobile?"1fr 38px 58px 44px":"1fr 74px 66px 74px", gap:8, alignItems:"center", padding:"8px 6px", cursor:"pointer", background:"var(--surface-alt)"}}>
                 <span style={{fontSize:13, fontWeight:600, color:"var(--text-muted-navy)", fontStyle:"italic"}}>Unassigned</span>
                 <span style={{textAlign:"right", fontSize:13, fontWeight:700, color:"var(--text-muted-navy)"}}>{byUsher.unassigned.assigned}</span>
                 <span style={{textAlign:"right", fontSize:13, fontWeight:700, color:"var(--text-muted-navy)"}}>{byUsher.unassigned.complete}</span>

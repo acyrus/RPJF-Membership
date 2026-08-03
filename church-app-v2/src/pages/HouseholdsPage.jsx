@@ -271,7 +271,7 @@ export default function HouseholdsPage({ profile, members, setMembers, household
                       style={{ flex: 1, fontSize: 15, fontWeight: 700 }} />
                   ) : (
                     <div onClick={editing ? (e => { e.stopPropagation(); setEditingId(h.id); setEditName(h.name); }) : undefined}
-                      style={{ flex: 1, minWidth: 0, fontSize: 15, fontWeight: 700, color: "var(--text)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                      style={{ flex: 1, minWidth: 0, fontSize: 15, fontWeight: 700, color: "var(--text)", lineHeight: 1.25, wordBreak: "break-word" }}>
                       {h.name}
                     </div>
                   )}
