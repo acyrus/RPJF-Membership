@@ -32,8 +32,11 @@ most complex left for last. Overlapping requests have been folded together
 
 ### Near-term — quick, high-value
 
-12. **Mobile & layout fixes.** Family-card legibility on phones (screenshot to follow), and the
-    Celebrations tab running off the page. (was #21, #26)
+12. **Mobile & layout fixes.** ✅ Done — by-usher progress table no longer clips usher names on
+    mobile (narrower number columns, shortened headers, names wrap); Families card names wrap
+    instead of truncating; Celebrations no longer overflows page width (sub-tab pills trimmed,
+    rows shrink); Import "Roster Check" renamed to "Uncaptured Members" with reworded copy; and
+    the Celebrations anniversary icon changed from a heart to a gem/ring. (was #21, #26)
 13. **Lapsed-member detection.** Base "Slipping Away" on consecutive services missed rather than
     the 28-day window, and flag / auto-mark members who've gone inactive, with an inactive
     switch. (was #22, #25)

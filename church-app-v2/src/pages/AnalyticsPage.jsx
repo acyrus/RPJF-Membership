@@ -4,7 +4,8 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
 } from "recharts";
 import { ROLES, TRINIDAD_CITIES, calcAge, fullName, Avatar } from "../components";
-import { Search, Home, Check, X, ChevronDown, ChevronRight, ArrowUpDown } from "lucide-react";
+import { supabase } from "../supabase";
+import { Search, Home, Check, X, ChevronDown, ChevronRight, ArrowUpDown, UserMinus } from "lucide-react";
 
 const TEAL      = "#2a5357";
 const TURQUOISE = "#5edcd1";
@@ -237,7 +238,7 @@ function IndividualAttendance({ members, services, attendance, scope }) {
   );
 }
 
-export default function AnalyticsPage({ members, services, attendance, households = [] }) {
+export default function AnalyticsPage({ members, services, attendance, households = [], setMembers = () => {}, profile }) {
   // ── All state hooks first ─────────────────────────────────
   const [quickRange, setQuickRange]     = useState("this_year");
   const [customFrom, setCustomFrom]     = useState("");
@@ -252,6 +253,7 @@ export default function AnalyticsPage({ members, services, attendance, household
   const [activeSection, setActiveSection] = useState("attendance");
   const [attSub, setAttSub] = useState("overview"); // attendance sub-tab: "overview" | "bymember"
   const [svcTypeAxis, setSvcTypeAxis] = useState("month"); // service-type chart x-axis: "month" | "date"
+  const [savingInactive, setSavingInactive] = useState(null); // member id being marked inactive
 
   // ── All useMemo hooks in dependency order ─────────────────
 
@@ -617,6 +619,31 @@ export default function AnalyticsPage({ members, services, attendance, household
     });
     return out.sort((a,b)=>a.lastSeen.localeCompare(b.lastSeen)).slice(0,20);
   }, [filteredServices, attendance, filteredMembers]);
+
+  // 20b. Inactive candidates — still marked active, but haven't attended any service in 90+ days
+  // after having attended before. Measured against today (independent of the analytics filters).
+  const inactiveCandidates = useMemo(() => {
+    const lastByMember = {};
+    services.forEach(s => (attendance[s.id]||[]).forEach(id => {
+      if (!lastByMember[id] || s.service_date > lastByMember[id]) lastByMember[id] = s.service_date;
+    }));
+    const cutoff = new Date(); cutoff.setDate(cutoff.getDate()-90);
+    const cutoffStr = cutoff.toISOString().slice(0,10);
+    const today = new Date();
+    return members
+      .filter(m => m.is_active !== false)
+      .map(m => ({ m, lastSeen: lastByMember[m.id] }))
+      .filter(x => x.lastSeen && x.lastSeen < cutoffStr)
+      .map(x => ({ ...x, daysAgo: Math.round((today - new Date(x.lastSeen + "T12:00:00")) / 86400000) }))
+      .sort((a, b) => a.lastSeen.localeCompare(b.lastSeen));
+  }, [members, services, attendance]);
+
+  async function markInactive(id) {
+    setSavingInactive(id);
+    const { error } = await supabase.from("members").update({ is_active: false }).eq("id", id);
+    setSavingInactive(null);
+    if (!error) setMembers(prev => prev.map(m => m.id === id ? { ...m, is_active: false } : m));
+  }
 
   // 21. First-timer retention — based on ALL recorded services so "first time" is truly first
   const firstTimerRetention = useMemo(() => {
@@ -1002,7 +1029,13 @@ export default function AnalyticsPage({ members, services, attendance, household
           </div>
 
           <SectionTitle>Slipping Away</SectionTitle>
-          <ChartCard title="Members Who've Gone Quiet" subtitle="Previously regular members with no attendance in the last 28 days, a pastoral-care follow-up list">
+          <div style={{fontSize:12,color:"var(--text-muted)",lineHeight:1.6,marginBottom:12}}>
+            <strong>How this works:</strong> among the members and services currently in view, this
+            lists anyone who had attended at least twice but hasn't come to any service in the last
+            28 days (measured from the most recent service in view). New or one-time visitors never
+            appear — it needs a prior pattern to lapse from. It's a pastoral-care follow-up list.
+          </div>
+          <ChartCard title="Members Who've Gone Quiet" subtitle="Previously regular members with no attendance in the last 28 days">
             {slippingAway.length === 0
               ? <div style={{textAlign:"center",padding:24,color:"var(--text-faint)",fontSize:12}}>No one is slipping away in this period</div>
               : <div style={{maxHeight:280,overflowY:"auto"}}>
@@ -1018,6 +1051,36 @@ export default function AnalyticsPage({ members, services, attendance, household
                       </div>
                     );
                   })}
+                </div>
+            }
+          </ChartCard>
+
+          <SectionTitle>Inactive Candidates</SectionTitle>
+          <div style={{fontSize:12,color:"var(--text-muted)",lineHeight:1.6,marginBottom:12}}>
+            Members still marked active who attended before but haven't been to any service in 90+
+            days (measured from today, across all services). Mark someone inactive with one click.
+          </div>
+          <ChartCard title="Not seen in 90+ days" subtitle={`${inactiveCandidates.length} active member${inactiveCandidates.length!==1?"s":""} may be inactive`}>
+            {inactiveCandidates.length === 0
+              ? <div style={{textAlign:"center",padding:24,color:"var(--text-faint)",fontSize:12}}>No active members are 90+ days lapsed</div>
+              : <div style={{maxHeight:320,overflowY:"auto"}}>
+                  {inactiveCandidates.map(({m,lastSeen,daysAgo},i) => (
+                    <div key={m.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:10,padding:"8px 0",borderBottom:i<inactiveCandidates.length-1?"1px solid var(--border-divider)":"none"}}>
+                      <div style={{display:"flex",alignItems:"center",gap:10,minWidth:0}}>
+                        <Avatar member={m} size={30} />
+                        <div style={{minWidth:0}}>
+                          <div style={{fontSize:13,fontWeight:600,color:"var(--text)"}}>{fullName(m)}</div>
+                          <div style={{fontSize:11,color:"var(--text-faint)"}}>last seen {lastSeen.split("-").reverse().join("-")} · {daysAgo} days ago</div>
+                        </div>
+                      </div>
+                      {profile?.role === "admin" && (
+                        <button onClick={()=>markInactive(m.id)} disabled={savingInactive===m.id}
+                          style={{flexShrink:0,display:"inline-flex",alignItems:"center",gap:5,fontSize:11,fontWeight:600,padding:"5px 10px",borderRadius:8,cursor:"pointer",background:"var(--danger-bg)",color:"var(--danger)",border:"1px solid var(--danger-border)"}}>
+                          <UserMinus size={13}/> {savingInactive===m.id?"Saving…":"Mark inactive"}
+                        </button>
+                      )}
+                    </div>
+                  ))}
                 </div>
             }
           </ChartCard>
