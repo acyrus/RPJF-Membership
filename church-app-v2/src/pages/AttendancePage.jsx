@@ -1,7 +1,20 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "../supabase";
 import { Avatar, RoleBadge, SERVICE_NAMES, fullName } from "../components";
-import { Check, ClipboardList, X, Search } from "lucide-react";
+import { Check, ClipboardList, X, Search, ChevronLeft, FileText } from "lucide-react";
+
+// Render list OR detail on mobile (master-detail), both side-by-side on desktop.
+function useIsMobile(bp = 768) {
+  const q = `(max-width: ${bp}px)`;
+  const [m, setM] = useState(() => typeof window !== "undefined" && window.matchMedia(q).matches);
+  useEffect(() => {
+    const mq = window.matchMedia(q);
+    const on = e => setM(e.matches);
+    mq.addEventListener ? mq.addEventListener("change", on) : mq.addListener(on);
+    return () => { mq.removeEventListener ? mq.removeEventListener("change", on) : mq.removeListener(on); };
+  }, [q]);
+  return m;
+}
 
 async function logActivity(supabaseClient, action_type, description, user_id, user_name) {
   await supabaseClient.from("activity_log").insert({ action_type, description, user_id, user_name });
@@ -14,6 +27,7 @@ async function logAttActivity(supabaseClient, action_type, description, user_id,
 export default function AttendancePage({ profile, members, services, setServices, attendance, setAttendance }) {
   const isAdmin = profile?.role === "admin";
   const canCreateService = ["admin","leadership","usher"].includes(profile?.role);
+  const isMobile = useIsMobile();
   const [activeId, setActiveId] = useState(null);
   const [loadingAtt, setLoadingAtt] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
@@ -29,9 +43,34 @@ export default function AttendancePage({ profile, members, services, setServices
   const [yearFilter, setYearFilter] = useState("All");
   const [dateFilter, setDateFilter] = useState("");        // exact service date
   const [attSearch, setAttSearch] = useState("");          // search members within a service
+  const [serviceTypes, setServiceTypes] = useState(() => SERVICE_NAMES.map(n => ({ id: n, name: n })));
+  const [typesReady, setTypesReady] = useState(false);     // service_types table present + loaded
+  const [showTypes, setShowTypes] = useState(false);
+  const [newTypeName, setNewTypeName] = useState("");
 
-  // Get unique service types
-  const serviceTypes = ["All", ...new Set(services.map(s => s.name))];
+  // Load editable service types; fall back to the presets if the table isn't migrated yet.
+  useEffect(() => {
+    supabase.from("service_types").select("*").order("name").then(({ data, error }) => {
+      if (error) return;
+      setServiceTypes(data || []);
+      setTypesReady(true);
+    });
+  }, []);
+
+  async function addType() {
+    const name = newTypeName.trim();
+    if (!name) return;
+    if (serviceTypes.some(t => t.name.toLowerCase() === name.toLowerCase())) { setNewTypeName(""); return; }
+    const { data, error } = await supabase.from("service_types").insert({ name }).select().single();
+    if (error) { setError(error.message); return; }
+    setServiceTypes(prev => [...prev, data].sort((a, b) => a.name.localeCompare(b.name)));
+    setNewTypeName("");
+  }
+  async function removeType(id) {
+    const { error } = await supabase.from("service_types").delete().eq("id", id);
+    if (error) { setError(error.message); return; }
+    setServiceTypes(prev => prev.filter(t => t.id !== id));
+  }
 
   // Filter services by type / year / month / exact date
   const filteredServices = services.filter(s => {
@@ -238,7 +277,7 @@ export default function AttendancePage({ profile, members, services, setServices
           </select>
           <input type="date" value={dateFilter} onChange={e=>{setDateFilter(e.target.value);setActiveId(null);}} title="Filter by exact date" style={{width:150,fontSize:12}} />
           <button className="btn-ghost" onClick={()=>setShowExport(true)}>Export</button>
-          {canCreateService && <button className="btn-primary" onClick={()=>{setShowAdd(true);setError("");}}>+ New Service</button>}
+          {canCreateService && <button className="btn-primary" onClick={()=>{setShowAdd(true);setError("");setNewSvc(s=>({...s,name:serviceTypes[0]?.name||""}));}}>+ New Service</button>}
         </div>
       </div>
       {anyFilter && (
@@ -252,7 +291,8 @@ export default function AttendancePage({ profile, members, services, setServices
         </div>
       )}
 
-      <div className="att-grid" style={{display:"grid",gridTemplateColumns:"260px 1fr",gap:20}}>
+      <div className="att-grid" style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"260px 1fr",gap:20}}>
+        {(!isMobile || !activeId) && (
         <div style={{display:"flex",flexDirection:"column",gap:10}}>
           {filteredServices.length === 0 && <div style={{color:"var(--text-faint)",fontSize:14,textAlign:"center",padding:20}}>{typeFilter==="All"?"No services yet":"No "+typeFilter+" services found"}</div>}
           {filteredServices.map(s => {
@@ -263,25 +303,32 @@ export default function AttendancePage({ profile, members, services, setServices
                   <div style={{fontFamily:"'Inter',sans-serif",fontSize:17,color:"var(--brand)",fontWeight:600}}>{d.getDate()}</div>
                   <div style={{fontSize:10,color:"var(--text-faint)",letterSpacing:0.2}}>{d.toLocaleString("default",{month:"short"}).toUpperCase()}</div>
                 </div>
-                <div style={{flex:1}}>
+                <div style={{flex:1, minWidth:0}}>
                   <div style={{fontSize:14,fontWeight:700,color:"var(--text)"}}>{s.name}</div>
                   <div style={{fontSize:12,color:"var(--text-faint)",marginTop:2}}>{s.attendance_count||0} / {total} present</div>
+                  {s.description && <div style={{fontSize:11,color:"var(--text-muted)",marginTop:3,display:"flex",alignItems:"center",gap:4,overflow:"hidden"}}><FileText size={11} style={{flexShrink:0}} /><span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{s.description}</span></div>}
                 </div>
                 {isAdmin && <button onClick={e=>{e.stopPropagation();deleteService(s.id);}} style={{background:"none",border:"none",color:"#e0a0a0",cursor:"pointer",fontSize:16,padding:4}}><X size={13} /></button>}
               </div>
             );
           })}
         </div>
+        )}
 
-        {activeId ? (
+        {(!isMobile || activeId) && (activeId ? (
           <div className="card fade-in" style={{padding:20}}>
             {loadingAtt ? <div style={{textAlign:"center",color:"var(--text-faint)",padding:40}}>Loading…</div> : (
               <>
+                {isMobile && (
+                  <button onClick={()=>setActiveId(null)} style={{display:"inline-flex",alignItems:"center",gap:5,background:"none",border:"none",color:"var(--brand)",cursor:"pointer",fontSize:13,fontWeight:600,padding:"0 0 12px"}}>
+                    <ChevronLeft size={16} /> Back to services
+                  </button>
+                )}
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16,flexWrap:"wrap",gap:12}}>
                   <div style={{minWidth:0}}>
                     <div style={{fontFamily:"'Inter',sans-serif",fontSize:15,color:"var(--text)",fontWeight:600}}>{active?.name}</div>
                     <div style={{fontSize:12,color:"var(--text-faint)",marginTop:2}}>{active?.service_date}</div>
-                    {active?.description && <div style={{fontSize:12,color:"var(--text-muted)",marginTop:5,lineHeight:1.5,maxWidth:420}}>{active.description}</div>}
+                    {active?.description && <div style={{fontSize:12.5,color:"var(--text-2)",marginTop:8,lineHeight:1.5,maxWidth:480,display:"flex",gap:6,background:"var(--panel)",padding:"8px 10px",borderRadius:8}}><FileText size={13} style={{flexShrink:0,marginTop:1,color:"var(--brand)"}} /><span>{active.description}</span></div>}
                   </div>
                   <div style={{display:"flex",gap:10}}>
                     <div className="stat-box"><div className="stat-num">{present}</div><div className="stat-label">Present</div></div>
@@ -324,16 +371,21 @@ export default function AttendancePage({ profile, members, services, setServices
             <span style={{display:"flex"}}><ClipboardList size={28} color="#8a96b8" /></span>
             Select a service to take attendance
           </div>
-        )}
+        ))}
       </div>
 
       {showAdd && (
         <div className="modal-bg" onClick={()=>setShowAdd(false)}>
           <div className="modal fade-in" onClick={e=>e.stopPropagation()}>
             <h2>NEW SERVICE</h2>
-            <div className="field-group"><label className="field-label">Service Name</label>
+            <div className="field-group">
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                <label className="field-label">Service Name</label>
+                {isAdmin && typesReady && <button onClick={()=>setShowTypes(true)} style={{background:"none",border:"none",color:"var(--brand)",cursor:"pointer",fontSize:11,fontWeight:600,padding:0}}>Manage types</button>}
+              </div>
               <select value={newSvc.name} onChange={e=>setNewSvc({...newSvc,name:e.target.value})}>
-                {SERVICE_NAMES.map(n=><option key={n} value={n}>{n}</option>)}
+                {serviceTypes.length===0 && <option value="">No types yet — add one</option>}
+                {serviceTypes.map(t=><option key={t.id} value={t.name}>{t.name}</option>)}
               </select></div>
             <div className="field-group"><label className="field-label">Date *</label>
               <input type="date" value={newSvc.service_date} onChange={e=>setNewSvc({...newSvc,service_date:e.target.value})} /></div>
@@ -343,6 +395,33 @@ export default function AttendancePage({ profile, members, services, setServices
             <div style={{display:"flex",gap:10,marginTop:6}}>
               <button className="btn-primary" style={{flex:1}} onClick={addService}>Create Service</button>
               <button className="btn-ghost" onClick={()=>setShowAdd(false)}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {showTypes && (
+        <div className="modal-bg" onClick={()=>setShowTypes(false)}>
+          <div className="modal fade-in" onClick={e=>e.stopPropagation()} style={{maxWidth:440}}>
+            <h2>SERVICE TYPES</h2>
+            <div style={{fontSize:12,color:"var(--text-muted)",marginBottom:14,lineHeight:1.6}}>
+              Create or remove the service types shown when adding a service. Removing one only takes
+              it off the picker; services already recorded under it keep their name.
+            </div>
+            <div style={{display:"flex",gap:8,marginBottom:14}}>
+              <input placeholder="New type, e.g. Prayer Meeting" value={newTypeName} onChange={e=>setNewTypeName(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")addType();}} />
+              <button className="btn-primary" onClick={addType} disabled={!newTypeName.trim()}>Add</button>
+            </div>
+            <div style={{display:"flex",flexDirection:"column",gap:6,maxHeight:280,overflowY:"auto"}}>
+              {serviceTypes.length===0 && <div style={{fontSize:12,color:"var(--text-faint)",textAlign:"center",padding:16}}>No types yet — add one above.</div>}
+              {serviceTypes.map(t=>(
+                <div key={t.id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8,padding:"8px 10px",border:"1px solid var(--border)",borderRadius:8}}>
+                  <span style={{fontSize:13,fontWeight:600,color:"var(--text)"}}>{t.name}</span>
+                  <button onClick={()=>removeType(t.id)} title="Remove type" style={{background:"none",border:"1px solid var(--danger-border)",borderRadius:6,color:"var(--danger)",cursor:"pointer",padding:"3px 8px"}}><X size={13}/></button>
+                </div>
+              ))}
+            </div>
+            <div style={{display:"flex",justifyContent:"flex-end",marginTop:16}}>
+              <button className="btn-ghost" onClick={()=>setShowTypes(false)}>Done</button>
             </div>
           </div>
         </div>

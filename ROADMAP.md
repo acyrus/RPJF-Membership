@@ -37,9 +37,11 @@ most complex left for last. Overlapping requests have been folded together
     instead of truncating; Celebrations no longer overflows page width (sub-tab pills trimmed,
     rows shrink); Import "Roster Check" renamed to "Uncaptured Members" with reworded copy; and
     the Celebrations anniversary icon changed from a heart to a gem/ring. (was #21, #26)
-13. **Lapsed-member detection.** Base "Slipping Away" on consecutive services missed rather than
-    the 28-day window, and flag / auto-mark members who've gone inactive, with an inactive
-    switch. (was #22, #25)
+13. **Lapsed-member detection.** ✅ Done — "Slipping Away" kept on a 28-day window with an
+    in-app explanation of how it works, plus a new "Inactive Candidates" list (active members
+    whose last attendance across all services was 90+ days ago) with an admin one-click
+    "Mark inactive". By-Member view also gained sort by name/attended/missed/rate with an
+    ascending/descending toggle. (was #22, #25)
 
 ### Feature builds
 
