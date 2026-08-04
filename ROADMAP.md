@@ -63,7 +63,11 @@ most complex left for last. Overlapping requests have been folded together
 16. **Analytics polish.** Move filters into a collapsible side panel; add the prototyped
     visualization upgrades (attendance heatmap, average reference lines, change badges, fixed
     per-type colours); finish any remaining useful views. (folds old #10, #24 + viz mockup)
-17. **Revise the individual member view.** Rework the member detail / interaction panel. (was #27)
+17. **Revise the individual member view.** 🔄 In progress — member detail is now a centered
+    popout modal (was a side panel), clicking a member anywhere (Ministries, Skills, Families,
+    Celebrations) opens that person directly instead of landing at the top of the list, and the
+    detail shows the household with clickable family members + spouse. Remaining: any further
+    rework of the interaction panel. (was #27)
 18. **App shell & branding polish.** A title / splash screen, and collapsible / expandable
     navigation (drawer). (was #17, #19)
 

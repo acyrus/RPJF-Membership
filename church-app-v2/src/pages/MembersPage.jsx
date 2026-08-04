@@ -8,7 +8,7 @@ async function logActivity(action_type, description, user_id, user_name) {
   try { await supabase.from("activity_log").insert({ action_type, description, user_id, user_name }); } catch(e) {}
 }
 
-export default function MembersPage({ profile, members, setMembers, households = [], setHouseholds = () => {}, services, attendance }) {
+export default function MembersPage({ profile, members, setMembers, households = [], setHouseholds = () => {}, services, attendance, focusMemberId, onFocusHandled = () => {} }) {
   const isAdmin = profile?.role === "admin";
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("All");
@@ -31,6 +31,14 @@ export default function MembersPage({ profile, members, setMembers, households =
   useEffect(() => {
     if (selected) setSelected(members.find(m => m.id === selected.id) || null);
   }, [members]);
+
+  // Arriving from another tab (Ministries, Skills, Families, Celebrations): open that member.
+  useEffect(() => {
+    if (!focusMemberId) return;
+    const m = members.find(x => x.id === focusMemberId);
+    if (m) setSelected(m);
+    onFocusHandled();
+  }, [focusMemberId, members]);
 
   const filtered = useMemo(() => members.filter(m => {
     const s = search.toLowerCase();
@@ -255,9 +263,9 @@ export default function MembersPage({ profile, members, setMembers, households =
           Member updated successfully
         </div>
       )}
-    <div className="fade-in member-list-layout" style={{display:"flex",gap:20}}>
-      {/* Left: List */}
-      <div style={{flex:1,minWidth:0}}>
+    <div className="fade-in">
+      {/* Member list (full width) */}
+      <div style={{minWidth:0}}>
         {birthdays.length > 0 && (
           <div className="birthday-banner">
             <span style={{display:"flex"}}><Cake size={18} color="#e07830" /></span>
@@ -329,17 +337,10 @@ export default function MembersPage({ profile, members, setMembers, households =
         <div style={{fontSize:12,color:"var(--border-strong)",marginTop:8,textAlign:"right"}}>{filtered.length} of {members.length} members</div>
       </div>
 
-      {/* Mobile backdrop */}
-      {selected && <div className="mobile-backdrop" style={{display:"none"}} onClick={()=>setSelected(null)} />}
-      {/* Right: Detail Panel.
-          On mobile the panel and the modals are both full-width bottom sheets, so if a
-          modal is open the panel behind it is pure interference, it was rendering over
-          the edit form. Raising .modal-bg above .detail-panel in the stylesheet fixes the
-          stacking, but this makes the overlap impossible regardless of how the two
-          stacking contexts resolve on a given browser. Desktop is untouched: there the
-          panel sits beside the list and the modal is centred, so both are still shown. */}
-      {selected && (
-        <div className={`card detail-panel fade-in${(editData || showAdd) ? " hide-behind-modal" : ""}`} style={{padding:22}}>
+      {/* Member detail — centered popout modal (hidden while an add/edit modal is open) */}
+      {selected && !editData && !showAdd && (
+        <div className="modal-bg" onClick={()=>setSelected(null)}>
+        <div className="modal fade-in" onClick={e=>e.stopPropagation()} style={{maxWidth:480,position:"relative"}}>
           {/* Close button */}
           <button className="close-btn" onClick={()=>setSelected(null)}><X size={13} /></button>
 
@@ -486,6 +487,7 @@ export default function MembersPage({ profile, members, setMembers, households =
               <button className="btn-danger" style={{fontSize:12}} onClick={()=>handleDelete(selected.id)}>Delete</button>
             </div>
           )}
+        </div>
         </div>
       )}
 

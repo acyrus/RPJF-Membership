@@ -42,6 +42,13 @@ export default function App() {
     // Read from URL hash for persistence
     return window.location.hash.replace("#","") || "dashboard";
   });
+  // When a member is clicked on another tab, jump to Members and open that person.
+  const [focusMemberId, setFocusMemberId] = useState(null);
+  function goToMember(m) {
+    if (!allowedTabs.includes("members")) return;
+    setFocusMemberId(m.id);
+    setTab("members");
+  }
 
   // Manual dark mode. The initial class is set before paint by the inline script in
   // index.html (reads localStorage "rpjf_theme"); this state just mirrors it for the
@@ -433,6 +440,7 @@ export default function App() {
             profile={profile} members={members} setMembers={setMembers}
             households={households} setHouseholds={setHouseholds}
             services={services} attendance={attendance}
+            focusMemberId={focusMemberId} onFocusHandled={()=>setFocusMemberId(null)}
           />
         )}
         {tab==="attendance" && allowedTabs.includes("attendance") && (
@@ -446,20 +454,20 @@ export default function App() {
           <UncapturedMembersPage members={members} />
         )}
         {tab==="roles" && allowedTabs.includes("roles") && (
-          <RolesPage members={members} households={households} profile={profile} setMembers={setMembers} onMemberClick={m=>{ setTab("members"); }} />
+          <RolesPage members={members} households={households} profile={profile} setMembers={setMembers} onMemberClick={goToMember} />
         )}
         {tab==="households" && allowedTabs.includes("households") && (
           <HouseholdsPage
             profile={profile} members={members} setMembers={setMembers}
             households={households} setHouseholds={setHouseholds}
-            onMemberClick={m=>{ allowedTabs.includes("members") && setTab("members"); }}
+            onMemberClick={goToMember}
           />
         )}
         {tab==="celebrations" && allowedTabs.includes("celebrations") && (
-          <CelebrationsPage members={members} onMemberClick={m=>{ allowedTabs.includes("members") && setTab("members"); }} />
+          <CelebrationsPage members={members} onMemberClick={goToMember} />
         )}
         {tab==="skills" && allowedTabs.includes("skills") && (
-          <SkillsPage members={members} households={households} onMemberClick={m=>{ allowedTabs.includes("members") && setTab("members"); }} />
+          <SkillsPage members={members} households={households} onMemberClick={goToMember} />
         )}
         {tab==="analytics" && allowedTabs.includes("analytics") && (
           <AnalyticsPage members={members} services={services} attendance={attendance} households={households} setMembers={setMembers} profile={profile} />
