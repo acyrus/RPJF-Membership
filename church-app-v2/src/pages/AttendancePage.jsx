@@ -260,6 +260,7 @@ export default function AttendancePage({ profile, members, services, setServices
 
   return (
     <div className="fade-in">
+      {(!isMobile || !activeId) && (<>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14,flexWrap:"wrap",gap:10}}>
         <div style={{fontFamily:"'Inter',sans-serif",color:"var(--text)",fontSize:14,letterSpacing:0.2,fontWeight:600}}>SERVICES</div>
         <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
@@ -305,6 +306,7 @@ export default function AttendancePage({ profile, members, services, setServices
           <button onClick={()=>{setTypeFilter("All");setYearFilter("All");setMonthFilter("All");setDateFilter("");setActiveId(null);}} style={{background:"none",border:"1px solid var(--border-navy-strong)",borderRadius:20,color:"var(--text-faint)",cursor:"pointer",fontSize:12,padding:"1px 8px"}}>Clear</button>
         </div>
       )}
+      </>)}
 
       <div className="att-grid" style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"260px 1fr",gap:20}}>
         {(!isMobile || !activeId) && (
@@ -361,10 +363,10 @@ export default function AttendancePage({ profile, members, services, setServices
                       <button onClick={()=>startEditNote(active)} style={{marginTop:6,background:"none",border:"none",color:"var(--brand)",cursor:"pointer",fontSize:12,fontWeight:600,padding:0,display:"inline-flex",alignItems:"center",gap:5}}><Pencil size={12} /> Add a note</button>
                     ) : null}
                   </div>
-                  <div style={isMobile?{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}:{display:"flex",gap:10}}>
-                    <div className="stat-box"><div className="stat-num">{present}</div><div className="stat-label">Present</div></div>
-                    <div className="stat-box"><div className="stat-num">{total-present}</div><div className="stat-label">Absent</div></div>
-                    <div className="stat-box"><div className="stat-num">{total?Math.round((present/total)*100):0}%</div><div className="stat-label">Rate</div></div>
+                  <div style={{display:"flex",gap:isMobile?8:10}}>
+                    <div className="stat-box" style={isMobile?{flex:1,minWidth:0,padding:"10px 4px"}:undefined}><div className="stat-num">{present}</div><div className="stat-label">Present</div></div>
+                    <div className="stat-box" style={isMobile?{flex:1,minWidth:0,padding:"10px 4px"}:undefined}><div className="stat-num">{total-present}</div><div className="stat-label">Absent</div></div>
+                    <div className="stat-box" style={isMobile?{flex:1,minWidth:0,padding:"10px 4px"}:undefined}><div className="stat-num">{total?Math.round((present/total)*100):0}%</div><div className="stat-label">Rate</div></div>
                   </div>
                 </div>
                 <div style={{display:"flex",gap:8,marginBottom:12,flexWrap:"wrap",alignItems:"center"}}>
@@ -376,7 +378,7 @@ export default function AttendancePage({ profile, members, services, setServices
                     <input placeholder="Search this list…" value={attSearch} onChange={e=>setAttSearch(e.target.value)} style={{width:190,paddingLeft:28,fontSize:12}} />
                   </div>
                 </div>
-                <div style={{display:"flex",flexDirection:"column",gap:2,maxHeight:"56vh",overflowY:"auto",paddingRight:2}}>
+                <div style={{display:"flex",flexDirection:"column",gap:2,maxHeight:isMobile?"max(220px, calc(100dvh - 380px))":"56vh",overflowY:"auto",paddingRight:2}}>
                   {[...members].filter(m => { const q=attSearch.trim().toLowerCase(); return !q || fullName(m).toLowerCase().includes(q); }).sort((a,b) => { const ln = a.last_name.localeCompare(b.last_name); return ln !== 0 ? ln : a.first_name.localeCompare(b.first_name); }).map(m => {
                     const isPresent = presentIds.has(m.id);
                     return (
