@@ -54,6 +54,7 @@ export default function AttendancePage({ profile, members, households = [], serv
   const [newTypeName, setNewTypeName] = useState("");
   const [editTypeId, setEditTypeId] = useState(null);      // service type being renamed
   const [editTypeName, setEditTypeName] = useState("");
+  const [addingType, setAddingType] = useState(false);     // inline "new type" inside New Service
   const [editingNote, setEditingNote] = useState(false);
   const [noteDraft, setNoteDraft] = useState("");
   const [savingNote, setSavingNote] = useState(false);
@@ -91,6 +92,18 @@ export default function AttendancePage({ profile, members, households = [], serv
     const { error } = await supabase.from("service_types").delete().eq("id", id);
     if (error) { setError(error.message); return; }
     setServiceTypes(prev => prev.filter(t => t.id !== id));
+  }
+  // Add a type from inside the New Service modal, then select it for the new service.
+  async function addTypeInline() {
+    const name = newTypeName.trim();
+    if (!name) return;
+    const existing = serviceTypes.find(t => t.name.toLowerCase() === name.toLowerCase());
+    if (existing) { setNewSvc(s => ({ ...s, name: existing.name })); setNewTypeName(""); setAddingType(false); return; }
+    const { data, error } = await supabase.from("service_types").insert({ name }).select().single();
+    if (error) { setError(error.message); return; }
+    setServiceTypes(prev => [...prev, data].sort((a, b) => a.name.localeCompare(b.name)));
+    setNewSvc(s => ({ ...s, name: data.name }));
+    setNewTypeName(""); setAddingType(false);
   }
   function startRename(t) { setEditTypeId(t.id); setEditTypeName(t.name); setError(""); }
   async function renameType(id) {
@@ -321,7 +334,8 @@ export default function AttendancePage({ profile, members, households = [], serv
           </select>
           <input type="date" value={dateFilter} onChange={e=>{setDateFilter(e.target.value);setActiveId(null);}} title="Filter by exact date" style={{width:150,fontSize:12}} />
           <button className="btn-ghost" onClick={()=>setShowExport(true)}>Export</button>
-          {canCreateService && <button className="btn-primary" onClick={()=>{setShowAdd(true);setError("");setNewSvc(s=>({...s,name:serviceTypes[0]?.name||""}));}}>+ New Service</button>}
+          {isAdmin && typesReady && <button className="btn-ghost" onClick={()=>{setShowTypes(true);setError("");}}>Service types</button>}
+          {canCreateService && <button className="btn-primary" onClick={()=>{setShowAdd(true);setError("");setAddingType(false);setNewSvc(s=>({...s,name:serviceTypes[0]?.name||""}));}}>+ New Service</button>}
         </div>
       </div>
       {anyFilter && (
@@ -456,12 +470,20 @@ export default function AttendancePage({ profile, members, households = [], serv
             <div className="field-group">
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                 <label className="field-label">Service Name</label>
-                {isAdmin && typesReady && <button onClick={()=>setShowTypes(true)} style={{background:"none",border:"none",color:"var(--brand)",cursor:"pointer",fontSize:11,fontWeight:600,padding:0}}>Manage types</button>}
+                {isAdmin && typesReady && !addingType && <button onClick={()=>{setAddingType(true);setNewTypeName("");setError("");}} style={{background:"none",border:"none",color:"var(--brand)",cursor:"pointer",fontSize:11,fontWeight:600,padding:0}}>+ New type</button>}
               </div>
-              <select value={newSvc.name} onChange={e=>setNewSvc({...newSvc,name:e.target.value})}>
-                {serviceTypes.length===0 && <option value="">No types yet — add one</option>}
-                {serviceTypes.map(t=><option key={t.id} value={t.name}>{t.name}</option>)}
-              </select></div>
+              {addingType ? (
+                <div style={{display:"flex",gap:8}}>
+                  <input autoFocus placeholder="New type name, e.g. Prayer Meeting" value={newTypeName} onChange={e=>setNewTypeName(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"){e.preventDefault();addTypeInline();}if(e.key==="Escape")setAddingType(false);}} style={{flex:1}} />
+                  <button className="btn-primary" onClick={addTypeInline} disabled={!newTypeName.trim()}>Add</button>
+                  <button className="btn-ghost" onClick={()=>setAddingType(false)}>Cancel</button>
+                </div>
+              ) : (
+                <select value={newSvc.name} onChange={e=>setNewSvc({...newSvc,name:e.target.value})}>
+                  {serviceTypes.length===0 && <option value="">No types yet — add one</option>}
+                  {serviceTypes.map(t=><option key={t.id} value={t.name}>{t.name}</option>)}
+                </select>
+              )}</div>
             <div className="field-group"><label className="field-label">Date *</label>
               <input type="date" value={newSvc.service_date} onChange={e=>setNewSvc({...newSvc,service_date:e.target.value})} /></div>
             <div className="field-group"><label className="field-label">Description (optional)</label>
