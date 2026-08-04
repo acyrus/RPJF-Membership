@@ -437,7 +437,7 @@ export default function App() {
         )}
         {tab==="attendance" && allowedTabs.includes("attendance") && (
           <AttendancePage
-            profile={profile} members={members}
+            profile={profile} members={members} households={households}
             services={services} setServices={setServices}
             attendance={attendance} setAttendance={setAttendance}
           />
