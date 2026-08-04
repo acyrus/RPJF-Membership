@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../supabase";
 import { Avatar, RoleBadge, SERVICE_NAMES, fullName } from "../components";
-import { Check, ClipboardList, X, Search, ChevronLeft, FileText } from "lucide-react";
+import { Check, ClipboardList, X, Search, ChevronLeft, FileText, Pencil } from "lucide-react";
 
 // Render list OR detail on mobile (master-detail), both side-by-side on desktop.
 function useIsMobile(bp = 768) {
@@ -47,6 +47,20 @@ export default function AttendancePage({ profile, members, services, setServices
   const [typesReady, setTypesReady] = useState(false);     // service_types table present + loaded
   const [showTypes, setShowTypes] = useState(false);
   const [newTypeName, setNewTypeName] = useState("");
+  const [editingNote, setEditingNote] = useState(false);
+  const [noteDraft, setNoteDraft] = useState("");
+  const [savingNote, setSavingNote] = useState(false);
+
+  function startEditNote(active) { setNoteDraft(active?.description || ""); setEditingNote(true); }
+  async function saveNote() {
+    const desc = noteDraft.trim();
+    setSavingNote(true);
+    const { error } = await supabase.from("services").update({ description: desc || null }).eq("id", activeId);
+    setSavingNote(false);
+    if (error) { setError(error.message); return; }
+    setServices(prev => prev.map(s => s.id === activeId ? { ...s, description: desc || null } : s));
+    setEditingNote(false);
+  }
 
   // Load editable service types; fall back to the presets if the table isn't migrated yet.
   useEffect(() => {
@@ -84,6 +98,7 @@ export default function AttendancePage({ profile, members, services, setServices
 
   async function selectService(id) {
     setActiveId(id);
+    setEditingNote(false);
     if (attendance[id]) return; // already loaded
     setLoadingAtt(true);
     const { data } = await supabase.from("attendance").select("member_id").eq("service_id", id);
@@ -325,10 +340,26 @@ export default function AttendancePage({ profile, members, services, setServices
                   </button>
                 )}
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16,flexWrap:"wrap",gap:12}}>
-                  <div style={{minWidth:0}}>
+                  <div style={{minWidth:0, flex:1}}>
                     <div style={{fontFamily:"'Inter',sans-serif",fontSize:15,color:"var(--text)",fontWeight:600}}>{active?.name}</div>
-                    <div style={{fontSize:12,color:"var(--text-faint)",marginTop:2}}>{active?.service_date}</div>
-                    {active?.description && <div style={{fontSize:12.5,color:"var(--text-2)",marginTop:8,lineHeight:1.5,maxWidth:480,display:"flex",gap:6,background:"var(--panel)",padding:"8px 10px",borderRadius:8}}><FileText size={13} style={{flexShrink:0,marginTop:1,color:"var(--brand)"}} /><span>{active.description}</span></div>}
+                    <div style={{fontSize:12,color:"var(--text-faint)",marginTop:2}}>{active?.service_date?.split("-").reverse().join("-")}</div>
+                    {editingNote ? (
+                      <div style={{marginTop:8,maxWidth:480}}>
+                        <textarea rows={2} autoFocus value={noteDraft} onChange={e=>setNoteDraft(e.target.value)} placeholder="Add a note about this service…" style={{resize:"vertical",fontSize:12.5}} />
+                        <div style={{display:"flex",gap:8,marginTop:6}}>
+                          <button className="btn-primary" style={{fontSize:11,padding:"5px 12px"}} onClick={saveNote} disabled={savingNote}>{savingNote?"Saving…":"Save note"}</button>
+                          <button className="btn-ghost" style={{fontSize:11,padding:"5px 12px"}} onClick={()=>setEditingNote(false)}>Cancel</button>
+                        </div>
+                      </div>
+                    ) : active?.description ? (
+                      <div style={{fontSize:12.5,color:"var(--text-2)",marginTop:8,lineHeight:1.5,maxWidth:480,display:"flex",gap:6,background:"var(--panel)",padding:"8px 10px",borderRadius:8}}>
+                        <FileText size={13} style={{flexShrink:0,marginTop:1,color:"var(--brand)"}} />
+                        <span style={{flex:1}}>{active.description}</span>
+                        {canCreateService && <button onClick={()=>startEditNote(active)} title="Edit note" style={{background:"none",border:"none",color:"var(--brand)",cursor:"pointer",padding:0,flexShrink:0}}><Pencil size={12} /></button>}
+                      </div>
+                    ) : canCreateService ? (
+                      <button onClick={()=>startEditNote(active)} style={{marginTop:6,background:"none",border:"none",color:"var(--brand)",cursor:"pointer",fontSize:12,fontWeight:600,padding:0,display:"inline-flex",alignItems:"center",gap:5}}><Pencil size={12} /> Add a note</button>
+                    ) : null}
                   </div>
                   <div style={{display:"flex",gap:10}}>
                     <div className="stat-box"><div className="stat-num">{present}</div><div className="stat-label">Present</div></div>
@@ -345,11 +376,11 @@ export default function AttendancePage({ profile, members, services, setServices
                     <input placeholder="Search this list…" value={attSearch} onChange={e=>setAttSearch(e.target.value)} style={{width:190,paddingLeft:28,fontSize:12}} />
                   </div>
                 </div>
-                <div style={{display:"flex",flexDirection:"column",gap:2}}>
+                <div style={{display:"flex",flexDirection:"column",gap:2,maxHeight:"56vh",overflowY:"auto",paddingRight:2}}>
                   {[...members].filter(m => { const q=attSearch.trim().toLowerCase(); return !q || fullName(m).toLowerCase().includes(q); }).sort((a,b) => { const ln = a.last_name.localeCompare(b.last_name); return ln !== 0 ? ln : a.first_name.localeCompare(b.first_name); }).map(m => {
                     const isPresent = presentIds.has(m.id);
                     return (
-                      <div key={m.id} className="att-row" onClick={()=>toggle(m.id)}>
+                      <div key={m.id} className="att-row" style={{flexShrink:0}} onClick={()=>toggle(m.id)}>
                         <div className={`check-circle ${isPresent?"checked":""}`}>{isPresent && <Check size={14} color="#fff" />}</div>
                         <Avatar member={m} size={36} />
                         <div style={{flex:1}}>
