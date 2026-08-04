@@ -446,7 +446,7 @@ export default function App() {
           <UncapturedMembersPage members={members} />
         )}
         {tab==="roles" && allowedTabs.includes("roles") && (
-          <RolesPage members={members} onMemberClick={m=>{ setTab("members"); }} />
+          <RolesPage members={members} households={households} profile={profile} setMembers={setMembers} onMemberClick={m=>{ setTab("members"); }} />
         )}
         {tab==="households" && allowedTabs.includes("households") && (
           <HouseholdsPage
@@ -459,7 +459,7 @@ export default function App() {
           <CelebrationsPage members={members} onMemberClick={m=>{ allowedTabs.includes("members") && setTab("members"); }} />
         )}
         {tab==="skills" && allowedTabs.includes("skills") && (
-          <SkillsPage members={members} onMemberClick={m=>{ allowedTabs.includes("members") && setTab("members"); }} />
+          <SkillsPage members={members} households={households} onMemberClick={m=>{ allowedTabs.includes("members") && setTab("members"); }} />
         )}
         {tab==="analytics" && allowedTabs.includes("analytics") && (
           <AnalyticsPage members={members} services={services} attendance={attendance} households={households} setMembers={setMembers} profile={profile} />
