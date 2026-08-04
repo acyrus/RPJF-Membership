@@ -252,6 +252,80 @@ function IndividualAttendance({ members, services, attendance, scope }) {
   );
 }
 
+// Attendance by household: open a family to see a grid of members (rows) x services
+// (columns) with present/absent, plus each member's rate and the household's overall rate.
+function HouseholdAttendance({ households, members, services, attendance }) {
+  const [openId, setOpenId] = useState(null);
+  const membersByHh = useMemo(() => {
+    const map = {};
+    members.forEach(m => { if (m.household_id) (map[m.household_id] = map[m.household_id] || []).push(m); });
+    Object.values(map).forEach(list => list.sort((a, b) => { const ln = a.last_name.localeCompare(b.last_name); return ln !== 0 ? ln : a.first_name.localeCompare(b.first_name); }));
+    return map;
+  }, [members]);
+  const cols = useMemo(() => [...services].sort((a, b) => a.service_date.localeCompare(b.service_date)), [services]);
+  const total = cols.length;
+  const rows = useMemo(() => households
+    .filter(h => (membersByHh[h.id] || []).length)
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .map(h => {
+      const mem = membersByHh[h.id] || [];
+      let present = 0;
+      mem.forEach(m => cols.forEach(s => { if ((attendance[s.id] || []).includes(m.id)) present++; }));
+      const cells = mem.length * total;
+      return { h, mem, rate: cells ? Math.round(present / cells * 100) : 0 };
+    }), [households, membersByHh, cols, attendance, total]);
+
+  if (total === 0) return <div style={{ textAlign: "center", padding: 30, color: "var(--text-faint)", fontSize: 13 }}>No services match the current filters.</div>;
+  if (!rows.length) return <div style={{ textAlign: "center", padding: 30, color: "var(--text-faint)", fontSize: 13 }}>No families with members yet — group members in the Families tab first.</div>;
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      <div style={{ fontSize: 12, color: "var(--text-muted)", lineHeight: 1.6 }}>
+        Open a family to see who attended which service. Columns are the {total} service{total !== 1 ? "s" : ""} in view — narrow the date range or service type above if the grid is very wide.
+      </div>
+      {rows.map(({ h, mem, rate }) => {
+        const open = openId === h.id;
+        return (
+          <div key={h.id} style={{ border: "1px solid var(--border)", borderRadius: 10, overflow: "hidden" }}>
+            <div onClick={() => setOpenId(open ? null : h.id)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", cursor: "pointer", background: "var(--surface)" }}>
+              {open ? <ChevronDown size={15} color="var(--text-muted-navy)" /> : <ChevronRight size={15} color="var(--text-muted-navy)" />}
+              <Home size={15} color="var(--brand)" />
+              <div style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 600, color: "var(--text)" }}>{h.name}</div>
+              <span style={{ fontSize: 12, color: "var(--text-faint)" }}>{mem.length} member{mem.length !== 1 ? "s" : ""}</span>
+              <span style={{ fontSize: 14, fontWeight: 700, color: "var(--brand)", minWidth: 42, textAlign: "right" }}>{rate}%</span>
+            </div>
+            {open && (
+              <div style={{ borderTop: "1px solid var(--border-divider)", overflowX: "auto", background: "var(--surface-alt)" }}>
+                <table style={{ borderCollapse: "collapse", fontSize: 12, width: "100%" }}>
+                  <thead>
+                    <tr>
+                      <th style={{ position: "sticky", left: 0, zIndex: 1, background: "var(--surface-alt)", textAlign: "left", padding: "8px 10px", minWidth: 130, color: "var(--text-faint)", fontWeight: 700 }}>Member</th>
+                      {cols.map(s => <th key={s.id} title={`${s.name} · ${s.service_date.split("-").reverse().join("-")}`} style={{ padding: "8px 6px", color: "var(--text-faint)", fontWeight: 600, whiteSpace: "nowrap", fontSize: 10 }}>{s.service_date.slice(5).split("-").reverse().join("-")}</th>)}
+                      <th style={{ padding: "8px 10px", color: "var(--text-faint)", fontWeight: 700, textAlign: "right" }}>Rate</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {mem.map(m => {
+                      const att = cols.filter(s => (attendance[s.id] || []).includes(m.id)).length;
+                      return (
+                        <tr key={m.id} style={{ borderTop: "1px solid var(--border-divider)" }}>
+                          <td style={{ position: "sticky", left: 0, zIndex: 1, background: "var(--surface)", padding: "6px 10px", fontWeight: 600, color: "var(--text)", whiteSpace: "nowrap" }}>{fullName(m)}</td>
+                          {cols.map(s => { const p = (attendance[s.id] || []).includes(m.id); return <td key={s.id} style={{ textAlign: "center", padding: "6px 5px" }}>{p ? <Check size={13} color="#2a8a50" /> : <X size={12} color="#d05050" />}</td>; })}
+                          <td style={{ textAlign: "right", padding: "6px 10px", fontWeight: 700, color: "var(--brand)" }}>{total ? Math.round(att / total * 100) : 0}%</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function AnalyticsPage({ members, services, attendance, households = [], setMembers = () => {}, profile }) {
   // ── All state hooks first ─────────────────────────────────
   const [quickRange, setQuickRange]     = useState("this_year");
@@ -863,7 +937,7 @@ export default function AnalyticsPage({ members, services, attendance, household
       {activeSection === "attendance" && (
         <div>
           <div style={{display:"flex",gap:4,marginBottom:16}}>
-            {[["overview","Overview"],["bymember","By Member"]].map(([k,label])=>(
+            {[["overview","Overview"],["bymember","By Member"],["byhousehold","By Family"]].map(([k,label])=>(
               <button key={k} onClick={()=>setAttSub(k)} style={{
                 background:attSub===k?TEAL:"var(--surface-alt)",color:attSub===k?"#fff":"var(--text-2)",
                 border:`1.5px solid ${attSub===k?TEAL:"var(--border)"}`,borderRadius:20,cursor:"pointer",
@@ -1122,6 +1196,10 @@ export default function AnalyticsPage({ members, services, attendance, household
 
           {attSub === "bymember" && (
             <IndividualAttendance members={attMembers} services={filteredServices} attendance={attendance} scope={bymemberScope} />
+          )}
+
+          {attSub === "byhousehold" && (
+            <HouseholdAttendance households={households} members={members} services={filteredServices} attendance={attendance} />
           )}
         </div>
       )}
