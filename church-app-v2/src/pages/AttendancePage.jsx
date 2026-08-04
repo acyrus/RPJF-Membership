@@ -339,7 +339,7 @@ export default function AttendancePage({ profile, members, services, setServices
                     <ChevronLeft size={16} /> Back to services
                   </button>
                 )}
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16,flexWrap:"wrap",gap:12}}>
+                <div style={{display:"flex",flexDirection:isMobile?"column":"row",justifyContent:"space-between",alignItems:isMobile?"stretch":"center",marginBottom:16,flexWrap:"wrap",gap:12}}>
                   <div style={{minWidth:0, flex:1}}>
                     <div style={{fontFamily:"'Inter',sans-serif",fontSize:15,color:"var(--text)",fontWeight:600}}>{active?.name}</div>
                     <div style={{fontSize:12,color:"var(--text-faint)",marginTop:2}}>{active?.service_date?.split("-").reverse().join("-")}</div>
@@ -361,7 +361,7 @@ export default function AttendancePage({ profile, members, services, setServices
                       <button onClick={()=>startEditNote(active)} style={{marginTop:6,background:"none",border:"none",color:"var(--brand)",cursor:"pointer",fontSize:12,fontWeight:600,padding:0,display:"inline-flex",alignItems:"center",gap:5}}><Pencil size={12} /> Add a note</button>
                     ) : null}
                   </div>
-                  <div style={{display:"flex",gap:10}}>
+                  <div style={isMobile?{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}:{display:"flex",gap:10}}>
                     <div className="stat-box"><div className="stat-num">{present}</div><div className="stat-label">Present</div></div>
                     <div className="stat-box"><div className="stat-num">{total-present}</div><div className="stat-label">Absent</div></div>
                     <div className="stat-box"><div className="stat-num">{total?Math.round((present/total)*100):0}%</div><div className="stat-label">Rate</div></div>
