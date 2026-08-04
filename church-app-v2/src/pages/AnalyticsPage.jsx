@@ -300,7 +300,12 @@ function HouseholdAttendance({ households, members, services, attendance }) {
                   <thead>
                     <tr>
                       <th style={{ position: "sticky", left: 0, zIndex: 1, background: "var(--surface-alt)", textAlign: "left", padding: "8px 10px", minWidth: 130, color: "var(--text-faint)", fontWeight: 700 }}>Member</th>
-                      {cols.map(s => <th key={s.id} title={`${s.name} · ${s.service_date.split("-").reverse().join("-")}`} style={{ padding: "8px 6px", color: "var(--text-faint)", fontWeight: 600, whiteSpace: "nowrap", fontSize: 10 }}>{s.service_date.slice(5).split("-").reverse().join("-")}</th>)}
+                      {cols.map(s => (
+                        <th key={s.id} style={{ padding: "8px 8px", color: "var(--text-faint)", fontWeight: 600, verticalAlign: "bottom", minWidth: 74 }}>
+                          <div style={{ whiteSpace: "nowrap", fontSize: 10.5, fontWeight: 700, color: "var(--text-2)" }}>{s.service_date.split("-").reverse().join("-")}</div>
+                          <div style={{ fontSize: 9, fontWeight: 500, color: "var(--text-faint)", lineHeight: 1.2, marginTop: 3, maxWidth: 88, whiteSpace: "normal" }}>{s.name}</div>
+                        </th>
+                      ))}
                       <th style={{ padding: "8px 10px", color: "var(--text-faint)", fontWeight: 700, textAlign: "right" }}>Rate</th>
                     </tr>
                   </thead>
