@@ -1,11 +1,11 @@
 import { useMemo, useState } from "react";
-import { Avatar, fullName, SKILLS_LIST } from "../components";
+import { Avatar, fullName, SKILLS_LIST, MultiSelect } from "../components";
 import { Zap, Search } from "lucide-react";
 
 export default function SkillsPage({ members, households = [], onMemberClick }) {
-  const [selectedSkill, setSelectedSkill] = useState("All");
-  const [person, setPerson] = useState("");       // filter members by name
-  const [famFilter, setFamFilter] = useState("all"); // filter members by household
+  const [selectedSkills, setSelectedSkills] = useState([]); // multi-select skills
+  const [person, setPerson] = useState("");                 // filter members by name
+  const [famSelected, setFamSelected] = useState([]);       // multi-select households
 
   const householdById = useMemo(() => Object.fromEntries(households.map(h => [h.id, h.name])), [households]);
   const sortedHouseholds = useMemo(() => [...households].sort((a, b) => a.name.localeCompare(b.name)), [households]);
@@ -35,16 +35,16 @@ export default function SkillsPage({ members, households = [], onMemberClick }) 
 
   // Person / family filters narrow the members shown inside each card.
   const pq = person.trim().toLowerCase();
-  const memberFilterActive = !!pq || famFilter !== "all";
+  const memberFilterActive = !!pq || famSelected.length > 0;
   const matchMember = (m) =>
     (!pq || fullName(m).toLowerCase().includes(pq)) &&
-    (famFilter === "all" || m.household_id === famFilter);
+    (famSelected.length === 0 || famSelected.includes(m.household_id));
 
   const visibleSkills = useMemo(() => {
-    const base = selectedSkill === "All" ? skillsInUse : skillsInUse.filter(s => s === selectedSkill);
+    const base = selectedSkills.length === 0 ? skillsInUse : skillsInUse.filter(s => selectedSkills.includes(s));
     if (!memberFilterActive) return base;
     return base.filter(s => (skillMap[s] || []).some(matchMember));
-  }, [skillsInUse, selectedSkill, memberFilterActive, skillMap, pq, famFilter]);
+  }, [skillsInUse, selectedSkills, memberFilterActive, skillMap, pq, famSelected]);
 
   const totalWithSkills = useMemo(() => {
     return members.filter(m => m.skill1 || m.skill2 || m.skill3).length;
@@ -58,20 +58,16 @@ export default function SkillsPage({ members, households = [], onMemberClick }) 
           <div style={{fontSize:12, color:"var(--text-faint)", marginTop:3}}>{totalWithSkills} of {members.length} members have skills recorded · {skillsInUse.length} skill{skillsInUse.length!==1?"s":""} in use</div>
         </div>
         <div style={{display:"flex", gap:8, flexWrap:"wrap", alignItems:"center"}}>
-          <select value={selectedSkill} onChange={e=>setSelectedSkill(e.target.value)} style={{width:200, fontWeight:500, fontSize:12}}>
-            <option value="All">All Skills ({skillsInUse.length})</option>
-            {skillsInUse.map(s => (
-              <option key={s} value={s}>{s} ({skillMap[s].length})</option>
-            ))}
-          </select>
+          <MultiSelect label="All skills" width={190}
+            options={skillsInUse.map(s => ({ value: s, label: `${s} (${skillMap[s].length})` }))}
+            selected={selectedSkills} onChange={setSelectedSkills} />
           <div style={{position:"relative"}}>
             <Search size={13} style={{position:"absolute", left:9, top:"50%", transform:"translateY(-50%)", color:"var(--text-faint)"}} />
             <input placeholder="Search person…" value={person} onChange={e=>setPerson(e.target.value)} style={{width:160, paddingLeft:28, fontSize:12}} />
           </div>
-          <select value={famFilter} onChange={e=>setFamFilter(e.target.value)} title="Filter by family" style={{width:160, fontSize:12}}>
-            <option value="all">All families</option>
-            {sortedHouseholds.map(h=><option key={h.id} value={h.id}>{h.name}</option>)}
-          </select>
+          <MultiSelect label="All families" width={160}
+            options={sortedHouseholds.map(h => ({ value: h.id, label: h.name }))}
+            selected={famSelected} onChange={setFamSelected} />
         </div>
       </div>
 
@@ -79,7 +75,7 @@ export default function SkillsPage({ members, households = [], onMemberClick }) 
         <div style={{textAlign:"center", padding:"48px 20px", color:"var(--border-strong)"}}>
           <div style={{marginBottom:12, display:"flex", justifyContent:"center"}}><Zap size={36} color="#8a96b8" /></div>
           <div style={{fontWeight:600, color:"var(--text-muted)", marginBottom:6}}>
-            {memberFilterActive || selectedSkill !== "All" ? "No skills match those filters" : "No skills recorded yet"}
+            {memberFilterActive || selectedSkills.length > 0 ? "No skills match those filters" : "No skills recorded yet"}
           </div>
           <div style={{fontSize:12}}>{memberFilterActive ? "Try clearing the person or family filter." : "Add skills to members in the Members tab."}</div>
         </div>

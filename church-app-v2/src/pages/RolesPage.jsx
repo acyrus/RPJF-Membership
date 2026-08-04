@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Avatar, ROLES, ROLE_COLORS, fullName } from "../components";
+import { Avatar, ROLES, ROLE_COLORS, fullName, MultiSelect } from "../components";
 import { supabase } from "../supabase";
 import { Search, ChevronDown } from "lucide-react";
 
@@ -12,9 +12,9 @@ function getInstruments(m) {
 
 export default function RolesPage({ members, households = [], profile, setMembers = () => {}, onMemberClick }) {
   const isAdmin = profile?.role === "admin";
-  const [ministryFilter, setMinistryFilter] = useState("All");
+  const [ministrySelected, setMinistrySelected] = useState([]);
   const [person, setPerson] = useState("");
-  const [famFilter, setFamFilter] = useState("all");
+  const [famSelected, setFamSelected] = useState([]);
   const [posEdit, setPosEdit] = useState(null); // { memberId, role } popover being edited
   const [err, setErr] = useState("");
 
@@ -25,12 +25,12 @@ export default function RolesPage({ members, households = [], profile, setMember
   const totalInvolved = members.filter(m => (m.roles || []).length > 0).length;
 
   const pq = person.trim().toLowerCase();
-  const memberFilterActive = !!pq || famFilter !== "all";
+  const memberFilterActive = !!pq || famSelected.length > 0;
   const matchMember = (m) =>
     (!pq || fullName(m).toLowerCase().includes(pq)) &&
-    (famFilter === "all" || m.household_id === famFilter);
+    (famSelected.length === 0 || famSelected.includes(m.household_id));
 
-  const rolesToShow = ministryFilter === "All" ? ROLES : ROLES.filter(r => r === ministryFilter);
+  const rolesToShow = ministrySelected.length === 0 ? ROLES : ROLES.filter(r => ministrySelected.includes(r));
 
   async function savePosition(memberId, role, newPos) {
     const val = newPos || null;
@@ -59,18 +59,16 @@ export default function RolesPage({ members, households = [], profile, setMember
       </div>
 
       <div style={{display:"flex",gap:8,flexWrap:"wrap",alignItems:"center",marginBottom:18}}>
-        <select value={ministryFilter} onChange={e=>setMinistryFilter(e.target.value)} style={{width:190,fontSize:12,fontWeight:500}}>
-          <option value="All">All ministries</option>
-          {ROLES.map(r=><option key={r} value={r}>{r}</option>)}
-        </select>
+        <MultiSelect label="All ministries" width={190}
+          options={ROLES.map(r => ({ value: r, label: r }))}
+          selected={ministrySelected} onChange={setMinistrySelected} />
         <div style={{position:"relative"}}>
           <Search size={13} style={{position:"absolute",left:9,top:"50%",transform:"translateY(-50%)",color:"var(--text-faint)"}} />
           <input placeholder="Search person…" value={person} onChange={e=>setPerson(e.target.value)} style={{width:160,paddingLeft:28,fontSize:12}} />
         </div>
-        <select value={famFilter} onChange={e=>setFamFilter(e.target.value)} title="Filter by family" style={{width:160,fontSize:12}}>
-          <option value="all">All families</option>
-          {sortedHouseholds.map(h=><option key={h.id} value={h.id}>{h.name}</option>)}
-        </select>
+        <MultiSelect label="All families" width={160}
+          options={sortedHouseholds.map(h => ({ value: h.id, label: h.name }))}
+          selected={famSelected} onChange={setFamSelected} />
       </div>
 
       {err && <div className="error-msg" style={{marginBottom:12}}>{err}</div>}
