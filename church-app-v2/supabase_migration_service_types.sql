@@ -23,6 +23,9 @@ create policy "service_types_select" on service_types for select to authenticate
 drop policy if exists "service_types_insert" on service_types;
 create policy "service_types_insert" on service_types for insert to authenticated with check (get_my_role() = 'admin');
 
+drop policy if exists "service_types_update" on service_types;
+create policy "service_types_update" on service_types for update to authenticated using (get_my_role() = 'admin') with check (get_my_role() = 'admin');
+
 drop policy if exists "service_types_delete" on service_types;
 create policy "service_types_delete" on service_types for delete to authenticated using (get_my_role() = 'admin');
 

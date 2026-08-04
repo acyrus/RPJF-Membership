@@ -52,6 +52,8 @@ export default function AttendancePage({ profile, members, households = [], serv
   const [typesReady, setTypesReady] = useState(false);     // service_types table present + loaded
   const [showTypes, setShowTypes] = useState(false);
   const [newTypeName, setNewTypeName] = useState("");
+  const [editTypeId, setEditTypeId] = useState(null);      // service type being renamed
+  const [editTypeName, setEditTypeName] = useState("");
   const [editingNote, setEditingNote] = useState(false);
   const [noteDraft, setNoteDraft] = useState("");
   const [savingNote, setSavingNote] = useState(false);
@@ -89,6 +91,21 @@ export default function AttendancePage({ profile, members, households = [], serv
     const { error } = await supabase.from("service_types").delete().eq("id", id);
     if (error) { setError(error.message); return; }
     setServiceTypes(prev => prev.filter(t => t.id !== id));
+  }
+  function startRename(t) { setEditTypeId(t.id); setEditTypeName(t.name); setError(""); }
+  async function renameType(id) {
+    const cur = serviceTypes.find(t => t.id === id);
+    const newName = editTypeName.trim();
+    if (!cur || !newName || newName === cur.name) { setEditTypeId(null); return; }
+    if (serviceTypes.some(t => t.id !== id && t.name.toLowerCase() === newName.toLowerCase())) { setError("A type with that name already exists."); return; }
+    const oldName = cur.name;
+    const { error } = await supabase.from("service_types").update({ name: newName }).eq("id", id);
+    if (error) { setError(error.message); return; }
+    // Rename existing services under the old name too, so history and analytics stay grouped.
+    await supabase.from("services").update({ name: newName }).eq("name", oldName);
+    setServiceTypes(prev => prev.map(t => t.id === id ? { ...t, name: newName } : t).sort((a, b) => a.name.localeCompare(b.name)));
+    setServices(prev => prev.map(s => s.name === oldName ? { ...s, name: newName } : s));
+    setEditTypeId(null); setEditTypeName("");
   }
 
   // Filter services by type / year / month / exact date
@@ -462,8 +479,9 @@ export default function AttendancePage({ profile, members, households = [], serv
           <div className="modal fade-in" onClick={e=>e.stopPropagation()} style={{maxWidth:440}}>
             <h2>SERVICE TYPES</h2>
             <div style={{fontSize:12,color:"var(--text-muted)",marginBottom:14,lineHeight:1.6}}>
-              Create or remove the service types shown when adding a service. Removing one only takes
-              it off the picker; services already recorded under it keep their name.
+              Create, rename, or remove the service types shown when adding a service. Renaming one
+              also updates every service already recorded under that name, so history stays grouped.
+              Removing one only takes it off the picker; services keep their name.
             </div>
             <div style={{display:"flex",gap:8,marginBottom:14}}>
               <input placeholder="New type, e.g. Prayer Meeting" value={newTypeName} onChange={e=>setNewTypeName(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")addType();}} />
@@ -473,8 +491,19 @@ export default function AttendancePage({ profile, members, households = [], serv
               {serviceTypes.length===0 && <div style={{fontSize:12,color:"var(--text-faint)",textAlign:"center",padding:16}}>No types yet — add one above.</div>}
               {serviceTypes.map(t=>(
                 <div key={t.id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8,padding:"8px 10px",border:"1px solid var(--border)",borderRadius:8}}>
-                  <span style={{fontSize:13,fontWeight:600,color:"var(--text)"}}>{t.name}</span>
-                  <button onClick={()=>removeType(t.id)} title="Remove type" style={{background:"none",border:"1px solid var(--danger-border)",borderRadius:6,color:"var(--danger)",cursor:"pointer",padding:"3px 8px"}}><X size={13}/></button>
+                  {editTypeId===t.id ? (
+                    <>
+                      <input autoFocus value={editTypeName} onChange={e=>setEditTypeName(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")renameType(t.id);if(e.key==="Escape")setEditTypeId(null);}} style={{flex:1,fontSize:13}} />
+                      <button onClick={()=>renameType(t.id)} title="Save name" style={{background:"none",border:"1px solid var(--brand)",borderRadius:6,color:"var(--brand)",cursor:"pointer",padding:"3px 8px"}}><Check size={13}/></button>
+                      <button onClick={()=>setEditTypeId(null)} title="Cancel" style={{background:"none",border:"1px solid var(--border)",borderRadius:6,color:"var(--text-faint)",cursor:"pointer",padding:"3px 8px"}}><X size={13}/></button>
+                    </>
+                  ) : (
+                    <>
+                      <span style={{flex:1,minWidth:0,fontSize:13,fontWeight:600,color:"var(--text)"}}>{t.name}</span>
+                      <button onClick={()=>startRename(t)} title="Rename type" style={{background:"none",border:"1px solid var(--border)",borderRadius:6,color:"var(--text-muted)",cursor:"pointer",padding:"3px 8px"}}><Pencil size={12}/></button>
+                      <button onClick={()=>removeType(t.id)} title="Remove type" style={{background:"none",border:"1px solid var(--danger-border)",borderRadius:6,color:"var(--danger)",cursor:"pointer",padding:"3px 8px"}}><X size={13}/></button>
+                    </>
+                  )}
                 </div>
               ))}
             </div>
