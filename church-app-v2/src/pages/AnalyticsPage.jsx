@@ -4,7 +4,8 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
 } from "recharts";
 import { ROLES, TRINIDAD_CITIES, calcAge, fullName, Avatar } from "../components";
-import { Search, Home, Check, X, ChevronDown, ChevronRight, ArrowUpDown } from "lucide-react";
+import { supabase } from "../supabase";
+import { Search, Home, Check, X, ChevronDown, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown, UserMinus } from "lucide-react";
 
 const TEAL      = "#2a5357";
 const TURQUOISE = "#5edcd1";
@@ -158,7 +159,8 @@ function MemberPicker({ members, selectedIds, onChange }) {
 // Per-member attendance across the filtered sessions: expand a person to see each
 // session with a present tick / absent X; right side shows attended, missed, rate.
 function IndividualAttendance({ members, services, attendance, scope }) {
-  const [sort, setSort] = useState("name");   // "name" | "rate"
+  const [sort, setSort] = useState("name");   // name | attended | missed | rate
+  const [dir, setDir] = useState("desc");     // asc | desc
   const [q, setQ] = useState("");
   const [openId, setOpenId] = useState(null);
   const total = services.length;
@@ -171,10 +173,11 @@ function IndividualAttendance({ members, services, attendance, scope }) {
         const attended = services.reduce((n, s) => n + ((attendance[s.id] || []).includes(m.id) ? 1 : 0), 0);
         return { m, attended, missed: total - attended, pct: total ? Math.round(attended / total * 100) : 0 };
       });
-    if (sort === "rate") r.sort((a, b) => b.pct - a.pct || a.m.last_name.localeCompare(b.m.last_name));
-    else r.sort((a, b) => { const ln = a.m.last_name.localeCompare(b.m.last_name); return ln !== 0 ? ln : a.m.first_name.localeCompare(b.m.first_name); });
+    const byName = (a, b) => { const ln = a.m.last_name.localeCompare(b.m.last_name); return ln !== 0 ? ln : a.m.first_name.localeCompare(b.m.first_name); };
+    const asc = ({ name: byName, attended: (a, b) => a.attended - b.attended, missed: (a, b) => a.missed - b.missed, rate: (a, b) => a.pct - b.pct })[sort] || byName;
+    r.sort((a, b) => (dir === "asc" ? asc(a, b) : -asc(a, b)) || byName(a, b));
     return r;
-  }, [members, services, attendance, sort, q, total]);
+  }, [members, services, attendance, sort, dir, q, total]);
 
   const orderedServices = useMemo(() => [...services].sort((a, b) => b.service_date.localeCompare(a.service_date)), [services]);
 
@@ -188,10 +191,22 @@ function IndividualAttendance({ members, services, attendance, scope }) {
           {scope && <div style={{ fontSize: 11.5, color: "var(--brand)", fontWeight: 600, marginTop: 3 }}>{scope}</div>}
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-          <button onClick={() => setSort(s => s === "rate" ? "name" : "rate")}
-            style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 600, padding: "6px 12px", borderRadius: 20, cursor: "pointer", background: sort === "rate" ? "var(--brand)" : "var(--surface-alt)", color: sort === "rate" ? "var(--brand-contrast)" : "var(--text-2)", border: `1.5px solid ${sort === "rate" ? "var(--brand)" : "var(--border)"}` }}>
-            <ArrowUpDown size={13} /> Sort: {sort === "rate" ? "Attendance rate" : "Name"}
-          </button>
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+            <ArrowUpDown size={13} color="var(--text-faint)" />
+            <select value={sort} onChange={e => setSort(e.target.value)} title="Sort the list"
+              style={{ fontSize: 12, fontWeight: 600, padding: "6px 8px", width: "auto" }}>
+              <option value="name">Sort: Name</option>
+              <option value="attended">Sort: Attended</option>
+              <option value="missed">Sort: Missed</option>
+              <option value="rate">Sort: Rate</option>
+            </select>
+            <button onClick={() => setDir(d => d === "desc" ? "asc" : "desc")}
+              title={dir === "desc" ? "Descending (high to low)" : "Ascending (low to high)"}
+              aria-label={dir === "desc" ? "Descending" : "Ascending"}
+              style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", padding: "6px 8px", borderRadius: 8, cursor: "pointer", background: "var(--surface-alt)", color: "var(--text-2)", border: "1.5px solid var(--border)" }}>
+              {dir === "desc" ? <ArrowDown size={14} /> : <ArrowUp size={14} />}
+            </button>
+          </div>
           <div style={{ position: "relative" }}>
             <Search size={13} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "var(--text-faint)" }} />
             <input placeholder="Search a person…" value={q} onChange={e => setQ(e.target.value)} style={{ width: 200, paddingLeft: 30, fontSize: 12 }} />
@@ -237,7 +252,86 @@ function IndividualAttendance({ members, services, attendance, scope }) {
   );
 }
 
-export default function AnalyticsPage({ members, services, attendance, households = [] }) {
+// Attendance by household: open a family to see a grid of members (rows) x services
+// (columns) with present/absent, plus each member's rate and the household's overall rate.
+function HouseholdAttendance({ households, members, services, attendance }) {
+  const [openId, setOpenId] = useState(null);
+  const membersByHh = useMemo(() => {
+    const map = {};
+    members.forEach(m => { if (m.household_id) (map[m.household_id] = map[m.household_id] || []).push(m); });
+    Object.values(map).forEach(list => list.sort((a, b) => { const ln = a.last_name.localeCompare(b.last_name); return ln !== 0 ? ln : a.first_name.localeCompare(b.first_name); }));
+    return map;
+  }, [members]);
+  const cols = useMemo(() => [...services].sort((a, b) => a.service_date.localeCompare(b.service_date)), [services]);
+  const total = cols.length;
+  const rows = useMemo(() => households
+    .filter(h => (membersByHh[h.id] || []).length)
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .map(h => {
+      const mem = membersByHh[h.id] || [];
+      let present = 0;
+      mem.forEach(m => cols.forEach(s => { if ((attendance[s.id] || []).includes(m.id)) present++; }));
+      const cells = mem.length * total;
+      return { h, mem, rate: cells ? Math.round(present / cells * 100) : 0 };
+    }), [households, membersByHh, cols, attendance, total]);
+
+  if (total === 0) return <div style={{ textAlign: "center", padding: 30, color: "var(--text-faint)", fontSize: 13 }}>No services match the current filters.</div>;
+  if (!rows.length) return <div style={{ textAlign: "center", padding: 30, color: "var(--text-faint)", fontSize: 13 }}>No families with members yet — group members in the Families tab first.</div>;
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      <div style={{ fontSize: 12, color: "var(--text-muted)", lineHeight: 1.6 }}>
+        Open a family to see who attended which service. Columns are the {total} service{total !== 1 ? "s" : ""} in view — narrow the date range or service type above if the grid is very wide.
+      </div>
+      {rows.map(({ h, mem, rate }) => {
+        const open = openId === h.id;
+        return (
+          <div key={h.id} style={{ border: "1px solid var(--border)", borderRadius: 10, overflow: "hidden" }}>
+            <div onClick={() => setOpenId(open ? null : h.id)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", cursor: "pointer", background: "var(--surface)" }}>
+              {open ? <ChevronDown size={15} color="var(--text-muted-navy)" /> : <ChevronRight size={15} color="var(--text-muted-navy)" />}
+              <Home size={15} color="var(--brand)" />
+              <div style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 600, color: "var(--text)" }}>{h.name}</div>
+              <span style={{ fontSize: 12, color: "var(--text-faint)" }}>{mem.length} member{mem.length !== 1 ? "s" : ""}</span>
+              <span style={{ fontSize: 14, fontWeight: 700, color: "var(--brand)", minWidth: 42, textAlign: "right" }}>{rate}%</span>
+            </div>
+            {open && (
+              <div style={{ borderTop: "1px solid var(--border-divider)", overflowX: "auto", background: "var(--surface-alt)" }}>
+                <table style={{ borderCollapse: "collapse", fontSize: 12, width: "100%" }}>
+                  <thead>
+                    <tr>
+                      <th style={{ position: "sticky", left: 0, zIndex: 1, background: "var(--surface-alt)", textAlign: "left", padding: "8px 10px", minWidth: 130, color: "var(--text-faint)", fontWeight: 700 }}>Member</th>
+                      {cols.map(s => (
+                        <th key={s.id} style={{ padding: "8px 8px", color: "var(--text-faint)", fontWeight: 600, verticalAlign: "bottom", minWidth: 74 }}>
+                          <div style={{ whiteSpace: "nowrap", fontSize: 10.5, fontWeight: 700, color: "var(--text-2)" }}>{(() => { const [y, m, d] = s.service_date.split("-"); return `${d}-${m}-${y.slice(2)}`; })()}</div>
+                          <div style={{ fontSize: 9, fontWeight: 500, color: "var(--text-faint)", lineHeight: 1.2, marginTop: 3, maxWidth: 88, whiteSpace: "normal" }}>{s.name}</div>
+                        </th>
+                      ))}
+                      <th style={{ padding: "8px 10px", color: "var(--text-faint)", fontWeight: 700, textAlign: "right" }}>Rate</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {mem.map(m => {
+                      const att = cols.filter(s => (attendance[s.id] || []).includes(m.id)).length;
+                      return (
+                        <tr key={m.id} style={{ borderTop: "1px solid var(--border-divider)" }}>
+                          <td style={{ position: "sticky", left: 0, zIndex: 1, background: "var(--surface)", padding: "6px 10px", fontWeight: 600, color: "var(--text)", whiteSpace: "nowrap" }}>{fullName(m)}</td>
+                          {cols.map(s => { const p = (attendance[s.id] || []).includes(m.id); return <td key={s.id} style={{ textAlign: "center", padding: "6px 5px" }}>{p ? <Check size={13} color="#2a8a50" /> : <X size={12} color="#d05050" />}</td>; })}
+                          <td style={{ textAlign: "right", padding: "6px 10px", fontWeight: 700, color: "var(--brand)" }}>{total ? Math.round(att / total * 100) : 0}%</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+export default function AnalyticsPage({ members, services, attendance, households = [], setMembers = () => {}, profile }) {
   // ── All state hooks first ─────────────────────────────────
   const [quickRange, setQuickRange]     = useState("this_year");
   const [customFrom, setCustomFrom]     = useState("");
@@ -252,6 +346,7 @@ export default function AnalyticsPage({ members, services, attendance, household
   const [activeSection, setActiveSection] = useState("attendance");
   const [attSub, setAttSub] = useState("overview"); // attendance sub-tab: "overview" | "bymember"
   const [svcTypeAxis, setSvcTypeAxis] = useState("month"); // service-type chart x-axis: "month" | "date"
+  const [savingInactive, setSavingInactive] = useState(null); // member id being marked inactive
 
   // ── All useMemo hooks in dependency order ─────────────────
 
@@ -618,6 +713,31 @@ export default function AnalyticsPage({ members, services, attendance, household
     return out.sort((a,b)=>a.lastSeen.localeCompare(b.lastSeen)).slice(0,20);
   }, [filteredServices, attendance, filteredMembers]);
 
+  // 20b. Inactive candidates — still marked active, but haven't attended any service in 90+ days
+  // after having attended before. Measured against today (independent of the analytics filters).
+  const inactiveCandidates = useMemo(() => {
+    const lastByMember = {};
+    services.forEach(s => (attendance[s.id]||[]).forEach(id => {
+      if (!lastByMember[id] || s.service_date > lastByMember[id]) lastByMember[id] = s.service_date;
+    }));
+    const cutoff = new Date(); cutoff.setDate(cutoff.getDate()-90);
+    const cutoffStr = cutoff.toISOString().slice(0,10);
+    const today = new Date();
+    return members
+      .filter(m => m.is_active !== false)
+      .map(m => ({ m, lastSeen: lastByMember[m.id] }))
+      .filter(x => x.lastSeen && x.lastSeen < cutoffStr)
+      .map(x => ({ ...x, daysAgo: Math.round((today - new Date(x.lastSeen + "T12:00:00")) / 86400000) }))
+      .sort((a, b) => a.lastSeen.localeCompare(b.lastSeen));
+  }, [members, services, attendance]);
+
+  async function markInactive(id) {
+    setSavingInactive(id);
+    const { error } = await supabase.from("members").update({ is_active: false }).eq("id", id);
+    setSavingInactive(null);
+    if (!error) setMembers(prev => prev.map(m => m.id === id ? { ...m, is_active: false } : m));
+  }
+
   // 21. First-timer retention — based on ALL recorded services so "first time" is truly first
   const firstTimerRetention = useMemo(() => {
     const attDates = {};
@@ -822,7 +942,7 @@ export default function AnalyticsPage({ members, services, attendance, household
       {activeSection === "attendance" && (
         <div>
           <div style={{display:"flex",gap:4,marginBottom:16}}>
-            {[["overview","Overview"],["bymember","By Member"]].map(([k,label])=>(
+            {[["overview","Overview"],["bymember","By Member"],["byhousehold","By Family"]].map(([k,label])=>(
               <button key={k} onClick={()=>setAttSub(k)} style={{
                 background:attSub===k?TEAL:"var(--surface-alt)",color:attSub===k?"#fff":"var(--text-2)",
                 border:`1.5px solid ${attSub===k?TEAL:"var(--border)"}`,borderRadius:20,cursor:"pointer",
@@ -1002,7 +1122,13 @@ export default function AnalyticsPage({ members, services, attendance, household
           </div>
 
           <SectionTitle>Slipping Away</SectionTitle>
-          <ChartCard title="Members Who've Gone Quiet" subtitle="Previously regular members with no attendance in the last 28 days, a pastoral-care follow-up list">
+          <div style={{fontSize:12,color:"var(--text-muted)",lineHeight:1.6,marginBottom:12}}>
+            <strong>How this works:</strong> among the members and services currently in view, this
+            lists anyone who had attended at least twice but hasn't come to any service in the last
+            28 days (measured from the most recent service in view). New or one-time visitors never
+            appear — it needs a prior pattern to lapse from. It's a pastoral-care follow-up list.
+          </div>
+          <ChartCard title="Members Who've Gone Quiet" subtitle="Previously regular members with no attendance in the last 28 days">
             {slippingAway.length === 0
               ? <div style={{textAlign:"center",padding:24,color:"var(--text-faint)",fontSize:12}}>No one is slipping away in this period</div>
               : <div style={{maxHeight:280,overflowY:"auto"}}>
@@ -1018,6 +1144,36 @@ export default function AnalyticsPage({ members, services, attendance, household
                       </div>
                     );
                   })}
+                </div>
+            }
+          </ChartCard>
+
+          <SectionTitle>Inactive Candidates</SectionTitle>
+          <div style={{fontSize:12,color:"var(--text-muted)",lineHeight:1.6,marginBottom:12}}>
+            Members still marked active who attended before but haven't been to any service in 90+
+            days (measured from today, across all services). Mark someone inactive with one click.
+          </div>
+          <ChartCard title="Not seen in 90+ days" subtitle={`${inactiveCandidates.length} active member${inactiveCandidates.length!==1?"s":""} may be inactive`}>
+            {inactiveCandidates.length === 0
+              ? <div style={{textAlign:"center",padding:24,color:"var(--text-faint)",fontSize:12}}>No active members are 90+ days lapsed</div>
+              : <div style={{maxHeight:320,overflowY:"auto"}}>
+                  {inactiveCandidates.map(({m,lastSeen,daysAgo},i) => (
+                    <div key={m.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:10,padding:"8px 0",borderBottom:i<inactiveCandidates.length-1?"1px solid var(--border-divider)":"none"}}>
+                      <div style={{display:"flex",alignItems:"center",gap:10,minWidth:0}}>
+                        <Avatar member={m} size={30} />
+                        <div style={{minWidth:0}}>
+                          <div style={{fontSize:13,fontWeight:600,color:"var(--text)"}}>{fullName(m)}</div>
+                          <div style={{fontSize:11,color:"var(--text-faint)"}}>last seen {lastSeen.split("-").reverse().join("-")} · {daysAgo} days ago</div>
+                        </div>
+                      </div>
+                      {profile?.role === "admin" && (
+                        <button onClick={()=>markInactive(m.id)} disabled={savingInactive===m.id}
+                          style={{flexShrink:0,display:"inline-flex",alignItems:"center",gap:5,fontSize:11,fontWeight:600,padding:"5px 10px",borderRadius:8,cursor:"pointer",background:"var(--danger-bg)",color:"var(--danger)",border:"1px solid var(--danger-border)"}}>
+                          <UserMinus size={13}/> {savingInactive===m.id?"Saving…":"Mark inactive"}
+                        </button>
+                      )}
+                    </div>
+                  ))}
                 </div>
             }
           </ChartCard>
@@ -1045,6 +1201,10 @@ export default function AnalyticsPage({ members, services, attendance, household
 
           {attSub === "bymember" && (
             <IndividualAttendance members={attMembers} services={filteredServices} attendance={attendance} scope={bymemberScope} />
+          )}
+
+          {attSub === "byhousehold" && (
+            <HouseholdAttendance households={households} members={members} services={filteredServices} attendance={attendance} />
           )}
         </div>
       )}

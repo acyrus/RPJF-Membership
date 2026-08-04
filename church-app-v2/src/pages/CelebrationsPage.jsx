@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Avatar, fullName, daysUntilNext, formatShortDate } from "../components";
-import { Cake, Heart, CalendarDays } from "lucide-react";
+import { Cake, Gem, CalendarDays } from "lucide-react";
 
 function ordinal(n) {
   const s = ["th","st","nd","rd"], v = n%100;
@@ -55,7 +55,7 @@ function EventRow({ member, partner, date, type, past, onMemberClick }) {
   const days = daysUntilNext(date);
   const years = calcYears(date);
   const typeColor = type === "birthday" ? "#2a5357" : "#e07830";
-  const typeIcon = type === "birthday" ? <Cake size={13} color="#e07830" /> : <Heart size={13} color="#d060a0" />;
+  const typeIcon = type === "birthday" ? <Cake size={13} color="#e07830" /> : <Gem size={13} color="#d060a0" />;
   const isToday = days === 0;
   const isSoon = !past && days <= 7;
 
@@ -79,7 +79,7 @@ function EventRow({ member, partner, date, type, past, onMemberClick }) {
     onMouseEnter={e=>e.currentTarget.style.background=typeColor+"08"}
     onMouseLeave={e=>e.currentTarget.style.background=isToday?typeColor+"0a":"var(--surface)"}>
       <Avatar member={member} size={38} />
-      <div style={{flex:1}}>
+      <div style={{flex:1, minWidth:0}}>
         <div style={{fontWeight:700, fontSize:14, color:"var(--text)"}}>{partner ? `${fullName(member)} & ${fullName(partner)}` : fullName(member)}</div>
         <div style={{fontSize:12, color:"var(--text-muted)", marginTop:2, display:"flex", alignItems:"center", gap:5}}>
           {typeIcon} {formatShortDate(date)}
@@ -182,10 +182,10 @@ export default function CelebrationsPage({ members, onMemberClick }) {
       </div>
 
       {/* Main sub tabs: Birthdays / Anniversaries */}
-      <div style={{display:"flex", gap:4, marginBottom:0, borderBottom:"1.5px solid var(--border-navy)"}}>
+      <div style={{display:"flex", gap:4, marginBottom:0, borderBottom:"1.5px solid var(--border-navy)", flexWrap:"wrap"}}>
         {[
           { key:"birthdays", icon:<Cake size={15} />, label:"Birthdays", count: thisMonthCount },
-          { key:"anniversaries", icon:<Heart size={15} />, label:"Anniversaries",
+          { key:"anniversaries", icon:<Gem size={15} />, label:"Anniversaries",
             count: members.filter(m => m.anniversary && m.is_active !== false && new Date(m.anniversary+"T00:00:00").getUTCMonth() === currentMonth).length },
         ].map(t => (
           <button key={t.key} onClick={()=>setSubtab(t.key)} style={{
@@ -201,7 +201,7 @@ export default function CelebrationsPage({ members, onMemberClick }) {
               border: subtab===t.key?"1.5px solid #2a535744":"1.5px solid var(--border-navy)",
               color: subtab===t.key?"#2a5357":"#8a96b8",
               borderRadius:20, padding:"1px 8px", fontSize:12, fontWeight:700,
-            }}>{t.count} this month</span>
+            }}>{t.count}</span>
           </button>
         ))}
       </div>
@@ -226,7 +226,7 @@ export default function CelebrationsPage({ members, onMemberClick }) {
         <div>
           {upcomingTotal === 0 ? (
             <div style={{textAlign:"center",padding:"48px 20px",color:"var(--border-strong)"}}>
-              <div style={{fontSize:36,marginBottom:12}}>{subtab==="birthdays"?<Cake size={36} color="#8a96b8" />:<Heart size={36} color="#8a96b8" />}</div>
+              <div style={{fontSize:36,marginBottom:12}}>{subtab==="birthdays"?<Cake size={36} color="#8a96b8" />:<Gem size={36} color="#8a96b8" />}</div>
               <div style={{fontWeight:600,color:"var(--text-muted)",marginBottom:6}}>No upcoming {subtab} for the rest of this year</div>
             </div>
           ) : (

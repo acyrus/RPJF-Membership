@@ -437,7 +437,7 @@ export default function App() {
         )}
         {tab==="attendance" && allowedTabs.includes("attendance") && (
           <AttendancePage
-            profile={profile} members={members}
+            profile={profile} members={members} households={households}
             services={services} setServices={setServices}
             attendance={attendance} setAttendance={setAttendance}
           />
@@ -462,7 +462,7 @@ export default function App() {
           <SkillsPage members={members} onMemberClick={m=>{ allowedTabs.includes("members") && setTab("members"); }} />
         )}
         {tab==="analytics" && allowedTabs.includes("analytics") && (
-          <AnalyticsPage members={members} services={services} attendance={attendance} households={households} />
+          <AnalyticsPage members={members} services={services} attendance={attendance} households={households} setMembers={setMembers} profile={profile} />
         )}
         {/* These four were gated on isAdmin while every other tab checks allowedTabs.
             That made the nav and the page disagree: an usher given Photos saw the tab

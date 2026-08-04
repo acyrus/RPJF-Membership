@@ -660,9 +660,9 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
     const cell = v => { const s = String(v ?? ""); return /[",\n]/.test(s) ? `"${s.replace(/"/g,'""')}"` : s; };
     const lines = ["section,first_name,last_name,detail"];
     rosterCheck.missingFromApp.forEach(r =>
-      lines.push(["On roster - not in app", r.first, r.last, r.near.length ? `possible match: ${r.near.map(fullName).join(" / ")}` : ""].map(cell).join(",")));
+      lines.push(["On list - not in app", r.first, r.last, r.near.length ? `possible match: ${r.near.map(fullName).join(" / ")}` : ""].map(cell).join(",")));
     rosterCheck.notOnRoster.forEach(m =>
-      lines.push(["In app - not on roster", m.first_name, m.last_name, m.is_active === false ? "inactive" : ""].map(cell).join(",")));
+      lines.push(["In app - not on list", m.first_name, m.last_name, m.is_active === false ? "inactive" : ""].map(cell).join(",")));
     noPhoto.forEach(m =>
       lines.push(["No photo", m.first_name, m.last_name, ""].map(cell).join(",")));
     const stamp = new Date().toISOString().slice(0,10);
@@ -854,7 +854,7 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
 
       {/* Tabs */}
       <div style={{display:"flex", gap:4, marginBottom:24, borderBottom:"1.5px solid var(--border-navy)"}}>
-        {[["members","Import Members"],["attendance","Import Attendance"],["roster","Roster Check"]].map(([key,label])=>(
+        {[["members","Import Members"],["attendance","Import Attendance"],["roster","Uncaptured Members"]].map(([key,label])=>(
           <button key={key} onClick={()=>setActiveTab(key)} style={{
             background:"none", border:"none", cursor:"pointer", fontFamily:"'Inter',sans-serif",
             fontSize:14, fontWeight:600, padding:"10px 18px",
@@ -1128,7 +1128,7 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
       {activeTab === "roster" && (
         <div>
           <div className="card" style={{padding:20, marginBottom:16}}>
-            <div style={{fontWeight:700, fontSize:14, color:"var(--text)", marginBottom:4}}>Check the Ushers' Roster</div>
+            <div style={{fontWeight:700, fontSize:14, color:"var(--text)", marginBottom:4}}>Uncaptured Members list</div>
             <div style={{fontSize:12, color:"var(--text-faint)", marginBottom:12, lineHeight:1.7}}>
               Upload the printed attendance list as a CSV (columns <code style={{background:"var(--panel)",padding:"1px 5px",borderRadius:4,fontSize:11}}>FIRST NAME, LAST NAME</code>).
               Nothing is written to the database. This only compares the list against your members and shows the gaps.
@@ -1144,7 +1144,7 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
             <div style={{fontSize:12, color:"var(--text-muted)", lineHeight:1.7}}>
               {currentRoster
                 ? <>Ushers currently see <strong>{currentRoster.label}</strong>, {currentRoster.name_count} names, uploaded {new Date(currentRoster.created_at).toLocaleDateString()}.</>
-                : <>No roster published yet. Upload one below and the ushers' Uncaptured Members tab will be empty until you do.</>}
+                : <>No list published yet. Upload one below and the ushers' Uncaptured Members tab will be empty until you do.</>}
             </div>
             {rosterHistory.length > 0 && (
               <div style={{fontSize:11, color:"var(--text-faint)", marginTop:6}}>
@@ -1283,7 +1283,7 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
           </div>
 
           {rosterCheck && (
-            <button className="btn-ghost" style={{fontSize:12}} onClick={downloadRosterReport}>Download roster check report</button>
+            <button className="btn-ghost" style={{fontSize:12}} onClick={downloadRosterReport}>Download uncaptured members report</button>
           )}
         </div>
       )}

@@ -441,5 +441,27 @@ update members set instruments = replace(instruments, 'Keyboard / Piano', 'Keybo
 where instruments like '%Keyboard / Piano%';
 
 -- ============================================================
+-- Editable service types (admin-managed; falls back to presets in the app).
+-- ============================================================
+create table if not exists service_types (
+  id uuid primary key default gen_random_uuid(),
+  name text unique not null,
+  created_at timestamptz default now()
+);
+alter table service_types enable row level security;
+drop policy if exists "service_types_select" on service_types;
+create policy "service_types_select" on service_types for select to authenticated using (true);
+drop policy if exists "service_types_insert" on service_types;
+create policy "service_types_insert" on service_types for insert to authenticated with check (get_my_role() = 'admin');
+drop policy if exists "service_types_update" on service_types;
+create policy "service_types_update" on service_types for update to authenticated using (get_my_role() = 'admin') with check (get_my_role() = 'admin');
+drop policy if exists "service_types_delete" on service_types;
+create policy "service_types_delete" on service_types for delete to authenticated using (get_my_role() = 'admin');
+insert into service_types (name) values
+  ('Sunday Morning Service'),('Friday Night Service (General)'),('Men''s Meeting'),
+  ('Women''s Meeting'),('Youth Meeting'),('Special Service')
+on conflict (name) do nothing;
+
+-- ============================================================
 -- DONE.
 -- ============================================================
