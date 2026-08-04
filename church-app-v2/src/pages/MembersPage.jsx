@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { supabase } from "../supabase";
 import { Avatar, RoleBadge, MaritalBadge, SexBadge, StatusBadge, InfoRow, MemberForm, Spinner, ROLES, BLANK_MEMBER, TRINIDAD_CITIES, calcAge, formatDob, formatShortDate, isBirthdayThisWeek, fullName, fullNameFull, validateMember } from "../components";
 import { Cake, Hourglass, MapPin, Phone, Mail, Heart, Users, Home as HomeIcon, Zap, Lightbulb, FileText, Music } from "lucide-react";
@@ -8,7 +8,7 @@ async function logActivity(action_type, description, user_id, user_name) {
   try { await supabase.from("activity_log").insert({ action_type, description, user_id, user_name }); } catch(e) {}
 }
 
-export default function MembersPage({ profile, members, setMembers, households = [], setHouseholds = () => {}, services, attendance }) {
+export default function MembersPage({ profile, members, setMembers, households = [], setHouseholds = () => {}, services, attendance, focusMemberId, onFocusHandled = () => {} }) {
   const isAdmin = profile?.role === "admin";
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("All");
@@ -27,10 +27,34 @@ export default function MembersPage({ profile, members, setMembers, households =
   const [skillFilter, setSkillFilter] = useState("All");
   const [cityFilter, setCityFilter] = useState("All");
   const [formErrors, setFormErrors] = useState({});
+  const [highlightId, setHighlightId] = useState(null); // row briefly highlighted after arriving from another tab
+  const highlightRef = useRef(null);
+  const modalRef = useRef(null);
 
   useEffect(() => {
     if (selected) setSelected(members.find(m => m.id === selected.id) || null);
   }, [members]);
+
+  // Arriving from another tab (Ministries, Skills, Families, Celebrations): highlight the
+  // member's row in the list and scroll to it — do NOT open the detail popout.
+  useEffect(() => {
+    if (!focusMemberId) return;
+    setHighlightId(focusMemberId);
+    onFocusHandled();
+  }, [focusMemberId, members]);
+
+  // Scroll the highlighted row into view, then fade the highlight after a moment.
+  useEffect(() => {
+    if (!highlightId) return;
+    if (highlightRef.current) highlightRef.current.scrollIntoView({ block: "center", behavior: "smooth" });
+    const t = setTimeout(() => setHighlightId(null), 2600);
+    return () => clearTimeout(t);
+  }, [highlightId]);
+
+  // When the open member changes (incl. clicking a household member), reset the popout scroll.
+  useEffect(() => {
+    if (selected && modalRef.current) modalRef.current.scrollTop = 0;
+  }, [selected?.id]);
 
   const filtered = useMemo(() => members.filter(m => {
     const s = search.toLowerCase();
@@ -255,9 +279,9 @@ export default function MembersPage({ profile, members, setMembers, households =
           Member updated successfully
         </div>
       )}
-    <div className="fade-in member-list-layout" style={{display:"flex",gap:20}}>
-      {/* Left: List */}
-      <div style={{flex:1,minWidth:0}}>
+    <div className="fade-in">
+      {/* Member list (full width) */}
+      <div style={{minWidth:0}}>
         {birthdays.length > 0 && (
           <div className="birthday-banner">
             <span style={{display:"flex"}}><Cake size={18} color="#e07830" /></span>
@@ -306,7 +330,8 @@ export default function MembersPage({ profile, members, setMembers, households =
           {filtered.map(m => {
             const bday = isBirthdayThisWeek(m.dob);
             return (
-              <div key={m.id} className={`member-row ${selected?.id===m.id?"selected":""}`} onClick={()=>setSelected(m)}>
+              <div key={m.id} ref={m.id===highlightId?highlightRef:null} className={`member-row ${selected?.id===m.id?"selected":""}`} onClick={()=>setSelected(m)}
+                style={m.id===highlightId?{outline:"2px solid var(--brand)",outlineOffset:-2,background:"var(--brand-tint)",borderRadius:10,transition:"background 0.3s"}:undefined}>
                 <div style={{position:"relative"}}>
                   <Avatar member={m} size={40} />
                   {bday && <span style={{position:"absolute",top:-4,right:-4,display:"flex"}}><Cake size={13} color="#e07830" /></span>}
@@ -329,17 +354,10 @@ export default function MembersPage({ profile, members, setMembers, households =
         <div style={{fontSize:12,color:"var(--border-strong)",marginTop:8,textAlign:"right"}}>{filtered.length} of {members.length} members</div>
       </div>
 
-      {/* Mobile backdrop */}
-      {selected && <div className="mobile-backdrop" style={{display:"none"}} onClick={()=>setSelected(null)} />}
-      {/* Right: Detail Panel.
-          On mobile the panel and the modals are both full-width bottom sheets, so if a
-          modal is open the panel behind it is pure interference, it was rendering over
-          the edit form. Raising .modal-bg above .detail-panel in the stylesheet fixes the
-          stacking, but this makes the overlap impossible regardless of how the two
-          stacking contexts resolve on a given browser. Desktop is untouched: there the
-          panel sits beside the list and the modal is centred, so both are still shown. */}
-      {selected && (
-        <div className={`card detail-panel fade-in${(editData || showAdd) ? " hide-behind-modal" : ""}`} style={{padding:22}}>
+      {/* Member detail — centered popout modal (hidden while an add/edit modal is open) */}
+      {selected && !editData && !showAdd && (
+        <div className="modal-bg" onClick={()=>setSelected(null)}>
+        <div ref={modalRef} className="modal fade-in" onClick={e=>e.stopPropagation()} style={{maxWidth:480,position:"relative"}}>
           {/* Close button */}
           <button className="close-btn" onClick={()=>setSelected(null)}><X size={13} /></button>
 
@@ -358,6 +376,16 @@ export default function MembersPage({ profile, members, setMembers, households =
               <StatusBadge active={selected.is_active !== false} />
             </div>
           </div>
+
+          {isAdmin && (
+            <div style={{display:"flex",gap:8,marginBottom:14}}>
+              <button className="btn-primary" style={{flex:1,fontSize:12}}
+                onClick={()=>{setEditData({...selected,dob:selected.dob?selected.dob.slice(0,10):"",join_date:selected.join_date?selected.join_date.slice(0,10):"",anniversary:selected.anniversary?selected.anniversary.slice(0,10):"",other_skills:selected.other_skills||"",instruments:selected.instruments||"",city:selected.city||"",spouse_id:selected.spouse_id||"",household_id:selected.household_id||"",new_household_name:"",photo_url:selected.photo_url||"",is_active:selected.is_active!==false,roles:selected.roles||[],rolePositions:selected.rolePositions||{}});setError("");}}>
+                Edit
+              </button>
+              <button className="btn-danger" style={{fontSize:12}} onClick={()=>handleDelete(selected.id)}>Delete</button>
+            </div>
+          )}
 
           <hr className="section-divider" />
 
@@ -477,15 +505,7 @@ export default function MembersPage({ profile, members, setMembers, households =
             }
           </div>
 
-          {isAdmin && (
-            <div style={{display:"flex",gap:8,marginTop:4}}>
-              <button className="btn-primary" style={{flex:1,fontSize:12}}
-                onClick={()=>{setEditData({...selected,dob:selected.dob?selected.dob.slice(0,10):"",join_date:selected.join_date?selected.join_date.slice(0,10):"",anniversary:selected.anniversary?selected.anniversary.slice(0,10):"",other_skills:selected.other_skills||"",instruments:selected.instruments||"",city:selected.city||"",spouse_id:selected.spouse_id||"",household_id:selected.household_id||"",new_household_name:"",photo_url:selected.photo_url||"",is_active:selected.is_active!==false,roles:selected.roles||[],rolePositions:selected.rolePositions||{}});setError("");}}>
-                Edit
-              </button>
-              <button className="btn-danger" style={{fontSize:12}} onClick={()=>handleDelete(selected.id)}>Delete</button>
-            </div>
-          )}
+        </div>
         </div>
       )}
 

@@ -45,15 +45,29 @@ most complex left for last. Overlapping requests have been folded together
 
 ### Feature builds
 
-14. **Attendance registers & capacity.** Support different register types/formats; surface a
-    service's description and attendance at creation / list time; search attendance by family as
-    well as by name; and a roster occupancy / capacity view. (folds old #11, #18, #20, #29, #30)
-15. **Ministries & Skills.** Make both tabs searchable by skill, person, and household, and set
-    leadership roles within a ministry directly from the Ministries page. (was #23, #28)
+14. **Attendance registers & capacity.** ✅ Mostly done — editable service types (create /
+    rename / remove, plus inline "+ New type" when creating a service and a standalone Service
+    Types manager); a service's description surfaced and editable at any time; attendance search
+    by family as well as by name (separate name + family filters); and a By Family attendance
+    grid in Analytics (members × services, present/absent, per-member + household rate).
+    **Shelved for later:** roster occupancy / capacity view. (folds old #11, #18, #20, #29, #30)
+15. **Ministries & Skills.** ✅ Done — both tabs now have separate person and family filters
+    (Ministries also a ministry dropdown, Skills keeps its skill dropdown), and admins can set a
+    member's Leader / Co-Leader position directly from the Ministries page via a per-member
+    popover (writes member_roles.position, no migration needed). (was #23, #28)
+
+### Backlog / future
+
+- **Roster occupancy / capacity view** (split out of #14). Track how full a service/roster is
+  against a capacity figure.
 16. **Analytics polish.** Move filters into a collapsible side panel; add the prototyped
     visualization upgrades (attendance heatmap, average reference lines, change badges, fixed
     per-type colours); finish any remaining useful views. (folds old #10, #24 + viz mockup)
-17. **Revise the individual member view.** Rework the member detail / interaction panel. (was #27)
+17. **Revise the individual member view.** 🔄 In progress — member detail is now a centered
+    popout modal (was a side panel), clicking a member anywhere (Ministries, Skills, Families,
+    Celebrations) opens that person directly instead of landing at the top of the list, and the
+    detail shows the household with clickable family members + spouse. Remaining: any further
+    rework of the interaction panel. (was #27)
 18. **App shell & branding polish.** A title / splash screen, and collapsible / expandable
     navigation (drawer). (was #17, #19)
 

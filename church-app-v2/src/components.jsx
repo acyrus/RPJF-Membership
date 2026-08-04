@@ -1,7 +1,41 @@
 import { useState, useEffect, createContext, useContext } from "react";
 import { createClient } from "@supabase/supabase-js";
 import { supabase, supabaseUrl, supabaseAnonKey } from "./supabase";
-import { ShieldCheck, KeyRound, Camera, X, ChevronRight, ChevronLeft } from "lucide-react";
+import { ShieldCheck, KeyRound, Camera, X, ChevronRight, ChevronLeft, ChevronDown } from "lucide-react";
+
+// ── Reusable multi-select dropdown (checkbox list) ──
+// options: array of { value, label }. selected: array of values. onChange(nextValues).
+export function MultiSelect({ label, options, selected, onChange, width = 180 }) {
+  const [open, setOpen] = useState(false);
+  const toggle = v => onChange(selected.includes(v) ? selected.filter(x => x !== v) : [...selected, v]);
+  const on = selected.length > 0;
+  const summary = !on ? label
+    : selected.length === 1 ? (options.find(o => o.value === selected[0])?.label ?? label)
+    : `${label}: ${selected.length}`;
+  return (
+    <div style={{ position: "relative" }}>
+      <button type="button" onClick={() => setOpen(o => !o)} style={{ display: "inline-flex", alignItems: "center", gap: 6, width, justifyContent: "space-between", fontSize: 12, fontWeight: 600, padding: "7px 12px", borderRadius: 8, cursor: "pointer", background: on ? "var(--brand)" : "var(--surface-alt)", color: on ? "#fff" : "var(--text-2)", border: `1.5px solid ${on ? "var(--brand)" : "var(--border)"}` }}>
+        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{summary}</span>
+        <ChevronDown size={13} style={{ flexShrink: 0 }} />
+      </button>
+      {open && (
+        <>
+          <div onClick={() => setOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 50 }} />
+          <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, zIndex: 51, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, boxShadow: "0 8px 24px #00000018", padding: 6, minWidth: width, maxHeight: 280, overflowY: "auto" }}>
+            {options.length === 0 && <div style={{ fontSize: 12, color: "var(--text-faint)", padding: "8px" }}>No options</div>}
+            {options.map(o => (
+              <label key={o.value} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 8px", borderRadius: 6, cursor: "pointer", fontSize: 12.5, color: "var(--text-2)" }}>
+                <input type="checkbox" checked={selected.includes(o.value)} onChange={() => toggle(o.value)} />
+                <span style={{ minWidth: 0 }}>{o.label}</span>
+              </label>
+            ))}
+            {on && <button type="button" onClick={() => onChange([])} style={{ width: "100%", marginTop: 4, padding: "6px", fontSize: 12, background: "var(--surface-alt)", border: "1px solid var(--border)", borderRadius: 6, color: "#dc2626", cursor: "pointer" }}>Clear</button>}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
 
 // ── Profile photo lightbox (click any member photo to enlarge) ──
 export const PhotoLightboxContext = createContext({ open: () => {} });
