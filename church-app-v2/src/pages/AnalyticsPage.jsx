@@ -5,7 +5,7 @@ import {
 } from "recharts";
 import { ROLES, TRINIDAD_CITIES, calcAge, fullName, Avatar } from "../components";
 import { supabase } from "../supabase";
-import { Search, Home, Check, X, ChevronDown, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown, UserMinus } from "lucide-react";
+import { Search, Home, Check, X, ChevronDown, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown, UserMinus, SlidersHorizontal } from "lucide-react";
 
 const TEAL      = "#2a5357";
 const TURQUOISE = "#5edcd1";
@@ -343,6 +343,7 @@ export default function AnalyticsPage({ members, services, attendance, household
   const [roleFilter, setRoleFilter]     = useState([]);
   const [selectedMemberIds, setSelectedMemberIds] = useState([]);
   const [statusFilter, setStatusFilter] = useState("active");
+  const [filtersOpen, setFiltersOpen] = useState(false); // slide-out filter drawer
   const [activeSection, setActiveSection] = useState("attendance");
   const [attSub, setAttSub] = useState("overview"); // attendance sub-tab: "overview" | "bymember"
   const [svcTypeAxis, setSvcTypeAxis] = useState("month"); // service-type chart x-axis: "month" | "date"
@@ -846,6 +847,23 @@ export default function AnalyticsPage({ members, services, attendance, household
     setSvcTypeFilter(prev => prev.includes(name) ? prev.filter(x => x !== name) : [...prev, name]);
   }
 
+  // Filter-drawer helpers: how many filter groups are active, a label for the period,
+  // and a one-shot reset.
+  const customRangeActive = !!(customFrom || customTo);
+  const activeFilterCount =
+    (svcTypeFilter.length ? 1 : 0) + (sexFilter.length ? 1 : 0) + (ageFilter.length ? 1 : 0) +
+    (cityFilter.length ? 1 : 0) + (roleFilter.length ? 1 : 0) + (selectedMemberIds.length ? 1 : 0) +
+    (statusFilter !== "active" ? 1 : 0) + (customRangeActive ? 1 : 0);
+  const PERIOD_LABELS = { this_month: "This Month", last_3: "Last 3 Months", this_year: "This Year", last_year: "Last Year", all: "All Time" };
+  const periodLabel = customRangeActive
+    ? `${dateRange.from.split("-").reverse().join("/")} – ${dateRange.to.split("-").reverse().join("/")}`
+    : (PERIOD_LABELS[quickRange] || "All Time");
+  function clearAllFilters() {
+    setSvcTypeFilter([]); setSexFilter([]); setAgeFilter([]); setCityFilter([]);
+    setRoleFilter([]); setSelectedMemberIds([]); setStatusFilter("active");
+    setCustomFrom(""); setCustomTo("");
+  }
+
   const { totalAtt, avgAtt, peakAtt, lowestAtt, distinctAttendees } = summaryStats;
   // Average attendance as a share of the active members in scope.
   const activeInScope = attMembers.filter(m => m.is_active !== false).length;
@@ -862,69 +880,108 @@ export default function AnalyticsPage({ members, services, attendance, household
         </div>
       </div>
 
-      {/* ── FILTERS ── */}
-      <div style={{background:"var(--surface)",border:"1px solid var(--border)",borderRadius:14,padding:"16px 20px",marginBottom:24,boxShadow:"0 1px 3px #0000000a"}}>
-        <div style={{fontSize:11,fontWeight:700,color:"var(--text-faint)",textTransform:"uppercase",letterSpacing:0.8,marginBottom:14}}>Filters</div>
-
-        <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:12,alignItems:"center"}}>
-          <div style={{fontSize:11,fontWeight:600,color:"var(--text-muted)",minWidth:60}}>Period</div>
-          {[["this_month","This Month"],["last_3","Last 3 Months"],["this_year","This Year"],["last_year","Last Year"],["all","All Time"]].map(([key,label]) => (
-            <button key={key} onClick={()=>{setQuickRange(key);setCustomFrom("");setCustomTo("");}} style={{
-              padding:"5px 12px",borderRadius:20,fontSize:12,fontWeight:500,cursor:"pointer",
-              background:quickRange===key&&!customFrom?TEAL:"var(--surface-alt)",
-              color:quickRange===key&&!customFrom?"#fff":"#374151",
-              border:`1.5px solid ${quickRange===key&&!customFrom?TEAL:"var(--border)"}`,
-            }}>{label}</button>
-          ))}
-          <div style={{display:"flex",gap:6,alignItems:"center"}}>
-            <input type="date" value={customFrom} onChange={e=>{setCustomFrom(e.target.value);setQuickRange("");}} style={{width:140,fontSize:12,padding:"5px 8px"}} />
-            <span style={{color:"var(--text-faint)",fontSize:12}}>to</span>
-            <input type="date" value={customTo} onChange={e=>{setCustomTo(e.target.value);setQuickRange("");}} style={{width:140,fontSize:12,padding:"5px 8px"}} />
-          </div>
-        </div>
-
-        <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:12,alignItems:"center"}}>
-          <div style={{fontSize:11,fontWeight:600,color:"var(--text-muted)",minWidth:60}}>Service</div>
-          <button onClick={()=>setSvcTypeFilter([])} style={{
-            padding:"5px 12px",borderRadius:20,fontSize:12,fontWeight:500,cursor:"pointer",
-            background:svcTypeFilter.length===0?TEAL:"var(--surface-alt)",
-            color:svcTypeFilter.length===0?"#fff":"#374151",
-            border:`1.5px solid ${svcTypeFilter.length===0?TEAL:"var(--border)"}`,
-          }}>All</button>
-          {allSvcTypes.map(t => (
-            <button key={t} onClick={()=>toggleSvcType(t)} style={{
-              padding:"5px 12px",borderRadius:20,fontSize:12,fontWeight:500,cursor:"pointer",
-              background:svcTypeFilter.includes(t)?TEAL:"var(--surface-alt)",
-              color:svcTypeFilter.includes(t)?"#fff":"#374151",
-              border:`1.5px solid ${svcTypeFilter.includes(t)?TEAL:"var(--border)"}`,
-            }}>{t}</button>
-          ))}
-        </div>
-
-        <div style={{display:"flex",gap:10,flexWrap:"wrap",alignItems:"center"}}>
-          <div style={{fontSize:11,fontWeight:600,color:"var(--text-muted)",minWidth:60}}>Members</div>
-          <MultiSelect label="Gender" options={["Male","Female"]} selected={sexFilter} onChange={setSexFilter} />
-          <MultiSelect label="Age" options={AGE_CATS.map(c=>c.label)} selected={ageFilter} onChange={setAgeFilter} />
-          <MultiSelect label="City" options={TRINIDAD_CITIES} selected={cityFilter} onChange={setCityFilter} />
-          <MultiSelect label="Ministry" options={ROLES} selected={roleFilter} onChange={setRoleFilter} />
-          <select value={statusFilter} onChange={e=>setStatusFilter(e.target.value)} style={{fontSize:12,padding:"5px 8px"}}>
-            <option value="active">Active Only</option>
-            <option value="all">All Members</option>
-            <option value="inactive">Inactive Only</option>
-          </select>
-          <MemberPicker members={members} selectedIds={selectedMemberIds} onChange={setSelectedMemberIds} />
-          {(sexFilter.length||ageFilter.length||cityFilter.length||roleFilter.length||selectedMemberIds.length||statusFilter!=="active") ? (
-            <button onClick={()=>{setSexFilter([]);setAgeFilter([]);setCityFilter([]);setRoleFilter([]);setSelectedMemberIds([]);setStatusFilter("active");}} style={{
-              padding:"5px 12px",borderRadius:20,fontSize:12,background:"#fef2f2",color:"#dc2626",border:"1.5px solid #fca5a5",cursor:"pointer",fontWeight:500
-            }}>Clear</button>
-          ) : null}
-        </div>
-        {selectedMemberIds.length > 0 && (
-          <div style={{marginTop:8,fontSize:11.5,color:"var(--text-muted)"}}>
-            Showing {selectedMemberIds.length} hand-picked member{selectedMemberIds.length===1?"":"s"}, other member filters are applied within that group.
-          </div>
+      {/* ── FILTER TOOLBAR (opens the slide-out drawer) ── */}
+      <div style={{display:"flex",alignItems:"center",gap:12,flexWrap:"wrap",marginBottom:24}}>
+        <button onClick={()=>setFiltersOpen(true)} style={{
+          display:"inline-flex",alignItems:"center",gap:8,padding:"8px 16px",borderRadius:10,
+          fontSize:13,fontWeight:600,cursor:"pointer",
+          background:activeFilterCount?TEAL:"var(--surface-alt)",
+          color:activeFilterCount?"#fff":"var(--text-2)",
+          border:`1.5px solid ${activeFilterCount?TEAL:"var(--border)"}`,
+        }}>
+          <SlidersHorizontal size={15} /> Filters
+          {activeFilterCount>0 && <span style={{background:"#ffffff33",borderRadius:20,padding:"0 7px",fontSize:11,fontWeight:700}}>{activeFilterCount}</span>}
+        </button>
+        <span style={{fontSize:12,color:"var(--text-faint)"}}>
+          {periodLabel}{svcTypeFilter.length ? ` · ${svcTypeFilter.join(", ")}` : " · All services"}
+        </span>
+        {activeFilterCount>0 && (
+          <button onClick={clearAllFilters} style={{padding:"5px 12px",borderRadius:20,fontSize:12,background:"#fef2f2",color:"#dc2626",border:"1.5px solid #fca5a5",cursor:"pointer",fontWeight:500}}>Clear all</button>
         )}
       </div>
+
+      {/* ── FILTER DRAWER ── */}
+      {filtersOpen && (
+        <>
+          <div onClick={()=>setFiltersOpen(false)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.4)",zIndex:300}} />
+          <div className="fade-in" style={{position:"fixed",top:0,right:0,height:"100%",width:370,maxWidth:"92vw",background:"var(--surface)",boxShadow:"-4px 0 24px #00000026",zIndex:301,display:"flex",flexDirection:"column"}}>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"16px 20px",borderBottom:"1px solid var(--border)"}}>
+              <div style={{fontSize:14,fontWeight:700,color:"var(--text)"}}>Filters</div>
+              <button onClick={()=>setFiltersOpen(false)} style={{background:"none",border:"1px solid var(--border)",borderRadius:8,width:30,height:30,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",color:"var(--text-muted)"}}><X size={15} /></button>
+            </div>
+
+            <div style={{flex:1,overflowY:"auto",padding:"18px 20px",display:"flex",flexDirection:"column",gap:22}}>
+              {/* Period */}
+              <div>
+                <div style={{fontSize:11,fontWeight:700,color:"var(--text-faint)",textTransform:"uppercase",letterSpacing:0.8,marginBottom:10}}>Period</div>
+                <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                  {[["this_month","This Month"],["last_3","Last 3 Months"],["this_year","This Year"],["last_year","Last Year"],["all","All Time"]].map(([key,label]) => (
+                    <button key={key} onClick={()=>{setQuickRange(key);setCustomFrom("");setCustomTo("");}} style={{
+                      padding:"5px 12px",borderRadius:20,fontSize:12,fontWeight:500,cursor:"pointer",
+                      background:quickRange===key&&!customFrom?TEAL:"var(--surface-alt)",
+                      color:quickRange===key&&!customFrom?"#fff":"#374151",
+                      border:`1.5px solid ${quickRange===key&&!customFrom?TEAL:"var(--border)"}`,
+                    }}>{label}</button>
+                  ))}
+                </div>
+                <div style={{display:"flex",gap:6,alignItems:"center",marginTop:8}}>
+                  <input type="date" value={customFrom} onChange={e=>{setCustomFrom(e.target.value);setQuickRange("");}} style={{flex:1,fontSize:12,padding:"5px 8px"}} />
+                  <span style={{color:"var(--text-faint)",fontSize:12}}>to</span>
+                  <input type="date" value={customTo} onChange={e=>{setCustomTo(e.target.value);setQuickRange("");}} style={{flex:1,fontSize:12,padding:"5px 8px"}} />
+                </div>
+              </div>
+
+              {/* Service type */}
+              <div>
+                <div style={{fontSize:11,fontWeight:700,color:"var(--text-faint)",textTransform:"uppercase",letterSpacing:0.8,marginBottom:10}}>Service type</div>
+                <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                  <button onClick={()=>setSvcTypeFilter([])} style={{
+                    padding:"5px 12px",borderRadius:20,fontSize:12,fontWeight:500,cursor:"pointer",
+                    background:svcTypeFilter.length===0?TEAL:"var(--surface-alt)",
+                    color:svcTypeFilter.length===0?"#fff":"#374151",
+                    border:`1.5px solid ${svcTypeFilter.length===0?TEAL:"var(--border)"}`,
+                  }}>All</button>
+                  {allSvcTypes.map(t => (
+                    <button key={t} onClick={()=>toggleSvcType(t)} style={{
+                      padding:"5px 12px",borderRadius:20,fontSize:12,fontWeight:500,cursor:"pointer",
+                      background:svcTypeFilter.includes(t)?TEAL:"var(--surface-alt)",
+                      color:svcTypeFilter.includes(t)?"#fff":"#374151",
+                      border:`1.5px solid ${svcTypeFilter.includes(t)?TEAL:"var(--border)"}`,
+                    }}>{t}</button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Members */}
+              <div>
+                <div style={{fontSize:11,fontWeight:700,color:"var(--text-faint)",textTransform:"uppercase",letterSpacing:0.8,marginBottom:10}}>Members</div>
+                <div style={{display:"flex",flexDirection:"column",gap:10,alignItems:"flex-start"}}>
+                  <MultiSelect label="Gender" options={["Male","Female"]} selected={sexFilter} onChange={setSexFilter} />
+                  <MultiSelect label="Age" options={AGE_CATS.map(c=>c.label)} selected={ageFilter} onChange={setAgeFilter} />
+                  <MultiSelect label="City" options={TRINIDAD_CITIES} selected={cityFilter} onChange={setCityFilter} />
+                  <MultiSelect label="Ministry" options={ROLES} selected={roleFilter} onChange={setRoleFilter} />
+                  <select value={statusFilter} onChange={e=>setStatusFilter(e.target.value)} style={{fontSize:12,padding:"5px 8px"}}>
+                    <option value="active">Active Only</option>
+                    <option value="all">All Members</option>
+                    <option value="inactive">Inactive Only</option>
+                  </select>
+                  <MemberPicker members={members} selectedIds={selectedMemberIds} onChange={setSelectedMemberIds} />
+                </div>
+                {selectedMemberIds.length > 0 && (
+                  <div style={{marginTop:8,fontSize:11.5,color:"var(--text-muted)"}}>
+                    Showing {selectedMemberIds.length} hand-picked member{selectedMemberIds.length===1?"":"s"}, other member filters are applied within that group.
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div style={{display:"flex",gap:10,padding:"14px 20px",borderTop:"1px solid var(--border)"}}>
+              <button className="btn-ghost" style={{flex:1}} onClick={clearAllFilters}>Clear all</button>
+              <button className="btn-primary" style={{flex:1}} onClick={()=>setFiltersOpen(false)}>Done</button>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* ── SECTION TABS ── */}
       <div style={{display:"flex",gap:4,borderBottom:"1.5px solid var(--border)",marginBottom:20}}>
