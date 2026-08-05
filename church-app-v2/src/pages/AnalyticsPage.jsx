@@ -152,7 +152,7 @@ function MemberPicker({ members, selectedIds, onChange }) {
             <input autoFocus value={q} onChange={e=>setQ(e.target.value)} placeholder="Search members…"
               style={{width:"100%",padding:"7px 9px",border:"1.5px solid #d6dde3",borderRadius:8,fontSize:12.5,marginBottom:6}} />
             {selectedIds.length > 0 && (
-              <button onClick={()=>onChange([])} style={{width:"100%",marginBottom:6,padding:"5px",fontSize:11.5,background:"#fef2f2",border:"1px solid #fca5a5",borderRadius:6,color:"#dc2626",cursor:"pointer"}}>Clear {selectedIds.length} selected</button>
+              <button onClick={()=>onChange([])} style={{width:"100%",marginBottom:6,padding:"5px",fontSize:11.5,background:"var(--danger-bg)",border:"1px solid var(--danger-border)",borderRadius:6,color:"var(--danger)",cursor:"pointer"}}>Clear {selectedIds.length} selected</button>
             )}
             {matches.length === 0 && <div style={{fontSize:12,color:"var(--text-faint)",padding:"8px 4px"}}>No members match.</div>}
             {matches.map(m => (
@@ -920,7 +920,7 @@ export default function AnalyticsPage({ members, services, attendance, household
           {periodLabel}{svcTypeFilter.length ? ` · ${svcTypeFilter.join(", ")}` : " · All services"}
         </span>
         {activeFilterCount>0 && (
-          <button onClick={clearAllFilters} style={{padding:"5px 12px",borderRadius:20,fontSize:12,background:"#fef2f2",color:"#dc2626",border:"1.5px solid #fca5a5",cursor:"pointer",fontWeight:500}}>Clear all</button>
+          <button onClick={clearAllFilters} style={{padding:"5px 12px",borderRadius:20,fontSize:12,background:"var(--danger-bg)",color:"var(--danger)",border:"1.5px solid var(--danger-border)",cursor:"pointer",fontWeight:500}}>Clear all</button>
         )}
       </div>
       </div>
