@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import {
   LineChart, Line, BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
@@ -85,6 +85,18 @@ const CustomTooltip = ({ active, payload, label }) => {
 
 const TEAL_C = "#2a5357";
 const chipBase = { padding:"5px 12px", borderRadius:20, fontSize:12, fontWeight:500, cursor:"pointer" };
+
+// Mobile detection so the filter drawer becomes a bottom sheet on small screens.
+function useIsMobile() {
+  const [m, setM] = useState(() => typeof window !== "undefined" && window.matchMedia("(max-width: 768px)").matches);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 768px)");
+    const on = () => setM(mq.matches);
+    mq.addEventListener("change", on);
+    return () => mq.removeEventListener("change", on);
+  }, []);
+  return m;
+}
 
 // Multi-select dropdown: pick any number of options; empty = "all".
 function MultiSelect({ label, options, selected, onChange }) {
@@ -344,6 +356,7 @@ export default function AnalyticsPage({ members, services, attendance, household
   const [selectedMemberIds, setSelectedMemberIds] = useState([]);
   const [statusFilter, setStatusFilter] = useState("active");
   const [filtersOpen, setFiltersOpen] = useState(false); // slide-out filter drawer
+  const isMobile = useIsMobile();
   const [activeSection, setActiveSection] = useState("attendance");
   const [attSub, setAttSub] = useState("overview"); // attendance sub-tab: "overview" | "bymember"
   const [svcTypeAxis, setSvcTypeAxis] = useState("month"); // service-type chart x-axis: "month" | "date"
@@ -904,7 +917,10 @@ export default function AnalyticsPage({ members, services, attendance, household
       {filtersOpen && (
         <>
           <div onClick={()=>setFiltersOpen(false)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.4)",zIndex:300}} />
-          <div className="fade-in" style={{position:"fixed",top:0,right:0,height:"100%",width:370,maxWidth:"92vw",background:"var(--surface)",boxShadow:"-4px 0 24px #00000026",zIndex:301,display:"flex",flexDirection:"column"}}>
+          <div className="fade-in" style={{position:"fixed",zIndex:301,background:"var(--surface)",display:"flex",flexDirection:"column",
+            ...(isMobile
+              ? {left:0,right:0,bottom:0,maxHeight:"82vh",borderRadius:"16px 16px 0 0",boxShadow:"0 -4px 24px #00000026"}
+              : {top:0,right:0,height:"100%",width:370,maxWidth:"92vw",boxShadow:"-4px 0 24px #00000026"})}}>
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"16px 20px",borderBottom:"1px solid var(--border)"}}>
               <div style={{fontSize:14,fontWeight:700,color:"var(--text)"}}>Filters</div>
               <button onClick={()=>setFiltersOpen(false)} style={{background:"none",border:"1px solid var(--border)",borderRadius:8,width:30,height:30,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",color:"var(--text-muted)"}}><X size={15} /></button>
