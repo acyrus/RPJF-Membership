@@ -357,6 +357,16 @@ export default function AnalyticsPage({ members, services, attendance, household
   const [statusFilter, setStatusFilter] = useState("active");
   const [filtersOpen, setFiltersOpen] = useState(false); // slide-out filter drawer
   const isMobile = useIsMobile();
+  // Pin the Analytics header + filter bar just beneath the app's sticky top bar,
+  // whose height varies (brand row + wrapping tab nav), so we measure it live.
+  const [stickyTop, setStickyTop] = useState(0);
+  useEffect(() => {
+    const measure = () => { const hb = document.querySelector(".header-bar"); setStickyTop(hb ? Math.round(hb.getBoundingClientRect().height) : 0); };
+    measure();
+    const t = setTimeout(measure, 300);
+    window.addEventListener("resize", measure);
+    return () => { window.removeEventListener("resize", measure); clearTimeout(t); };
+  }, []);
   const [activeSection, setActiveSection] = useState("attendance");
   const [attSub, setAttSub] = useState("overview"); // attendance sub-tab: "overview" | "bymember"
   const [svcTypeAxis, setSvcTypeAxis] = useState("month"); // service-type chart x-axis: "month" | "date"
@@ -886,7 +896,8 @@ export default function AnalyticsPage({ members, services, attendance, household
   // ── RENDER ────────────────────────────────────────────────
   return (
     <div className="fade-in">
-      <div style={{marginBottom:20}}>
+      <div style={{position:"sticky",top:stickyTop,zIndex:40,background:"var(--bg-body)",paddingTop:12,marginBottom:20,borderBottom:"1px solid var(--border)",boxShadow:"0 6px 8px -6px #00000022"}}>
+      <div style={{marginBottom:12}}>
         <div style={{fontSize:14,letterSpacing:0.5,fontWeight:700,color:"var(--text)"}}>ANALYTICS</div>
         <div style={{fontSize:12,color:"var(--text-faint)",marginTop:3}}>
           {filteredMembers.length} members · {filteredServices.length} services · {dateRange.from.split("-").reverse().join("/")} – {dateRange.to.split("-").reverse().join("/")}
@@ -894,7 +905,7 @@ export default function AnalyticsPage({ members, services, attendance, household
       </div>
 
       {/* ── FILTER TOOLBAR (opens the slide-out drawer) ── */}
-      <div style={{display:"flex",alignItems:"center",gap:12,flexWrap:"wrap",marginBottom:24}}>
+      <div style={{display:"flex",alignItems:"center",gap:12,flexWrap:"wrap",paddingBottom:12}}>
         <button onClick={()=>setFiltersOpen(true)} style={{
           display:"inline-flex",alignItems:"center",gap:8,padding:"8px 16px",borderRadius:10,
           fontSize:13,fontWeight:600,cursor:"pointer",
@@ -911,6 +922,7 @@ export default function AnalyticsPage({ members, services, attendance, household
         {activeFilterCount>0 && (
           <button onClick={clearAllFilters} style={{padding:"5px 12px",borderRadius:20,fontSize:12,background:"#fef2f2",color:"#dc2626",border:"1.5px solid #fca5a5",cursor:"pointer",fontWeight:500}}>Clear all</button>
         )}
+      </div>
       </div>
 
       {/* ── FILTER DRAWER ── */}
