@@ -60,6 +60,10 @@ most complex left for last. Overlapping requests have been folded together
     Filters button with an active-count badge + summary line, backdrop, Clear all / Done);
     Attendance Overview stat tiles now show a change badge vs the previous equal-length period
     plus sparklines, and the two trend charts have an average reference line + filled area.
+    Members subtab reworked too: centre-total donuts with % bars, expandable attenders with
+    attendance rate, calm single-colour city bars with value labels, a birthday/anniversary
+    toggle, a filled cumulative-growth area with side stats, a labelled age pyramid with an
+    insight line, and Households split into its own sub-tab with richer icon cards.
     Remaining: attendance heatmap (months × service type) and fixed per-service-type colours
     across charts. (folds old #10, #24 + viz mockup)
 17. **Revise the individual member view.** 🔄 In progress — member detail is now a centered

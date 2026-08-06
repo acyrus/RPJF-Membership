@@ -1,11 +1,11 @@
 import { useMemo, useState, useEffect } from "react";
 import {
   LineChart, Line, AreaChart, Area, ReferenceLine, BarChart, Bar, PieChart, Pie, Cell,
-  XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
+  XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LabelList
 } from "recharts";
 import { ROLES, TRINIDAD_CITIES, calcAge, fullName, Avatar } from "../components";
 import { supabase } from "../supabase";
-import { Search, Home, Check, X, ChevronDown, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown, UserMinus, SlidersHorizontal } from "lucide-react";
+import { Search, Home, Check, X, ChevronDown, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown, UserMinus, SlidersHorizontal, Users, TrendingUp, Calendar, Clock, Baby } from "lucide-react";
 
 const TEAL      = "#2a5357";
 const TURQUOISE = "#5edcd1";
@@ -101,6 +101,52 @@ function StatTile({ label, value, color="#2a5357", delta=null, sub, spark, spark
         {sub && <span style={{fontSize:11,color:"var(--text-faint)"}}>{sub}</span>}
       </div>
       {spark && <Sparkline data={spark} color={sparkColor||color} />}
+    </div>
+  );
+}
+
+// Donut with a total in the centre + a legend that shows count, %, and a proportion bar.
+function DonutCard({ title, subtitle, data }) {
+  const sum = data.reduce((a,b)=>a+(b.value||0),0);
+  return (
+    <div style={{background:"var(--surface)",border:"1px solid #edf0f4",borderRadius:10,padding:"18px 20px",boxShadow:"0 1px 2px #0b13210a",marginBottom:4}}>
+      <div style={{marginBottom:16}}>
+        <div className="card-title">{title}</div>
+        {subtitle && <div style={{fontSize:12,color:"var(--text-muted-navy)",marginTop:2}}>{subtitle}</div>}
+      </div>
+      {sum === 0 ? <div style={{textAlign:"center",padding:30,color:"var(--text-faint)",fontSize:12}}>No data</div>
+        : <div style={{display:"flex",alignItems:"center",gap:18,flexWrap:"wrap"}}>
+            <div style={{position:"relative",width:160,height:160,flexShrink:0}}>
+              <ResponsiveContainer width={160} height={160}>
+                <PieChart>
+                  <Pie data={data} dataKey="value" cx="50%" cy="50%" innerRadius={54} outerRadius={72} paddingAngle={2} stroke="none">
+                    {data.map((e,i) => <Cell key={i} fill={e.color} />)}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+              <div style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",pointerEvents:"none"}}>
+                <div style={{fontSize:26,fontWeight:700,color:"var(--text)",lineHeight:1}}>{sum}</div>
+                <div style={{fontSize:10,color:"var(--text-faint)",textTransform:"uppercase",letterSpacing:0.5}}>total</div>
+              </div>
+            </div>
+            <div style={{flex:1,minWidth:150}}>
+              {data.map((d,i) => (
+                <div key={i} style={{marginBottom:9}}>
+                  <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:3}}>
+                    <div style={{width:10,height:10,borderRadius:2,background:d.color,flexShrink:0}} />
+                    <div style={{fontSize:12,color:"var(--text-2)",flex:1,minWidth:0}}>{d.name}</div>
+                    <div style={{fontSize:12,fontWeight:700,color:"var(--text)"}}>{d.value}</div>
+                    <div style={{fontSize:11,color:"var(--text-faint)",minWidth:36,textAlign:"right"}}>{Math.round(d.value/sum*100)}%</div>
+                  </div>
+                  <div style={{height:5,background:"var(--border-divider)",borderRadius:3,overflow:"hidden"}}>
+                    <div style={{width:`${d.value/sum*100}%`,height:"100%",background:d.color,borderRadius:3}} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+      }
     </div>
   );
 }
@@ -392,6 +438,8 @@ export default function AnalyticsPage({ members, services, attendance, household
   const [selectedMemberIds, setSelectedMemberIds] = useState([]);
   const [statusFilter, setStatusFilter] = useState("active");
   const [filtersOpen, setFiltersOpen] = useState(false); // slide-out filter drawer
+  const [memberSub, setMemberSub] = useState("overview"); // members sub-tab: "overview" | "households"
+  const [celebMode, setCelebMode] = useState("birthdays"); // "birthdays" | "anniversaries"
   const isMobile = useIsMobile();
   // Pin the Analytics header + filter bar just beneath the app's sticky top bar,
   // whose height varies (brand row + wrapping tab nav), so we measure it live.
@@ -734,6 +782,19 @@ export default function AnalyticsPage({ members, services, attendance, household
     const counts = Array(12).fill(0);
     members.filter(m => m.dob && m.is_active !== false).forEach(m => {
       const month = new Date(m.dob+"T00:00:00").getUTCMonth();
+      counts[month]++;
+    });
+    return counts.map((count, i) => ({ name: MONTH_FULL[i], count }));
+  }, [members]);
+
+  const anniversariesByMonth = useMemo(() => {
+    const counts = Array(12).fill(0);
+    const seen = new Set(); // count a spouse-linked couple once
+    members.filter(m => m.anniversary && m.is_active !== false).forEach(m => {
+      if (seen.has(m.id)) return;
+      seen.add(m.id);
+      if (m.spouse_id) seen.add(m.spouse_id);
+      const month = new Date(m.anniversary+"T00:00:00").getUTCMonth();
       counts[month]++;
     });
     return counts.map((count, i) => ({ name: MONTH_FULL[i], count }));
@@ -1391,78 +1452,26 @@ export default function AnalyticsPage({ members, services, attendance, household
             <StatPill label="Mothers" value={filteredMembers.filter(m=>m.household_role==="Mother").length} color={PINK} />
           </div>
 
+          <div style={{display:"flex",gap:4,margin:"16px 0"}}>
+            {[["overview","Overview"],["households","Households"]].map(([k,label])=>(
+              <button key={k} onClick={()=>setMemberSub(k)} style={{background:memberSub===k?TEAL:"var(--surface-alt)",color:memberSub===k?"#fff":"var(--text-2)",border:`1.5px solid ${memberSub===k?TEAL:"var(--border)"}`,borderRadius:20,cursor:"pointer",fontSize:12.5,fontWeight:600,padding:"6px 16px"}}>{label}</button>
+            ))}
+          </div>
+
+          {memberSub === "overview" && (<>
           <SectionTitle>Demographics</SectionTitle>
-          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:14}}>
-            <ChartCard title="Age Group Breakdown" subtitle="Members by age category">
-              {ageBreakdown.length === 0 ? <div style={{textAlign:"center",padding:30,color:"var(--text-faint)",fontSize:12}}>No data</div>
-                : <div style={{display:"flex",alignItems:"center",gap:16}}>
-                    <ResponsiveContainer width={160} height={160}>
-                      <PieChart>
-                        <Pie data={ageBreakdown} dataKey="value" cx="50%" cy="50%" innerRadius={45} outerRadius={70}>
-                          {ageBreakdown.map((e,i) => <Cell key={i} fill={e.color} />)}
-                        </Pie>
-                        <Tooltip />
-                      </PieChart>
-                    </ResponsiveContainer>
-                    <div style={{flex:1}}>
-                      {ageBreakdown.map((d,i) => (
-                        <div key={i} style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
-                          <div style={{width:10,height:10,borderRadius:2,background:d.color,flexShrink:0}} />
-                          <div style={{fontSize:12,color:"var(--text-2)",flex:1}}>{d.name}</div>
-                          <div style={{fontSize:12,fontWeight:600,color:"var(--text)"}}>{d.value}</div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-              }
-            </ChartCard>
-            <ChartCard title="Gender Breakdown" subtitle="Gender distribution">
-              {sexBreakdown.length === 0 ? <div style={{textAlign:"center",padding:30,color:"var(--text-faint)",fontSize:12}}>No data</div>
-                : <div style={{display:"flex",alignItems:"center",gap:16}}>
-                    <ResponsiveContainer width={160} height={160}>
-                      <PieChart>
-                        <Pie data={sexBreakdown} dataKey="value" cx="50%" cy="50%" innerRadius={45} outerRadius={70}>
-                          {sexBreakdown.map((e,i) => <Cell key={i} fill={e.color} />)}
-                        </Pie>
-                        <Tooltip />
-                      </PieChart>
-                    </ResponsiveContainer>
-                    <div style={{flex:1}}>
-                      {sexBreakdown.map((d,i) => (
-                        <div key={i} style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
-                          <div style={{width:10,height:10,borderRadius:2,background:d.color,flexShrink:0}} />
-                          <div style={{fontSize:12,color:"var(--text-2)",flex:1}}>{d.name}</div>
-                          <div style={{fontSize:12,fontWeight:600,color:"var(--text)"}}>{d.value}</div>
-                          <div style={{fontSize:11,color:"var(--text-faint)"}}>({filteredMembers.length?Math.round(d.value/filteredMembers.length*100):0}%)</div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-              }
-            </ChartCard>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(300px,1fr))",gap:14}}>
+            <DonutCard title="Age Group Breakdown" subtitle="Members by age category" data={ageBreakdown} />
+            <DonutCard title="Gender Breakdown" subtitle="Gender distribution" data={sexBreakdown} />
           </div>
 
           {svcTypeFilter.length > 0 && (
             <>
               <SectionTitle>Members Who Attended</SectionTitle>
-              <ChartCard title={`Members attending: ${svcTypeFilter.join(", ")}`} subtitle={`${filteredMembers.length} unique member${filteredMembers.length!==1?"s":""} attended at least one session`}>
-                {filteredMembers.length === 0
-                  ? <div style={{textAlign:"center",padding:20,color:"var(--text-faint)",fontSize:12}}>No members matched</div>
-                  : <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))",gap:8}}>
-                      {filteredMembers.map(m => (
-                        <div key={m.id} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 10px",background:"var(--surface-alt)",borderRadius:8,border:"1px solid var(--border)"}}>
-                          <div style={{width:32,height:32,borderRadius:"50%",background:TEAL,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:"#fff",flexShrink:0}}>
-                            {(m.first_name||"?")[0]}{(m.last_name||"?")[0]}
-                          </div>
-                          <div>
-                            <div style={{fontSize:12,fontWeight:600,color:"var(--text)"}}>{m.first_name} {m.last_name}</div>
-                            <div style={{fontSize:10,color:"var(--text-faint)"}}>{(m.roles||[]).join(", ")||"No ministry"}</div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                }
-              </ChartCard>
+              <div style={{fontSize:12,color:"var(--text-muted)",marginBottom:12}}>
+                {filteredMembers.length} unique member{filteredMembers.length!==1?"s":""} attended {svcTypeFilter.join(", ")} — expand a name to see which sessions.
+              </div>
+              <IndividualAttendance members={filteredMembers} services={filteredServices} attendance={attendance} scope={`Attending: ${svcTypeFilter.join(", ")}`} />
             </>
           )}
 
@@ -1470,13 +1479,13 @@ export default function AnalyticsPage({ members, services, attendance, household
           <ChartCard title="Members by City" subtitle="Top 10 cities represented">
             {cityBreakdown.length === 0 ? <div style={{textAlign:"center",padding:30,color:"var(--text-faint)",fontSize:12}}>No city data recorded</div>
               : <ResponsiveContainer width="100%" height={Math.max(160, cityBreakdown.length*30)}>
-                  <BarChart data={cityBreakdown} layout="vertical" margin={{top:4,right:40,bottom:4,left:100}}>
+                  <BarChart data={cityBreakdown} layout="vertical" margin={{top:4,right:44,bottom:4,left:100}}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" horizontal={false} />
                     <XAxis type="number" tick={{fontSize:11,fill:"var(--text-faint)"}} />
                     <YAxis type="category" dataKey="name" tick={{fontSize:11,fill:"var(--text-2)"}} width={95} />
                     <Tooltip content={<CustomTooltip />} />
-                    <Bar dataKey="value" name="Members" radius={[0,6,6,0]}>
-                      {cityBreakdown.map((_,i) => <Cell key={i} fill={CHART_COLORS[i%CHART_COLORS.length]} />)}
+                    <Bar dataKey="value" name="Members" radius={[0,6,6,0]} fill={TEAL}>
+                      <LabelList dataKey="value" position="right" style={{fontSize:11,fontWeight:700,fill:"var(--text-2)"}} />
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>
@@ -1498,60 +1507,142 @@ export default function AnalyticsPage({ members, services, attendance, household
             }
           </ChartCard>
 
-          <SectionTitle>Birthdays by Month</SectionTitle>
-          <ChartCard title="Birthday Distribution" subtitle="How many members have birthdays each month">
-            <ResponsiveContainer width="100%" height={200}>
-              <BarChart data={birthdaysByMonth} margin={{top:4,right:16,bottom:4,left:0}}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" vertical={false} />
-                <XAxis dataKey="name" tick={{fontSize:10,fill:"var(--text-faint)"}} />
-                <YAxis tick={{fontSize:11,fill:"var(--text-faint)"}} allowDecimals={false} />
-                <Tooltip content={<CustomTooltip />} />
-                <Bar dataKey="count" name="Birthdays" radius={[6,6,0,0]}>
-                  {birthdaysByMonth.map((_,i) => <Cell key={i} fill={i===new Date().getMonth()?RED:PINK} />)}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-            <div style={{fontSize:11,color:"var(--text-faint)",marginTop:8,textAlign:"center"}}>Current month highlighted in red</div>
-          </ChartCard>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",flexWrap:"wrap",gap:8}}>
+            <SectionTitle>Celebrations by Month</SectionTitle>
+            <div style={{display:"inline-flex",border:"1px solid var(--border)",borderRadius:20,overflow:"hidden",marginBottom:14}}>
+              {[["birthdays","Birthdays"],["anniversaries","Anniversaries"]].map(([k,label])=>(
+                <button key={k} onClick={()=>setCelebMode(k)} style={{border:"none",cursor:"pointer",fontSize:11.5,fontWeight:600,padding:"5px 14px",background:celebMode===k?TEAL:"var(--surface)",color:celebMode===k?"#fff":"var(--text-muted)"}}>{label}</button>
+              ))}
+            </div>
+          </div>
+          {(() => {
+            const data = celebMode === "birthdays" ? birthdaysByMonth : anniversariesByMonth;
+            const barColor = celebMode === "birthdays" ? PINK : PURPLE;
+            const total = data.reduce((a,b)=>a+b.count,0);
+            return (
+              <ChartCard title={celebMode==="birthdays"?"Birthday Distribution":"Anniversary Distribution"} subtitle={celebMode==="birthdays"
+                ? `${total} member${total!==1?"s":""} with a birthday on record · current month highlighted`
+                : `${total} anniversar${total!==1?"ies":"y"} · linked spouses counted once · current month highlighted`}>
+                <ResponsiveContainer width="100%" height={210}>
+                  <BarChart data={data} margin={{top:14,right:16,bottom:4,left:0}}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" vertical={false} />
+                    <XAxis dataKey="name" tick={{fontSize:10,fill:"var(--text-faint)"}} />
+                    <YAxis tick={{fontSize:11,fill:"var(--text-faint)"}} allowDecimals={false} />
+                    <Tooltip content={<CustomTooltip />} />
+                    <Bar dataKey="count" name={celebMode==="birthdays"?"Birthdays":"Anniversaries"} radius={[6,6,0,0]}>
+                      {data.map((_,i) => <Cell key={i} fill={i===new Date().getMonth()?RED:barColor} />)}
+                      <LabelList dataKey="count" position="top" formatter={v=>v||""} style={{fontSize:10,fontWeight:700,fill:"var(--text-faint)"}} />
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </ChartCard>
+            );
+          })()}
 
           <SectionTitle>Net Growth</SectionTitle>
           <ChartCard title="Cumulative Membership" subtitle="Running total of members over time, based on join dates (all-time)">
             {netGrowth.length === 0 ? <div style={{textAlign:"center",padding:30,color:"var(--text-faint)",fontSize:12}}>No join dates recorded</div>
-              : <ResponsiveContainer width="100%" height={240}>
-                  <LineChart data={netGrowth} margin={{top:4,right:16,bottom:4,left:0}}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
-                    <XAxis dataKey="label" tick={{fontSize:11,fill:"var(--text-faint)"}} />
-                    <YAxis tick={{fontSize:11,fill:"var(--text-faint)"}} allowDecimals={false} />
-                    <Tooltip content={<CustomTooltip />} />
-                    <Line type="monotone" dataKey="total" name="Total Members" stroke={TEAL} strokeWidth={2.5} dot={{r:3,fill:TEAL}} activeDot={{r:6}} />
-                  </LineChart>
-                </ResponsiveContainer>
+              : (() => {
+                  const now = netGrowth[netGrowth.length-1].total;
+                  const start = netGrowth[0];
+                  const biggest = netGrowth.reduce((a,b)=> b.added>(a?.added??-1)?b:a, null);
+                  const last12 = netGrowth.slice(-12).reduce((s,d)=>s+d.added,0);
+                  return (
+                    <div style={{display:"flex",gap:16,flexWrap:"wrap",alignItems:"stretch"}}>
+                      <div style={{flex:"1 1 320px",minWidth:280}}>
+                        <ResponsiveContainer width="100%" height={240}>
+                          <AreaChart data={netGrowth} margin={{top:4,right:16,bottom:4,left:0}}>
+                            <defs>
+                              <linearGradient id="gradGrowth" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stopColor={TEAL} stopOpacity={0.26} />
+                                <stop offset="100%" stopColor={TEAL} stopOpacity={0.02} />
+                              </linearGradient>
+                            </defs>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" vertical={false} />
+                            <XAxis dataKey="label" tick={{fontSize:11,fill:"var(--text-faint)"}} />
+                            <YAxis tick={{fontSize:11,fill:"var(--text-faint)"}} allowDecimals={false} />
+                            <Tooltip content={<CustomTooltip />} />
+                            <Area type="monotone" dataKey="total" name="Total Members" stroke={TEAL} strokeWidth={2.5} fill="url(#gradGrowth)" dot={false} activeDot={{r:6}} />
+                          </AreaChart>
+                        </ResponsiveContainer>
+                      </div>
+                      <div style={{flex:"0 0 190px",display:"flex",flexDirection:"column",gap:10,justifyContent:"center"}}>
+                        {[
+                          {icon:<Users size={15}/>, label:"Members today", value:now, color:TEAL},
+                          {icon:<TrendingUp size={15}/>, label:"Added last 12 mo", value:`+${last12}`, color:GREEN},
+                          {icon:<Calendar size={15}/>, label:"Best month", value:biggest?`+${biggest.added}`:"—", sub:biggest?biggest.label:"", color:ORANGE},
+                          {icon:<Clock size={15}/>, label:"Tracking since", value:start.label, color:PURPLE},
+                        ].map((s,i)=>(
+                          <div key={i} style={{background:"var(--surface-alt)",border:"1px solid var(--border)",borderRadius:10,padding:"10px 12px",display:"flex",alignItems:"center",gap:10}}>
+                            <span style={{color:s.color,display:"flex"}}>{s.icon}</span>
+                            <div style={{minWidth:0}}>
+                              <div style={{fontSize:16,fontWeight:700,color:"var(--text)",lineHeight:1.1}}>{s.value}{s.sub && <span style={{fontSize:11,fontWeight:500,color:"var(--text-faint)"}}> · {s.sub}</span>}</div>
+                              <div style={{fontSize:10.5,color:"var(--text-faint)",textTransform:"uppercase",letterSpacing:0.4}}>{s.label}</div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })()
             }
           </ChartCard>
 
           <SectionTitle>Age Pyramid</SectionTitle>
-          <ChartCard title="Age & Gender Pyramid" subtitle="Male (left) vs female (right) across age bands">
+          <ChartCard title="Age & Gender Pyramid" subtitle="Male (left) vs female (right) across age bands — counts labelled on each bar">
             {filteredMembers.length === 0 ? <div style={{textAlign:"center",padding:30,color:"var(--text-faint)",fontSize:12}}>No data</div>
-              : <ResponsiveContainer width="100%" height={280}>
-                  <BarChart data={agePyramid} layout="vertical" stackOffset="sign" margin={{top:4,right:24,bottom:4,left:30}}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" horizontal={false} />
-                    <XAxis type="number" tick={{fontSize:11,fill:"var(--text-faint)"}} tickFormatter={v=>Math.abs(v)} allowDecimals={false} />
-                    <YAxis type="category" dataKey="band" tick={{fontSize:11,fill:"var(--text-2)"}} width={110} />
-                    <Tooltip formatter={(v,n)=>[Math.abs(v), n]} />
-                    <Legend wrapperStyle={{fontSize:12}} />
-                    <Bar dataKey="male" name="Male" fill={TEAL} stackId="pyr" radius={[0,4,4,0]} />
-                    <Bar dataKey="female" name="Female" fill={PINK} stackId="pyr" radius={[4,0,0,4]} />
-                  </BarChart>
-                </ResponsiveContainer>
+              : (() => {
+                  const withTotals = agePyramid.map(b => ({ ...b, band: b.band, tot: Math.abs(b.male) + b.female }));
+                  const top = withTotals.reduce((a,b)=> b.tot>(a?.tot??-1)?b:a, null);
+                  const mTot = agePyramid.reduce((s,b)=>s+Math.abs(b.male),0);
+                  const fTot = agePyramid.reduce((s,b)=>s+b.female,0);
+                  return (
+                    <>
+                      <ResponsiveContainer width="100%" height={300}>
+                        <BarChart data={agePyramid} layout="vertical" stackOffset="sign" margin={{top:4,right:34,bottom:4,left:30}}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" horizontal={false} />
+                          <XAxis type="number" tick={{fontSize:11,fill:"var(--text-faint)"}} tickFormatter={v=>Math.abs(v)} allowDecimals={false} />
+                          <YAxis type="category" dataKey="band" tick={{fontSize:11,fill:"var(--text-2)"}} width={110} />
+                          <Tooltip formatter={(v,n)=>[Math.abs(v), n]} />
+                          <Legend wrapperStyle={{fontSize:12}} />
+                          <Bar dataKey="male" name="Male" fill={TEAL} stackId="pyr" radius={[4,0,0,4]}>
+                            <LabelList dataKey="male" position="left" formatter={v=>v?Math.abs(v):""} style={{fontSize:10,fontWeight:700,fill:TEAL}} />
+                          </Bar>
+                          <Bar dataKey="female" name="Female" fill={PINK} stackId="pyr" radius={[0,4,4,0]}>
+                            <LabelList dataKey="female" position="right" formatter={v=>v||""} style={{fontSize:10,fontWeight:700,fill:PINK}} />
+                          </Bar>
+                        </BarChart>
+                      </ResponsiveContainer>
+                      <div style={{display:"flex",gap:16,flexWrap:"wrap",marginTop:8,fontSize:12,color:"var(--text-muted)"}}>
+                        <span><strong style={{color:"var(--text)"}}>{top?.band||"—"}</strong> is the largest band ({top?.tot||0} members)</span>
+                        <span style={{color:TEAL,fontWeight:600}}>{mTot} male</span>
+                        <span style={{color:PINK,fontWeight:600}}>{fTot} female</span>
+                      </div>
+                    </>
+                  );
+                })()
             }
           </ChartCard>
 
-          <SectionTitle>Households</SectionTitle>
-          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(130px,1fr))",gap:12,marginBottom:14}}>
-            <StatPill label="Households" value={householdView.count} />
-            <StatPill label="Avg Size" value={householdView.avg ? householdView.avg.toFixed(1) : "0"} color={TURQUOISE} />
-            <StatPill label="In a Household" value={householdView.peopleInHouseholds} color={GREEN} />
-            <StatPill label="No Household" value={householdView.without} color={ORANGE} />
+          </>)}
+
+          {memberSub === "households" && (<>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(180px,1fr))",gap:12,marginTop:16,marginBottom:14}}>
+            {[
+              {icon:<Home size={18}/>, value:householdView.count, label:"Households", sub:`${householdView.avg?householdView.avg.toFixed(1):"0"} avg size`, color:TEAL},
+              {icon:<Users size={18}/>, value:householdView.peopleInHouseholds, label:"In a household", sub:`${filteredMembers.length?Math.round(householdView.peopleInHouseholds/filteredMembers.length*100):0}% of members`, color:GREEN},
+              {icon:<UserMinus size={18}/>, value:householdView.without, label:"Not linked", sub:"no family set", color:ORANGE},
+              {icon:<Baby size={18}/>, value:householdView.withChildren, label:"With children", sub:`${householdView.avgChildren?householdView.avgChildren.toFixed(1):"0"} kids avg`, color:PURPLE},
+            ].map((s,i)=>(
+              <div key={i} style={{background:"var(--surface)",border:"1px solid var(--border)",borderRadius:12,padding:"14px 16px",display:"flex",alignItems:"center",gap:12}}>
+                <div style={{width:40,height:40,borderRadius:10,background:s.color+"18",color:s.color,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{s.icon}</div>
+                <div style={{minWidth:0}}>
+                  <div style={{fontSize:24,fontWeight:700,color:"var(--text)",lineHeight:1.05}}>{s.value}</div>
+                  <div style={{fontSize:12,fontWeight:600,color:"var(--text-2)"}}>{s.label}</div>
+                  <div style={{fontSize:10.5,color:"var(--text-faint)"}}>{s.sub}</div>
+                </div>
+              </div>
+            ))}
           </div>
           {householdView.count === 0
             ? <ChartCard title="Households" subtitle="Link families together in the Members tab"><div style={{textAlign:"center",padding:20,color:"var(--text-faint)",fontSize:12}}>No households created yet</div></ChartCard>
@@ -1610,6 +1701,7 @@ export default function AnalyticsPage({ members, services, attendance, household
                 </ChartCard>
               </div>
           }
+          </>)}
         </div>
       )}
 
