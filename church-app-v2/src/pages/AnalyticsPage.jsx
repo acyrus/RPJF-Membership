@@ -17,6 +17,15 @@ const GREEN     = "#059669";
 const PINK      = "#db2777";
 const CHART_COLORS = [TEAL, TURQUOISE, ORANGE, RED, PURPLE, GOLD, GREEN, PINK];
 
+// A child: an explicit child title, or (no title) under 18. Mirrors the Families tab rule.
+const CHILD_TITLES = ["Son", "Daughter", "Grandson", "Granddaughter"];
+function isChildMember(m) {
+  if (m.household_role && CHILD_TITLES.includes(m.household_role)) return true;
+  if (m.household_role) return false;
+  const a = calcAge(m.dob);
+  return a !== null && a < 18;
+}
+
 // True when a member's age falls within an optional [min, max] range (blank = open end).
 // A member with no recorded age is excluded once any bound is set.
 function ageInRange(age, minStr, maxStr) {
@@ -541,6 +550,7 @@ export default function AnalyticsPage({ members, services, attendance, household
   const [skillFilterA, setSkillFilterA] = useState([]);
   const [ageMin, setAgeMin] = useState("");
   const [ageMax, setAgeMax] = useState("");
+  const [parentFilter, setParentFilter] = useState("all"); // "all" | "parents" | "nonparents"
   const [filtersOpen, setFiltersOpen] = useState(false); // slide-out filter drawer
   const [memberSub, setMemberSub] = useState("overview"); // members sub-tab: "overview" | "households"
   const [celebMode, setCelebMode] = useState("birthdays"); // "birthdays" | "anniversaries"
@@ -589,6 +599,14 @@ export default function AnalyticsPage({ members, services, attendance, household
   const interactionOptions = useMemo(() => [...new Set(members.map(m => m.interaction_type).filter(Boolean))].sort(), [members]);
   const skillOptions = useMemo(() => { const s = new Set(); members.forEach(m => [m.skill1, m.skill2, m.skill3].filter(Boolean).forEach(k => s.add(k))); return [...s].sort(); }, [members]);
 
+  // Households that contain at least one child; a parent is an adult in one of them.
+  const childHouseholds = useMemo(() => {
+    const s = new Set();
+    members.forEach(m => { if (m.household_id && isChildMember(m)) s.add(m.household_id); });
+    return s;
+  }, [members]);
+  const isParent = m => !!m.household_id && childHouseholds.has(m.household_id) && !isChildMember(m);
+
   // 3. Filtered services — no dependency on filteredMembers
   const filteredServices = useMemo(() => {
     return services.filter(s => {
@@ -630,10 +648,11 @@ export default function AnalyticsPage({ members, services, attendance, household
       const matchInteraction = interactionFilter.length === 0 || interactionFilter.includes(m.interaction_type);
       const matchSkill = skillFilterA.length === 0 || skillFilterA.some(k => [m.skill1, m.skill2, m.skill3].includes(k));
       const matchAgeRange = ageInRange(age, ageMin, ageMax);
+      const matchParent = parentFilter === "all" || (parentFilter === "parents" ? isParent(m) : !isParent(m));
       const matchAttended = !attendingMemberIds || attendingMemberIds.has(m.id);
-      return matchStatus && matchSex && matchCity && matchRole && matchAge && matchMarital && matchInteraction && matchSkill && matchAgeRange && matchAttended;
+      return matchStatus && matchSex && matchCity && matchRole && matchAge && matchMarital && matchInteraction && matchSkill && matchAgeRange && matchParent && matchAttended;
     });
-  }, [members, statusFilter, sexFilter, cityFilter, roleFilter, ageFilter, maritalFilter, interactionFilter, skillFilterA, ageMin, ageMax, selectedMemberIds, attendingMemberIds]);
+  }, [members, statusFilter, sexFilter, cityFilter, roleFilter, ageFilter, maritalFilter, interactionFilter, skillFilterA, ageMin, ageMax, parentFilter, childHouseholds, selectedMemberIds, attendingMemberIds]);
 
   // Same member filters WITHOUT the attended-only restriction, so the by-individual
   // list also shows people who attended none of the selected services (their "missed").
@@ -655,9 +674,10 @@ export default function AnalyticsPage({ members, services, attendance, household
       const matchInteraction = interactionFilter.length === 0 || interactionFilter.includes(m.interaction_type);
       const matchSkill = skillFilterA.length === 0 || skillFilterA.some(k => [m.skill1, m.skill2, m.skill3].includes(k));
       const matchAgeRange = ageInRange(age, ageMin, ageMax);
-      return matchStatus && matchSex && matchCity && matchRole && matchAge && matchMarital && matchInteraction && matchSkill && matchAgeRange;
+      const matchParent = parentFilter === "all" || (parentFilter === "parents" ? isParent(m) : !isParent(m));
+      return matchStatus && matchSex && matchCity && matchRole && matchAge && matchMarital && matchInteraction && matchSkill && matchAgeRange && matchParent;
     });
-  }, [members, statusFilter, sexFilter, cityFilter, roleFilter, ageFilter, maritalFilter, interactionFilter, skillFilterA, ageMin, ageMax, selectedMemberIds]);
+  }, [members, statusFilter, sexFilter, cityFilter, roleFilter, ageFilter, maritalFilter, interactionFilter, skillFilterA, ageMin, ageMax, parentFilter, childHouseholds, selectedMemberIds]);
 
   // A one-line summary of what the By-Member list is currently scoped to, shown
   // (and kept visible) in its toolbar so the active filters stay in view.
@@ -1168,7 +1188,7 @@ export default function AnalyticsPage({ members, services, attendance, household
     (cityFilter.length ? 1 : 0) + (roleFilter.length ? 1 : 0) + (selectedMemberIds.length ? 1 : 0) +
     (statusFilter !== "active" ? 1 : 0) + (customRangeActive ? 1 : 0) +
     (maritalFilter.length ? 1 : 0) + (interactionFilter.length ? 1 : 0) + (skillFilterA.length ? 1 : 0) +
-    ((ageMin !== "" || ageMax !== "") ? 1 : 0);
+    ((ageMin !== "" || ageMax !== "") ? 1 : 0) + (parentFilter !== "all" ? 1 : 0);
   const PERIOD_LABELS = { this_month: "This Month", last_3: "Last 3 Months", this_year: "This Year", last_year: "Last Year", all: "All Time" };
   const periodLabel = customRangeActive
     ? `${dateRange.from.split("-").reverse().join("/")} – ${dateRange.to.split("-").reverse().join("/")}`
@@ -1177,7 +1197,7 @@ export default function AnalyticsPage({ members, services, attendance, household
     setSvcTypeFilter([]); setSexFilter([]); setAgeFilter([]); setCityFilter([]);
     setRoleFilter([]); setSelectedMemberIds([]); setStatusFilter("active");
     setMaritalFilter([]); setInteractionFilter([]); setSkillFilterA([]);
-    setAgeMin(""); setAgeMax("");
+    setAgeMin(""); setAgeMax(""); setParentFilter("all");
     setCustomFrom(""); setCustomTo("");
   }
 
@@ -1322,6 +1342,11 @@ export default function AnalyticsPage({ members, services, attendance, household
                   <MultiSelect label="Marital" options={maritalOptions} selected={maritalFilter} onChange={setMaritalFilter} />
                   <MultiSelect label="Attends" options={interactionOptions} selected={interactionFilter} onChange={setInteractionFilter} />
                   <MultiSelect label="Skill" options={skillOptions} selected={skillFilterA} onChange={setSkillFilterA} />
+                  <select value={parentFilter} onChange={e=>setParentFilter(e.target.value)} title="Filter by parent status" style={{fontSize:12,padding:"5px 8px"}}>
+                    <option value="all">Parents & non-parents</option>
+                    <option value="parents">Parents only</option>
+                    <option value="nonparents">Non-parents only</option>
+                  </select>
                   <select value={statusFilter} onChange={e=>setStatusFilter(e.target.value)} style={{fontSize:12,padding:"5px 8px"}}>
                     <option value="active">Active Only</option>
                     <option value="all">All Members</option>
@@ -1497,9 +1522,9 @@ export default function AnalyticsPage({ members, services, attendance, household
             ? <div style={{textAlign:"center",padding:40,color:"var(--text-faint)",fontSize:13}}>No attendance data for this period</div>
             : <ChartCard title="Attendance by Month & Service Type" subtitle="Darker cell = higher turnout. Each row is shaded against its own busiest month, so a pale cell is a soft spot for that service.">
                 <div style={{overflowX:"auto"}}>
-                  <div style={{display:"flex",flexDirection:"column",gap:4,minWidth:150+attByTypeMonthly.length*46}}>
+                  <div style={{display:"flex",flexDirection:"column",gap:4,minWidth:186+attByTypeMonthly.length*46}}>
                     <div style={{display:"flex",gap:4}}>
-                      <div style={{width:140,flexShrink:0}} />
+                      <div style={{width:176,flexShrink:0}} />
                       {attByTypeMonthly.map(d => <div key={d.label} style={{flex:1,minWidth:42,textAlign:"center",fontSize:10,fontWeight:600,color:"var(--text-faint)"}}>{d.label}</div>)}
                     </div>
                     {attByType.map(t => {
@@ -1508,9 +1533,9 @@ export default function AnalyticsPage({ members, services, attendance, household
                       const rowMax = Math.max(1, ...rowVals);
                       return (
                         <div key={t.name} style={{display:"flex",gap:4,alignItems:"center"}}>
-                          <div style={{width:140,flexShrink:0,display:"flex",alignItems:"center",gap:6,fontSize:12,fontWeight:600,color:"var(--text-2)"}}>
+                          <div style={{width:176,flexShrink:0,display:"flex",alignItems:"center",gap:6,fontSize:11.5,fontWeight:600,color:"var(--text-2)"}}>
                             <span style={{width:9,height:9,borderRadius:2,background:color,flexShrink:0}} />
-                            <span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.name}</span>
+                            <span style={{lineHeight:1.2}}>{t.name}</span>
                           </div>
                           {attByTypeMonthly.map((d,ci) => {
                             const v = d[t.name] || 0;
@@ -1696,14 +1721,14 @@ export default function AnalyticsPage({ members, services, attendance, household
             const active = filteredMembers.filter(m=>m.is_active!==false).length;
             const married = filteredMembers.filter(m=>m.marital_status==="Married").length;
             const single = filteredMembers.filter(m=>m.marital_status==="Single").length;
-            const parents = filteredMembers.filter(m=>m.household_role==="Father"||m.household_role==="Mother").length;
+            const parents = filteredMembers.filter(isParent).length;
             const cards = [
               {icon:<Users size={18}/>, value:filteredMembers.length, label:"In view", sub:"current filter", color:TEAL},
               {icon:<UserCheck size={18}/>, value:active, label:"Active", sub:`${Math.round(active/n*100)}% of view`, color:GREEN},
               {icon:<User size={18}/>, value:male, label:"Male", sub:`${Math.round(male/n*100)}%`, color:TEAL},
               {icon:<User size={18}/>, value:female, label:"Female", sub:`${Math.round(female/n*100)}%`, color:PINK},
               {icon:<Heart size={18}/>, value:married, label:"Married", sub:`${single} single`, color:PURPLE},
-              {icon:<Baby size={18}/>, value:parents, label:"Parents", sub:"fathers & mothers", color:ORANGE},
+              {icon:<Baby size={18}/>, value:parents, label:"Parents", sub:"adults with a child at home", color:ORANGE},
             ];
             return (
               <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(170px,1fr))",gap:12,marginBottom:6}}>
@@ -1866,10 +1891,10 @@ export default function AnalyticsPage({ members, services, attendance, household
                           <Tooltip formatter={(v,n)=>[Math.abs(v), n]} />
                           <Legend wrapperStyle={{fontSize:12}} />
                           <Bar dataKey="male" name="Male" fill={TEAL} stackId="pyr" radius={[4,0,0,4]}>
-                            <LabelList dataKey="male" content={(p)=>{ const {x,y,height,value}=p; if(!value) return null; return <text x={x-5} y={y+height/2} textAnchor="end" dominantBaseline="central" fontSize={10} fontWeight={700} fill={TEAL}>{Math.abs(value)}</text>; }} />
+                            <LabelList dataKey="male" position="insideLeft" formatter={v=>v?Math.abs(v):""} style={{fontSize:10,fontWeight:700,fill:"#fff"}} />
                           </Bar>
                           <Bar dataKey="female" name="Female" fill={PINK} stackId="pyr" radius={[0,4,4,0]}>
-                            <LabelList dataKey="female" position="right" formatter={v=>v||""} style={{fontSize:10,fontWeight:700,fill:PINK}} />
+                            <LabelList dataKey="female" position="insideRight" formatter={v=>v||""} style={{fontSize:10,fontWeight:700,fill:"#fff"}} />
                           </Bar>
                         </BarChart>
                       </ResponsiveContainer>
