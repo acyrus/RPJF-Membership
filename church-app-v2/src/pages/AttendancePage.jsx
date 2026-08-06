@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "../supabase";
-import { Avatar, RoleBadge, SERVICE_NAMES, fullName } from "../components";
+import { Avatar, RoleBadge, SERVICE_NAMES, fullName, useHeaderOffset } from "../components";
 import { Check, ClipboardList, X, Search, ChevronLeft, FileText, Pencil } from "lucide-react";
 
 // Render list OR detail on mobile (master-detail), both side-by-side on desktop.
@@ -28,6 +28,7 @@ export default function AttendancePage({ profile, members, households = [], serv
   const isAdmin = profile?.role === "admin";
   const canCreateService = ["admin","leadership","usher"].includes(profile?.role);
   const isMobile = useIsMobile();
+  const headerOffset = useHeaderOffset();
   const lastCardRef = useRef(null);
   const [lastViewedId, setLastViewedId] = useState(null); // to return to the same spot on mobile
   const householdById = Object.fromEntries(households.map(h => [h.id, h.name]));
@@ -302,7 +303,9 @@ export default function AttendancePage({ profile, members, households = [], serv
   return (
     <div className="fade-in">
       {(!isMobile || !activeId) && (<>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14,flexWrap:"wrap",gap:10}}>
+      <div style={ isMobile
+        ? {display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:10,position:"sticky",top:headerOffset,zIndex:30,background:"var(--bg-body)",paddingTop:8,paddingBottom:10,marginLeft:-14,marginRight:-14,paddingLeft:14,paddingRight:14,marginBottom:14,boxShadow:"0 6px 8px -6px #00000022"}
+        : {display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14,flexWrap:"wrap",gap:10} }>
         <div style={{fontFamily:"'Inter',sans-serif",color:"var(--text)",fontSize:14,letterSpacing:0.2,fontWeight:600}}>SERVICES</div>
         <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
           <select
@@ -358,9 +361,10 @@ export default function AttendancePage({ profile, members, households = [], serv
             const d = new Date(s.service_date+"T12:00:00");
             return (
               <div key={s.id} ref={(activeId===s.id||lastViewedId===s.id)?lastCardRef:null} className={`service-card ${(activeId===s.id||lastViewedId===s.id)?"active":""}`} onClick={()=>selectService(s.id)}>
-                <div style={{width:46,height:46,borderRadius:10,background:(activeId===s.id||lastViewedId===s.id)?"#2a535720":"var(--panel)",border:"1.5px solid var(--border-navy)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                  <div style={{fontFamily:"'Inter',sans-serif",fontSize:17,color:"var(--brand)",fontWeight:600}}>{d.getDate()}</div>
+                <div style={{width:48,minHeight:48,borderRadius:10,background:(activeId===s.id||lastViewedId===s.id)?"#2a535720":"var(--panel)",border:"1.5px solid var(--border-navy)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",flexShrink:0,padding:"4px 0"}}>
+                  <div style={{fontFamily:"'Inter',sans-serif",fontSize:17,color:"var(--brand)",fontWeight:600,lineHeight:1.05}}>{d.getDate()}</div>
                   <div style={{fontSize:10,color:"var(--text-faint)",letterSpacing:0.2}}>{d.toLocaleString("default",{month:"short"}).toUpperCase()}</div>
+                  <div style={{fontSize:9,color:"var(--text-faint)",fontWeight:600}}>{d.getFullYear()}</div>
                 </div>
                 <div style={{flex:1, minWidth:0}}>
                   <div style={{fontSize:14,fontWeight:700,color:"var(--text)"}}>{s.name}</div>

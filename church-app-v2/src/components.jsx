@@ -3,6 +3,31 @@ import { createClient } from "@supabase/supabase-js";
 import { supabase, supabaseUrl, supabaseAnonKey } from "./supabase";
 import { ShieldCheck, KeyRound, Camera, X, ChevronRight, ChevronLeft, ChevronDown } from "lucide-react";
 
+// ── Shared layout hooks ──
+// True on narrow (mobile) viewports.
+export function useIsMobile(bp = 768) {
+  const [m, setM] = useState(() => typeof window !== "undefined" && window.matchMedia(`(max-width: ${bp}px)`).matches);
+  useEffect(() => {
+    const mq = window.matchMedia(`(max-width: ${bp}px)`);
+    const on = () => setM(mq.matches);
+    mq.addEventListener("change", on);
+    return () => mq.removeEventListener("change", on);
+  }, [bp]);
+  return m;
+}
+// Live height of the app's sticky top bar, so page headers can pin just beneath it.
+export function useHeaderOffset() {
+  const [top, setTop] = useState(0);
+  useEffect(() => {
+    const measure = () => { const hb = document.querySelector(".header-bar"); setTop(hb ? Math.round(hb.getBoundingClientRect().height) : 0); };
+    measure();
+    const t = setTimeout(measure, 300);
+    window.addEventListener("resize", measure);
+    return () => { window.removeEventListener("resize", measure); clearTimeout(t); };
+  }, []);
+  return top;
+}
+
 // ── Reusable multi-select dropdown (checkbox list) ──
 // options: array of { value, label }. selected: array of values. onChange(nextValues).
 export function MultiSelect({ label, options, selected, onChange, width = 180 }) {

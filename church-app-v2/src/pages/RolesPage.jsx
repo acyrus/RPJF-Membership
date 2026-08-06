@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Avatar, ROLES, ROLE_COLORS, fullName, MultiSelect } from "../components";
+import { Avatar, ROLES, ROLE_COLORS, fullName, MultiSelect, useIsMobile, useHeaderOffset } from "../components";
 import { supabase } from "../supabase";
 import { Search, ChevronDown } from "lucide-react";
 
@@ -12,6 +12,8 @@ function getInstruments(m) {
 
 export default function RolesPage({ members, households = [], profile, setMembers = () => {}, onMemberClick }) {
   const isAdmin = profile?.role === "admin";
+  const isMobile = useIsMobile();
+  const headerOffset = useHeaderOffset();
   const [ministrySelected, setMinistrySelected] = useState([]);
   const [person, setPerson] = useState("");
   const [famSelected, setFamSelected] = useState([]);
@@ -58,7 +60,9 @@ export default function RolesPage({ members, households = [], profile, setMember
         </div>
       </div>
 
-      <div style={{display:"flex",gap:8,flexWrap:"wrap",alignItems:"center",marginBottom:18}}>
+      <div style={ isMobile
+        ? {display:"flex",gap:8,flexWrap:"wrap",alignItems:"center",position:"sticky",top:headerOffset,zIndex:30,background:"var(--bg-body)",paddingTop:8,paddingBottom:10,marginLeft:-14,marginRight:-14,paddingLeft:14,paddingRight:14,marginBottom:14,boxShadow:"0 6px 8px -6px #00000022"}
+        : {display:"flex",gap:8,flexWrap:"wrap",alignItems:"center",marginBottom:18} }>
         <MultiSelect label="All ministries" width={190}
           options={ROLES.map(r => ({ value: r, label: r }))}
           selected={ministrySelected} onChange={setMinistrySelected} />
@@ -73,7 +77,9 @@ export default function RolesPage({ members, households = [], profile, setMember
 
       {err && <div className="error-msg" style={{marginBottom:12}}>{err}</div>}
 
-      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(260px,1fr))",gap:14}}>
+      <div style={ isMobile
+        ? {height:`calc(100dvh - ${headerOffset + 150}px)`,overflowY:"auto",scrollSnapType:"y mandatory",display:"flex",flexDirection:"column",gap:14,WebkitOverflowScrolling:"touch"}
+        : {display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(260px,1fr))",gap:14} }>
         {rolesToShow.map(role => {
           const posRank = { "Leader": 0, "Co-Leader": 1 };
           // Leaders first, then co-leaders, then everyone else by name.
@@ -88,7 +94,7 @@ export default function RolesPage({ members, households = [], profile, setMember
           if (memberFilterActive && rm.length === 0) return null;
           const color = ROLE_COLORS[role]||"#888";
           return (
-            <div key={role} className="card" style={{padding:16,borderLeft:`3px solid ${color}`}}>
+            <div key={role} className="card" style={{padding:16,borderLeft:`3px solid ${color}`,...(isMobile?{scrollSnapAlign:"start",minHeight:`calc(100dvh - ${headerOffset + 170}px)`,boxSizing:"border-box"}:{})}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
                 <div style={{fontWeight:700,fontSize:14,color:"var(--text)"}}>{role}</div>
                 <div style={{background:color+"18",border:`1.5px solid ${color}44`,color,borderRadius:20,padding:"2px 10px",fontSize:12,fontWeight:700}}>
@@ -108,7 +114,6 @@ export default function RolesPage({ members, households = [], profile, setMember
                           <Avatar member={m} size={28} />
                           <div style={{minWidth:0}}>
                             <div style={{fontSize:12,color:"var(--text)",fontWeight:600}}>{fullName(m)}</div>
-                            {householdById[m.household_id] && <div style={{fontSize:10,color:"var(--text-faint)"}}>{householdById[m.household_id]}</div>}
                             {instruments.length>0 && (
                               <div style={{display:"flex",flexWrap:"wrap",gap:4,marginTop:3}}>
                                 {instruments.map(inst=>(
