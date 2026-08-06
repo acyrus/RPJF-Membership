@@ -1090,6 +1090,34 @@ export default function AnalyticsPage({ members, services, attendance, household
     };
   }).filter(d => d.total>0).sort((a,b)=>b.total-a.total), [filteredMembers]);
 
+  // Data completeness: share of members in view with each key field filled.
+  const dataCompleteness = useMemo(() => {
+    const n = filteredMembers.length || 1;
+    const fields = [
+      ["Photo", m => !!m.photo_url],
+      ["Household", m => !!m.household_id],
+      ["Skills", m => !!(m.skill1 || m.skill2 || m.skill3)],
+      ["Attends (In person / Online)", m => !!m.interaction_type],
+      ["Home address", m => !!m.address],
+      ["Ministry", m => (m.roles || []).length > 0],
+      ["Date of birth", m => !!m.dob],
+      ["Marital status", m => !!m.marital_status],
+      ["Email", m => !!m.email],
+      ["Phone", m => !!m.phone],
+      ["City", m => !!m.city],
+      ["Join date", m => !!m.join_date],
+      ["Sex", m => !!m.sex],
+    ];
+    const rows = fields.map(([label, fn]) => {
+      const filled = filteredMembers.filter(fn).length;
+      return { label, filled, pct: Math.round(filled / n * 100) };
+    }).sort((a, b) => a.pct - b.pct);
+    const avg = rows.length ? Math.round(rows.reduce((s, r) => s + r.pct, 0) / rows.length) : 0;
+    return { rows, avg, total: filteredMembers.length,
+      noPhoto: filteredMembers.filter(m => !m.photo_url).length,
+      noMinistry: filteredMembers.filter(m => !(m.roles || []).length).length };
+  }, [filteredMembers]);
+
   // Notable one-directional overlaps: "X% of ministry A also serve in B".
   const overlapInsights = useMemo(() => {
     const sizeOf = n => (ministrySize.find(x => x.name === n) || {}).value || 0;
@@ -1319,7 +1347,7 @@ export default function AnalyticsPage({ members, services, attendance, household
 
       {/* ── SECTION TABS ── */}
       <div style={{display:"flex",gap:4,borderBottom:"1.5px solid var(--border)",marginBottom:20,overflowX:"auto",WebkitOverflowScrolling:"touch",scrollbarWidth:"none"}}>
-        {[["attendance","Attendance"],["members","Members"],["ministry","Ministries"],["instruments","Musicians"]].map(([key,label]) => (
+        {[["attendance","Attendance"],["members","Members"],["ministry","Ministries"],["instruments","Musicians"],["data","Data"]].map(([key,label]) => (
           <button key={key} onClick={()=>setActiveSection(key)} style={{
             background:"none",border:"none",cursor:"pointer",fontFamily:"Inter,sans-serif",flexShrink:0,whiteSpace:"nowrap",
             fontSize:13,fontWeight:600,padding:isMobile?"10px 12px":"10px 18px",
@@ -1510,21 +1538,6 @@ export default function AnalyticsPage({ members, services, attendance, household
                       <YAxis tick={{fontSize:11,fill:"var(--text-faint)"}} />
                       <Tooltip content={<CustomTooltip />} />
                       <Bar dataKey="avg" name="Avg Attendance" radius={[6,6,0,0]}>
-                        {attByType.map((t,i) => <Cell key={i} fill={svcColor(t.name)} />)}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-              }
-            </ChartCard>
-            <ChartCard title="Services per Type" subtitle="How many times each service ran">
-              {attByType.length === 0 ? <div style={{textAlign:"center",padding:30,color:"var(--text-faint)",fontSize:12}}>No data</div>
-                : <ResponsiveContainer width="100%" height={220}>
-                    <BarChart data={attByType} margin={{top:4,right:8,bottom:40,left:0}}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" vertical={false} />
-                      <XAxis dataKey="name" tick={{fontSize:10,fill:"var(--text-faint)"}} angle={-25} textAnchor="end" interval={0} />
-                      <YAxis tick={{fontSize:11,fill:"var(--text-faint)"}} />
-                      <Tooltip content={<CustomTooltip />} />
-                      <Bar dataKey="sessions" name="Services" radius={[6,6,0,0]}>
                         {attByType.map((t,i) => <Cell key={i} fill={svcColor(t.name)} />)}
                       </Bar>
                     </BarChart>
@@ -2194,6 +2207,41 @@ export default function AnalyticsPage({ members, services, attendance, household
                 </div>
               </>
           }
+        </div>
+      )}
+
+      {activeSection === "data" && (
+        <div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(180px,1fr))",gap:12,marginBottom:8}}>
+            <IconStat icon={<Users size={18}/>} value={dataCompleteness.total} label="Members in view" sub="current filter" color="#2a5357" />
+            <IconStat icon={<Check size={18}/>} value={`${dataCompleteness.avg}%`} label="Avg completeness" sub="across all fields" color={dataCompleteness.avg>=80?"#2a8a50":dataCompleteness.avg>=50?"#c07a1e":"#dc2626"} />
+            <IconStat icon={<X size={18}/>} value={dataCompleteness.noPhoto} label="Missing a photo" sub="not yet captured" color="#7c3aed" />
+            <IconStat icon={<UserMinus size={18}/>} value={dataCompleteness.noMinistry} label="No ministry" sub="not serving" color="#c06010" />
+          </div>
+
+          <SectionTitle>Field Completeness</SectionTitle>
+          <ChartCard title="How complete is each field?" subtitle="Share of members in view with each field filled in. The least-complete fields are listed first, so you know where to tidy up.">
+            <div style={{display:"flex",flexDirection:"column",gap:12}}>
+              {dataCompleteness.rows.map(r => {
+                const c = r.pct>=80 ? "#2a8a50" : r.pct>=50 ? "#c07a1e" : "#dc2626";
+                return (
+                  <div key={r.label}>
+                    <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}>
+                      <div style={{flex:1,minWidth:0,fontSize:12.5,color:"var(--text-2)",fontWeight:500}}>{r.label}</div>
+                      <div style={{fontSize:12.5,fontWeight:700,color:"var(--text)"}}>{r.pct}%</div>
+                      <div style={{fontSize:11,color:"var(--text-faint)",minWidth:96,textAlign:"right"}}>{r.filled} of {dataCompleteness.total}</div>
+                    </div>
+                    <div style={{height:7,background:"var(--border-divider)",borderRadius:4,overflow:"hidden"}}>
+                      <div style={{width:`${r.pct}%`,height:"100%",background:c,borderRadius:4}} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <div style={{fontSize:11,color:"var(--text-faint)",marginTop:14,lineHeight:1.6}}>
+              Filters apply here too, so you can check completeness for a subset (e.g. only active members, or one ministry). Improving these fields makes every other chart on this page more accurate.
+            </div>
+          </ChartCard>
         </div>
       )}
     </div>

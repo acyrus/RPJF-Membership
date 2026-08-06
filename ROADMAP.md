@@ -69,7 +69,8 @@ most complex left for last. Overlapping requests have been folded together
     lists, by-count table). All chart descriptions de-em-dashed. ✅ Attendance heatmap
     (months × service type, each row shaded to its own busiest month) and stable per-service-type
     colours across every chart (keyed off the full type list so filtering never repaints) both
-    done. (folds old #10, #24 + viz mockup)
+    done. Plus a new **Data** tab (field completeness with progress bars) and the redundant
+    "Services per Type" bar removed. (folds old #10, #24 + viz mockup)
 17. **Revise the individual member view.** 🔄 In progress — member detail is now a centered
     popout modal (was a side panel), with Edit / Delete moved to the top; clicking a member
     anywhere (Ministries, Skills, Families, Celebrations) jumps to the Members tab and
@@ -96,6 +97,10 @@ most complex left for last. Overlapping requests have been folded together
   with a mini profile (avatar, name, key info) and access-gated actions (View details, Edit,
   Call / Email, View family) instead of navigating straight to the Members tab — also gives
   lower-access accounts a read-only quick-look. Shelved Aug 2026.
+- **Ministry Health + per-ministry staffing targets.** An analytics card flagging ministries
+  that need a leader or more people, driven by an admin-set "needs at least N" target per
+  ministry (new `ministry_targets` table + an editor on the Ministries page). A fixed-threshold
+  version was built and removed; shelved Aug 2026 until the per-ministry targets are wanted.
 
 ## Notes
 
