@@ -575,6 +575,15 @@ export default function AnalyticsPage({ members, services, attendance, household
     [...new Set(services.map(s => s.name))].sort()
   , [services]);
 
+  // Stable colour per service type, keyed off the full (unfiltered) sorted type list so a
+  // type keeps the same colour across every chart even when the filter set changes.
+  const svcColorMap = useMemo(() => {
+    const m = {};
+    allSvcTypes.forEach((n, i) => { m[n] = LINE_COLORS[i % LINE_COLORS.length]; });
+    return m;
+  }, [allSvcTypes]);
+  const svcColor = n => svcColorMap[n] || TEAL;
+
   // Option lists for the extra member filters, built from the data present.
   const maritalOptions = useMemo(() => [...new Set(members.map(m => m.marital_status).filter(Boolean))].sort(), [members]);
   const interactionOptions = useMemo(() => [...new Set(members.map(m => m.interaction_type).filter(Boolean))].sort(), [members]);
@@ -1407,7 +1416,7 @@ export default function AnalyticsPage({ members, services, attendance, household
             ? <div style={{textAlign:"center",padding:40,color:"var(--text-faint)",fontSize:13}}>No attendance data for this period</div>
             : svcTypeView === "grid"
               ? <ChartCard title="Attendance by Service Type" subtitle={svcTypeAxis==="date"?"One mini chart per service type, by date":"One mini chart per service type, per month"}>
-                  <SmallMultiples data={svcTypeData} series={attByType.map((t,i)=>({key:t.name,name:t.name,color:LINE_COLORS[i%LINE_COLORS.length]}))} />
+                  <SmallMultiples data={svcTypeData} series={attByType.map(t=>({key:t.name,name:t.name,color:svcColor(t.name)}))} />
                 </ChartCard>
               : <ChartCard title={svcTypeAxis==="date"?"Attendance by Service Type (by date)":"Monthly Attendance by Service Type"} subtitle={svcTypeAxis==="date"?"Members present at each service, by date":"Distinct members per service type each month"}>
                 <ResponsiveContainer width="100%" height={280}>
@@ -1417,8 +1426,8 @@ export default function AnalyticsPage({ members, services, attendance, household
                     <YAxis tick={{fontSize:11,fill:"var(--text-faint)"}} allowDecimals={false} />
                     <Tooltip content={<CustomTooltip />} />
                     <Legend wrapperStyle={{fontSize:12}} />
-                    {attByType.map((t,i) => (
-                      <Line key={t.name} type="monotone" dataKey={t.name} name={t.name} stroke={LINE_COLORS[i%LINE_COLORS.length]} strokeWidth={2.5} dot={{r:2.5}} activeDot={{r:6}} connectNulls />
+                    {attByType.map((t) => (
+                      <Line key={t.name} type="monotone" dataKey={t.name} name={t.name} stroke={svcColor(t.name)} strokeWidth={2.5} dot={{r:2.5}} activeDot={{r:6}} connectNulls />
                     ))}
                   </LineChart>
                 </ResponsiveContainer>
@@ -1455,6 +1464,41 @@ export default function AnalyticsPage({ members, services, attendance, household
               </ChartCard>
           }
 
+          <SectionTitle>Attendance Heatmap</SectionTitle>
+          {attByTypeMonthly.length === 0 || attByType.length === 0
+            ? <div style={{textAlign:"center",padding:40,color:"var(--text-faint)",fontSize:13}}>No attendance data for this period</div>
+            : <ChartCard title="Attendance by Month & Service Type" subtitle="Darker cell = higher turnout. Each row is shaded against its own busiest month, so a pale cell is a soft spot for that service.">
+                <div style={{overflowX:"auto"}}>
+                  <div style={{display:"flex",flexDirection:"column",gap:4,minWidth:150+attByTypeMonthly.length*46}}>
+                    <div style={{display:"flex",gap:4}}>
+                      <div style={{width:140,flexShrink:0}} />
+                      {attByTypeMonthly.map(d => <div key={d.label} style={{flex:1,minWidth:42,textAlign:"center",fontSize:10,fontWeight:600,color:"var(--text-faint)"}}>{d.label}</div>)}
+                    </div>
+                    {attByType.map(t => {
+                      const color = svcColor(t.name);
+                      const rowVals = attByTypeMonthly.map(d => d[t.name] || 0);
+                      const rowMax = Math.max(1, ...rowVals);
+                      return (
+                        <div key={t.name} style={{display:"flex",gap:4,alignItems:"center"}}>
+                          <div style={{width:140,flexShrink:0,display:"flex",alignItems:"center",gap:6,fontSize:12,fontWeight:600,color:"var(--text-2)"}}>
+                            <span style={{width:9,height:9,borderRadius:2,background:color,flexShrink:0}} />
+                            <span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.name}</span>
+                          </div>
+                          {attByTypeMonthly.map((d,ci) => {
+                            const v = d[t.name] || 0;
+                            const norm = v / rowMax;
+                            return (
+                              <div key={ci} title={`${t.name} · ${d.label}: ${v}`} style={{flex:1,minWidth:42,height:34,borderRadius:5,background:v===0?"var(--border-divider)":color,opacity:v===0?0.5:0.2+norm*0.8,display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:700,color:norm>0.55?"#fff":"var(--text-2)"}}>{v||""}</div>
+                            );
+                          })}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </ChartCard>
+          }
+
           <SectionTitle>By Service Type</SectionTitle>
           <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:14}}>
             <ChartCard title="Average Attendance by Type" subtitle="Mean attendance per service">
@@ -1466,7 +1510,7 @@ export default function AnalyticsPage({ members, services, attendance, household
                       <YAxis tick={{fontSize:11,fill:"var(--text-faint)"}} />
                       <Tooltip content={<CustomTooltip />} />
                       <Bar dataKey="avg" name="Avg Attendance" radius={[6,6,0,0]}>
-                        {attByType.map((_,i) => <Cell key={i} fill={CHART_COLORS[i%CHART_COLORS.length]} />)}
+                        {attByType.map((t,i) => <Cell key={i} fill={svcColor(t.name)} />)}
                       </Bar>
                     </BarChart>
                   </ResponsiveContainer>
@@ -1481,7 +1525,7 @@ export default function AnalyticsPage({ members, services, attendance, household
                       <YAxis tick={{fontSize:11,fill:"var(--text-faint)"}} />
                       <Tooltip content={<CustomTooltip />} />
                       <Bar dataKey="sessions" name="Services" radius={[6,6,0,0]}>
-                        {attByType.map((_,i) => <Cell key={i} fill={CHART_COLORS[i%CHART_COLORS.length]} />)}
+                        {attByType.map((t,i) => <Cell key={i} fill={svcColor(t.name)} />)}
                       </Bar>
                     </BarChart>
                   </ResponsiveContainer>
