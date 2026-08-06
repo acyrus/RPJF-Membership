@@ -599,13 +599,31 @@ export default function AnalyticsPage({ members, services, attendance, household
   const interactionOptions = useMemo(() => [...new Set(members.map(m => m.interaction_type).filter(Boolean))].sort(), [members]);
   const skillOptions = useMemo(() => { const s = new Set(); members.forEach(m => [m.skill1, m.skill2, m.skill3].filter(Boolean).forEach(k => s.add(k))); return [...s].sort(); }, [members]);
 
-  // Households that contain at least one child; a parent is an adult in one of them.
-  const childHouseholds = useMemo(() => {
-    const s = new Set();
-    members.forEach(m => { if (m.household_id && isChildMember(m)) s.add(m.household_id); });
-    return s;
+  // Per household: whether it has a child and the youngest child's known age.
+  const childInfo = useMemo(() => {
+    const map = {};
+    members.forEach(m => {
+      if (!m.household_id || !isChildMember(m)) return;
+      const rec = map[m.household_id] || { minChildAge: null };
+      const a = calcAge(m.dob);
+      if (a !== null) rec.minChildAge = rec.minChildAge === null ? a : Math.min(rec.minChildAge, a);
+      map[m.household_id] = rec;
+    });
+    return map;
   }, [members]);
-  const isParent = m => !!m.household_id && childHouseholds.has(m.household_id) && !isChildMember(m);
+  // A parent = explicitly titled Father/Mother, or an adult sharing a household with a child
+  // AND at least ~16 years older than the youngest child (drops adult siblings). When either
+  // age is unknown the gap can't be checked, so we fall back to inclusion.
+  const PARENT_GAP = 16;
+  const isParent = m => {
+    if (m.household_role === "Father" || m.household_role === "Mother") return true;
+    if (!m.household_id) return false;
+    const info = childInfo[m.household_id];
+    if (!info || isChildMember(m)) return false;
+    const a = calcAge(m.dob);
+    if (a !== null && info.minChildAge !== null) return a - info.minChildAge >= PARENT_GAP;
+    return true;
+  };
 
   // 3. Filtered services — no dependency on filteredMembers
   const filteredServices = useMemo(() => {
@@ -652,7 +670,7 @@ export default function AnalyticsPage({ members, services, attendance, household
       const matchAttended = !attendingMemberIds || attendingMemberIds.has(m.id);
       return matchStatus && matchSex && matchCity && matchRole && matchAge && matchMarital && matchInteraction && matchSkill && matchAgeRange && matchParent && matchAttended;
     });
-  }, [members, statusFilter, sexFilter, cityFilter, roleFilter, ageFilter, maritalFilter, interactionFilter, skillFilterA, ageMin, ageMax, parentFilter, childHouseholds, selectedMemberIds, attendingMemberIds]);
+  }, [members, statusFilter, sexFilter, cityFilter, roleFilter, ageFilter, maritalFilter, interactionFilter, skillFilterA, ageMin, ageMax, parentFilter, childInfo, selectedMemberIds, attendingMemberIds]);
 
   // Same member filters WITHOUT the attended-only restriction, so the by-individual
   // list also shows people who attended none of the selected services (their "missed").
@@ -677,7 +695,7 @@ export default function AnalyticsPage({ members, services, attendance, household
       const matchParent = parentFilter === "all" || (parentFilter === "parents" ? isParent(m) : !isParent(m));
       return matchStatus && matchSex && matchCity && matchRole && matchAge && matchMarital && matchInteraction && matchSkill && matchAgeRange && matchParent;
     });
-  }, [members, statusFilter, sexFilter, cityFilter, roleFilter, ageFilter, maritalFilter, interactionFilter, skillFilterA, ageMin, ageMax, parentFilter, childHouseholds, selectedMemberIds]);
+  }, [members, statusFilter, sexFilter, cityFilter, roleFilter, ageFilter, maritalFilter, interactionFilter, skillFilterA, ageMin, ageMax, parentFilter, childInfo, selectedMemberIds]);
 
   // A one-line summary of what the By-Member list is currently scoped to, shown
   // (and kept visible) in its toolbar so the active filters stay in view.
@@ -1721,6 +1739,10 @@ export default function AnalyticsPage({ members, services, attendance, household
             const active = filteredMembers.filter(m=>m.is_active!==false).length;
             const married = filteredMembers.filter(m=>m.marital_status==="Married").length;
             const single = filteredMembers.filter(m=>m.marital_status==="Single").length;
+            const isFather = m => m.household_role==="Father" || (isParent(m) && m.sex==="Male");
+            const isMother = m => m.household_role==="Mother" || (isParent(m) && m.sex==="Female");
+            const fathers = filteredMembers.filter(isFather).length;
+            const mothers = filteredMembers.filter(isMother).length;
             const parents = filteredMembers.filter(isParent).length;
             const cards = [
               {icon:<Users size={18}/>, value:filteredMembers.length, label:"In view", sub:"current filter", color:TEAL},
@@ -1728,7 +1750,9 @@ export default function AnalyticsPage({ members, services, attendance, household
               {icon:<User size={18}/>, value:male, label:"Male", sub:`${Math.round(male/n*100)}%`, color:TEAL},
               {icon:<User size={18}/>, value:female, label:"Female", sub:`${Math.round(female/n*100)}%`, color:PINK},
               {icon:<Heart size={18}/>, value:married, label:"Married", sub:`${single} single`, color:PURPLE},
-              {icon:<Baby size={18}/>, value:parents, label:"Parents", sub:"adults with a child at home", color:ORANGE},
+              {icon:<Baby size={18}/>, value:parents, label:"Parents", sub:"in a family with children", color:ORANGE},
+              {icon:<User size={18}/>, value:fathers, label:"Fathers", sub:"by title or inferred", color:TEAL},
+              {icon:<User size={18}/>, value:mothers, label:"Mothers", sub:"by title or inferred", color:PINK},
             ];
             return (
               <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(170px,1fr))",gap:12,marginBottom:6}}>
