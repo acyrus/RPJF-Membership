@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import { supabase } from "../supabase";
-import { Avatar, RoleBadge, MaritalBadge, SexBadge, StatusBadge, InfoRow, MemberForm, Spinner, ROLES, BLANK_MEMBER, TRINIDAD_CITIES, calcAge, formatDob, formatShortDate, isBirthdayThisWeek, fullName, fullNameFull, validateMember } from "../components";
-import { Cake, Hourglass, MapPin, Phone, Mail, Heart, Users, Home as HomeIcon, Zap, Lightbulb, FileText, Music } from "lucide-react";
+import { Avatar, RoleBadge, MaritalBadge, SexBadge, StatusBadge, InfoRow, MemberForm, Spinner, ROLES, BLANK_MEMBER, TRINIDAD_CITIES, calcAge, formatDob, formatShortDate, isBirthdayThisWeek, fullName, fullNameFull, validateMember, useIsMobile, useHeaderOffset } from "../components";
+import { Cake, Hourglass, MapPin, Phone, Mail, Heart, Users, Home as HomeIcon, Zap, Lightbulb, FileText, Music, SlidersHorizontal } from "lucide-react";
 import { X, Check } from "lucide-react";
 
 async function logActivity(action_type, description, user_id, user_name) {
@@ -27,6 +27,9 @@ export default function MembersPage({ profile, members, setMembers, households =
   const [skillFilter, setSkillFilter] = useState("All");
   const [cityFilter, setCityFilter] = useState("All");
   const [formErrors, setFormErrors] = useState({});
+  const isMobile = useIsMobile();
+  const headerOffset = useHeaderOffset();
+  const [showFilters, setShowFilters] = useState(() => !(typeof window !== "undefined" && window.matchMedia("(max-width: 768px)").matches));
   const [highlightId, setHighlightId] = useState(null); // row briefly highlighted after arriving from another tab
   const highlightRef = useRef(null);
   const modalRef = useRef(null);
@@ -266,6 +269,8 @@ export default function MembersPage({ profile, members, setMembers, households =
     setSelected(null);
   }
 
+  const memberActiveFilters = (sexFilter!=="All"?1:0)+(cityFilter!=="All"?1:0)+(skillFilter!=="All"?1:0)+((ageMin!==""||ageMax!=="")?1:0)+(statusFilter!=="active"?1:0)+(roleFilter!=="All"?1:0);
+
   return (
     <>
       {saveSuccess && (
@@ -282,47 +287,53 @@ export default function MembersPage({ profile, members, setMembers, households =
     <div className="fade-in">
       {/* Member list (full width) */}
       <div style={{minWidth:0}}>
-        {birthdays.length > 0 && (
-          <div className="birthday-banner">
-            <span style={{display:"flex"}}><Cake size={18} color="#e07830" /></span>
-            <span><strong>Upcoming birthdays this week:</strong> {birthdays.map(m=>fullName(m)).join(", ")}</span>
+        <div style={ isMobile
+          ? {position:"sticky",top:headerOffset,zIndex:30,background:"var(--bg-body)",paddingTop:8,marginLeft:-14,marginRight:-14,paddingLeft:14,paddingRight:14,marginBottom:12,boxShadow:"0 6px 8px -6px #00000022"}
+          : {marginBottom:14} }>
+          <div style={{display:"flex",gap:8,alignItems:"center"}}>
+            <input className="search-input" placeholder="Search members…" value={search} onChange={e=>setSearch(e.target.value)} style={{flex:1,minWidth:0}} />
+            <button onClick={()=>setShowFilters(v=>!v)} style={{display:"inline-flex",alignItems:"center",gap:6,padding:"8px 12px",borderRadius:8,fontSize:13,fontWeight:600,cursor:"pointer",flexShrink:0,
+              background:memberActiveFilters?"var(--brand)":"var(--surface-alt)",color:memberActiveFilters?"#fff":"var(--text-2)",border:`1.5px solid ${memberActiveFilters?"var(--brand)":"var(--border)"}`}}>
+              <SlidersHorizontal size={14} /> Filters{memberActiveFilters>0 && <span style={{background:"#ffffff33",borderRadius:20,padding:"0 6px",fontSize:11,fontWeight:700}}>{memberActiveFilters}</span>}
+            </button>
+            {isAdmin && <button className="btn-primary" style={{flexShrink:0}} onClick={()=>{setForm(BLANK_MEMBER);setShowAdd(true);setError("");}}>+ Add</button>}
           </div>
-        )}
-        <div className="filter-row" style={{display:"flex",gap:10,marginBottom:14,flexWrap:"wrap"}}>
-          <input className="search-input" placeholder="Search members…" value={search} onChange={e=>setSearch(e.target.value)} style={{flex:1,minWidth:160}} />
-          <select value={sexFilter} onChange={e=>setSexFilter(e.target.value)} style={{width:120}}>
-            <option value="All">Both Genders</option>
-            <option value="Male">Male</option>
-            <option value="Female">Female</option>
-          </select>
-          <select value={cityFilter} onChange={e=>setCityFilter(e.target.value)} style={{width:130}}>
-            <option value="All">All Cities</option>
-            {TRINIDAD_CITIES.map(c=><option key={c} value={c}>{c}</option>)}
-          </select>
-          <select value={skillFilter} onChange={e=>setSkillFilter(e.target.value)} style={{width:150}}>
-            <option value="All">All Skills</option>
-            {skillsInUse.map(sk=><option key={sk} value={sk}>{sk}</option>)}
-          </select>
-          <div className="age-filter" style={{display:"flex",alignItems:"center",gap:4}} title="Filter by age range">
-            <span style={{fontSize:12,color:"var(--text-muted-navy)",fontWeight:600}}>Age</span>
-            <input type="number" min="0" max="120" placeholder="min" value={ageMin} onChange={e=>setAgeMin(e.target.value)} style={{width:58,padding:"7px 6px"}} />
-            <span style={{fontSize:12,color:"var(--text-muted-navy)"}}>–</span>
-            <input type="number" min="0" max="120" placeholder="max" value={ageMax} onChange={e=>setAgeMax(e.target.value)} style={{width:58,padding:"7px 6px"}} />
-            {(ageMin!=="" || ageMax!=="") && (
-              <button onClick={()=>{setAgeMin("");setAgeMax("");}} title="Clear age range" style={{background:"none",border:"1px solid var(--border-navy-strong)",borderRadius:8,color:"var(--text-faint)",cursor:"pointer",fontSize:12,padding:"4px 7px"}}><X size={13} /></button>
-            )}
-          </div>
-          <select value={statusFilter} onChange={e=>setStatusFilter(e.target.value)} style={{width:110}}>
-            <option value="active">Active</option>
-            <option value="inactive">Inactive</option>
-            <option value="all">All Members</option>
-          </select>
-          <select value={roleFilter} onChange={e=>setRoleFilter(e.target.value)} style={{width:160}}>
-            <option value="All">All Ministries</option>
-            {ROLES.map(r=><option key={r} value={r}>{r}</option>)}
-          </select>
-          <button className="btn-ghost" onClick={exportCSV} title="Export to CSV">Export CSV</button>
-          {isAdmin && <button className="btn-primary" onClick={()=>{setForm(BLANK_MEMBER);setShowAdd(true);setError("");}}>+ Add Member</button>}
+          {showFilters && (
+            <div className="filter-row" style={{display:"flex",gap:10,marginTop:10,flexWrap:"wrap"}}>
+              <select value={sexFilter} onChange={e=>setSexFilter(e.target.value)} style={{width:120}}>
+                <option value="All">Both Genders</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+              </select>
+              <select value={cityFilter} onChange={e=>setCityFilter(e.target.value)} style={{width:130}}>
+                <option value="All">All Cities</option>
+                {TRINIDAD_CITIES.map(c=><option key={c} value={c}>{c}</option>)}
+              </select>
+              <select value={skillFilter} onChange={e=>setSkillFilter(e.target.value)} style={{width:150}}>
+                <option value="All">All Skills</option>
+                {skillsInUse.map(sk=><option key={sk} value={sk}>{sk}</option>)}
+              </select>
+              <div className="age-filter" style={{display:"flex",alignItems:"center",gap:4}} title="Filter by age range">
+                <span style={{fontSize:12,color:"var(--text-muted-navy)",fontWeight:600}}>Age</span>
+                <input type="number" min="0" max="120" placeholder="min" value={ageMin} onChange={e=>setAgeMin(e.target.value)} style={{width:58,padding:"7px 6px"}} />
+                <span style={{fontSize:12,color:"var(--text-muted-navy)"}}>–</span>
+                <input type="number" min="0" max="120" placeholder="max" value={ageMax} onChange={e=>setAgeMax(e.target.value)} style={{width:58,padding:"7px 6px"}} />
+                {(ageMin!=="" || ageMax!=="") && (
+                  <button onClick={()=>{setAgeMin("");setAgeMax("");}} title="Clear age range" style={{background:"none",border:"1px solid var(--border-navy-strong)",borderRadius:8,color:"var(--text-faint)",cursor:"pointer",fontSize:12,padding:"4px 7px"}}><X size={13} /></button>
+                )}
+              </div>
+              <select value={statusFilter} onChange={e=>setStatusFilter(e.target.value)} style={{width:110}}>
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+                <option value="all">All Members</option>
+              </select>
+              <select value={roleFilter} onChange={e=>setRoleFilter(e.target.value)} style={{width:160}}>
+                <option value="All">All Ministries</option>
+                {ROLES.map(r=><option key={r} value={r}>{r}</option>)}
+              </select>
+              <button className="btn-ghost" onClick={exportCSV} title="Export to CSV">Export CSV</button>
+            </div>
+          )}
         </div>
 
         <div className="card" style={{padding:6}}>
@@ -358,8 +369,10 @@ export default function MembersPage({ profile, members, setMembers, households =
       {selected && !editData && !showAdd && (
         <div className="modal-bg" onClick={()=>setSelected(null)}>
         <div ref={modalRef} className="modal fade-in" onClick={e=>e.stopPropagation()} style={{maxWidth:480,position:"relative"}}>
-          {/* Close button */}
-          <button className="close-btn" onClick={()=>setSelected(null)}><X size={13} /></button>
+          {/* Close button — pinned to the top-right of the popout while it scrolls */}
+          <div style={{position:"sticky",top:0,zIndex:6,height:0}}>
+            <button className="close-btn" onClick={()=>setSelected(null)} style={{position:"absolute",top:6,right:0}}><X size={13} /></button>
+          </div>
 
           <div style={{textAlign:"center",marginBottom:18,paddingTop:4}}>
             <div style={{position:"relative",display:"inline-block"}}>

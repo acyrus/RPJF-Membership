@@ -301,17 +301,28 @@ export default function DashboardPage({ profile, members, services, attendance, 
                     </div>
                   </div>
                 ))}
-                {stats.anniversariesThisWeek.map(m => (
-                  <div key={m.id} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
-                    <span style={{ display:"flex" }}><Heart size={16} color="#d060a0" /></span>
-                    <div>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-navy)" }}>{fullName(m)}</div>
-                      <div style={{ fontSize: 11, color: "var(--text-muted-navy)" }}>
-                        Anniversary · {daysUntilNext(m.anniversary) === 0 ? "Today!" : `${daysUntilNext(m.anniversary)} days away`}
+                {(() => {
+                  // Merge spouse-linked couples into a single row (both full names).
+                  const seen = new Set();
+                  const rows = [];
+                  stats.anniversariesThisWeek.forEach(m => {
+                    if (seen.has(m.id)) return;
+                    const sp = m.spouse_id ? members.find(x => x.id === m.spouse_id) : null;
+                    seen.add(m.id); if (sp) seen.add(sp.id);
+                    rows.push({ id: m.id, label: sp ? `${fullName(m)} & ${fullName(sp)}` : fullName(m), d: daysUntilNext(m.anniversary) });
+                  });
+                  return rows.map(r => (
+                    <div key={r.id} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+                      <span style={{ display:"flex" }}><Heart size={16} color="#d060a0" /></span>
+                      <div>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-navy)" }}>{r.label}</div>
+                        <div style={{ fontSize: 11, color: "var(--text-muted-navy)" }}>
+                          Anniversary · {r.d === 0 ? "Today!" : `${r.d} days away`}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  ));
+                })()}
               </>
             )}
           </div>

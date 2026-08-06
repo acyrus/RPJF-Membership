@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { supabase } from "../supabase";
-import { Avatar, fullName, calcAge } from "../components";
+import { Avatar, fullName, calcAge, MultiSelect } from "../components";
 import { Home, Trash2, X, Heart, Users, Sparkles, Pencil, Check, Search, Plus, ChevronRight, ChevronDown } from "lucide-react";
 
 export const FAMILY_TITLES = ["Father","Mother","Husband","Wife","Son","Daughter","Grandfather","Grandmother","Grandson","Granddaughter","Brother","Sister","Uncle","Aunt","Cousin","Guardian","Other"];
@@ -31,7 +31,7 @@ export default function HouseholdsPage({ profile, members, setMembers, household
   const isAdmin = profile?.role === "admin";
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-  const [qFam, setQFam] = useState("");
+  const [famSelected, setFamSelected] = useState([]); // multi-select family filter
   const [qPerson, setQPerson] = useState("");
   const [expanded, setExpanded] = useState(() => new Set());
   const [editCard, setEditCard] = useState(null);
@@ -57,14 +57,13 @@ export default function HouseholdsPage({ profile, members, setMembers, household
   , [households]);
   const householdName = id => (households.find(h => h.id === id) || {}).name;
 
-  const famQ = qFam.trim().toLowerCase();
   const personQ = qPerson.trim().toLowerCase();
   const shownHouseholds = useMemo(() => sortedHouseholds.filter(h => {
-    if (famQ && !h.name.toLowerCase().includes(famQ)) return false;
+    if (famSelected.length && !famSelected.includes(h.id)) return false;
     if (personQ && !(byHousehold[h.id] || []).some(m => fullName(m).toLowerCase().includes(personQ))) return false;
     return true;
-  }), [sortedHouseholds, byHousehold, famQ, personQ]);
-  const shownUnassigned = personQ ? unassigned.filter(m => fullName(m).toLowerCase().includes(personQ)) : (famQ ? [] : unassigned);
+  }), [sortedHouseholds, byHousehold, famSelected, personQ]);
+  const shownUnassigned = personQ ? unassigned.filter(m => fullName(m).toLowerCase().includes(personQ)) : (famSelected.length ? [] : unassigned);
   // A person search auto-opens matching families so the person is visible.
   const isOpen = h => !!personQ || expanded.has(h.id) || editCard === h.id;
   const toggle = id => setExpanded(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
@@ -173,10 +172,9 @@ export default function HouseholdsPage({ profile, members, setMembers, household
           <div style={{ fontSize: 12, color: "var(--text-faint)", marginTop: 3 }}>{households.length} famil{households.length !== 1 ? "ies" : "y"} · {members.filter(m => m.household_id).length} of {members.length} linked</div>
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-          <div style={{ position: "relative" }}>
-            <Home size={13} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "var(--text-faint)" }} />
-            <input placeholder="Search families…" value={qFam} onChange={e => setQFam(e.target.value)} style={{ width: 180, paddingLeft: 30 }} />
-          </div>
+          <MultiSelect label="All families" width={180}
+            options={sortedHouseholds.map(h => ({ value: h.id, label: h.name }))}
+            selected={famSelected} onChange={setFamSelected} />
           <div style={{ position: "relative" }}>
             <Search size={13} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "var(--text-faint)" }} />
             <input placeholder="Search a person…" value={qPerson} onChange={e => setQPerson(e.target.value)} style={{ width: 180, paddingLeft: 30 }} />

@@ -1,8 +1,10 @@
 import { useMemo, useState } from "react";
-import { Avatar, fullName, SKILLS_LIST, MultiSelect } from "../components";
+import { Avatar, fullName, SKILLS_LIST, MultiSelect, useIsMobile, useHeaderOffset } from "../components";
 import { Zap, Search } from "lucide-react";
 
 export default function SkillsPage({ members, households = [], onMemberClick }) {
+  const isMobile = useIsMobile();
+  const headerOffset = useHeaderOffset();
   const [selectedSkills, setSelectedSkills] = useState([]); // multi-select skills
   const [person, setPerson] = useState("");                 // filter members by name
   const [famSelected, setFamSelected] = useState([]);       // multi-select households
@@ -52,7 +54,9 @@ export default function SkillsPage({ members, households = [], onMemberClick }) 
 
   return (
     <div className="fade-in">
-      <div style={{display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:20, flexWrap:"wrap", gap:12}}>
+      <div style={ isMobile
+        ? {display:"flex", justifyContent:"space-between", alignItems:"flex-start", flexWrap:"wrap", gap:12, position:"sticky", top:headerOffset, zIndex:30, background:"var(--bg-body)", paddingTop:8, paddingBottom:10, marginLeft:-14, marginRight:-14, paddingLeft:14, paddingRight:14, marginBottom:16, boxShadow:"0 6px 8px -6px #00000022"}
+        : {display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:20, flexWrap:"wrap", gap:12} }>
         <div>
           <div style={{fontFamily:"'Inter',sans-serif", color:"var(--text)", fontSize:14, letterSpacing:0.5, fontWeight:700}}>SKILLS DIRECTORY</div>
           <div style={{fontSize:12, color:"var(--text-faint)", marginTop:3}}>{totalWithSkills} of {members.length} members have skills recorded · {skillsInUse.length} skill{skillsInUse.length!==1?"s":""} in use</div>

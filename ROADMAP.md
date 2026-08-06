@@ -56,18 +56,17 @@ most complex left for last. Overlapping requests have been folded together
     member's Leader / Co-Leader position directly from the Ministries page via a per-member
     popover (writes member_roles.position, no migration needed). (was #23, #28)
 
-### Backlog / future
-
-- **Roster occupancy / capacity view** (split out of #14). Track how full a service/roster is
-  against a capacity figure.
-16. **Analytics polish.** Move filters into a collapsible side panel; add the prototyped
-    visualization upgrades (attendance heatmap, average reference lines, change badges, fixed
-    per-type colours); finish any remaining useful views. (folds old #10, #24 + viz mockup)
+16. **Analytics polish.** 🔄 In progress — filters moved into a right slide-out drawer (a
+    Filters button with an active-count badge + summary line, backdrop, Clear all / Done).
+    Remaining: the prototyped visualization upgrades (attendance heatmap, average reference
+    lines, change badges, fixed per-type colours) and any other useful views. (folds old #10,
+    #24 + viz mockup)
 17. **Revise the individual member view.** 🔄 In progress — member detail is now a centered
-    popout modal (was a side panel), clicking a member anywhere (Ministries, Skills, Families,
-    Celebrations) opens that person directly instead of landing at the top of the list, and the
-    detail shows the household with clickable family members + spouse. Remaining: any further
-    rework of the interaction panel. (was #27)
+    popout modal (was a side panel), with Edit / Delete moved to the top; clicking a member
+    anywhere (Ministries, Skills, Families, Celebrations) jumps to the Members tab and
+    highlights that person's row instead of landing at the top of the list; the detail shows
+    the household with clickable family members + spouse, and switching between them resets the
+    popout scroll. Remaining: any further rework of the interaction panel. (was #27)
 18. **App shell & branding polish.** A title / splash screen, and collapsible / expandable
     navigation (drawer). (was #17, #19)
 
@@ -79,6 +78,15 @@ most complex left for last. Overlapping requests have been folded together
 21. **Printable letter template.** (was #14)
 22. **Offline capabilities.** Biggest and most complex; best left until the rest is stable.
     (was #15)
+
+### Backlog / future
+
+- **Roster occupancy / capacity view** (split out of #14). Track how full a service / roster is
+  against a capacity figure. Shelved Aug 2026 for a later pass.
+- **Member quick-action popover.** Clicking a member anywhere opens a small anchored popover
+  with a mini profile (avatar, name, key info) and access-gated actions (View details, Edit,
+  Call / Email, View family) instead of navigating straight to the Members tab — also gives
+  lower-access accounts a read-only quick-look. Shelved Aug 2026.
 
 ## Notes
 
