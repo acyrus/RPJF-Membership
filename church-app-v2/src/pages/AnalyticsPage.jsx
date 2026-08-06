@@ -1271,11 +1271,11 @@ export default function AnalyticsPage({ members, services, attendance, household
       )}
 
       {/* ── SECTION TABS ── */}
-      <div style={{display:"flex",gap:4,borderBottom:"1.5px solid var(--border)",marginBottom:20}}>
+      <div style={{display:"flex",gap:4,borderBottom:"1.5px solid var(--border)",marginBottom:20,overflowX:"auto",WebkitOverflowScrolling:"touch",scrollbarWidth:"none"}}>
         {[["attendance","Attendance"],["members","Members"],["ministry","Ministries"],["instruments","Musicians"]].map(([key,label]) => (
           <button key={key} onClick={()=>setActiveSection(key)} style={{
-            background:"none",border:"none",cursor:"pointer",fontFamily:"Inter,sans-serif",
-            fontSize:13,fontWeight:600,padding:"10px 18px",
+            background:"none",border:"none",cursor:"pointer",fontFamily:"Inter,sans-serif",flexShrink:0,whiteSpace:"nowrap",
+            fontSize:13,fontWeight:600,padding:isMobile?"10px 12px":"10px 18px",
             color:activeSection===key?TEAL:"var(--text-faint)",
             borderBottom:`2px solid ${activeSection===key?TURQUOISE:"transparent"}`,
           }}>{label}</button>
