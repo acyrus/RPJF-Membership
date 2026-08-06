@@ -110,6 +110,42 @@ function CollapsibleCard({ title, subtitle, defaultOpen = false, children }) {
   );
 }
 
+// Small-multiples grid: one mini line chart per series, all on a shared y-scale,
+// so many overlapping lines become a tidy set of individually-readable trends.
+function SmallMultiples({ data, series }) {
+  const nums = [];
+  data.forEach(d => series.forEach(s => { const v = d[s.key]; if (typeof v === "number") nums.push(v); }));
+  const max = Math.max(1, ...nums);
+  const W = 220, H = 54, pad = 4;
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))", gap: 12 }}>
+      {series.map(s => {
+        const vals = data.map(d => (typeof d[s.key] === "number" ? d[s.key] : null));
+        const present = vals.filter(v => v !== null);
+        const last = present.length ? present[present.length - 1] : 0;
+        const prev = present.length > 1 ? present[present.length - 2] : last;
+        const poly = vals.map((v, i) => (v === null ? null : `${(pad + (i / Math.max(1, vals.length - 1)) * (W - 2 * pad)).toFixed(1)},${(H - pad - (v / max) * (H - 2 * pad)).toFixed(1)}`)).filter(Boolean).join(" ");
+        const up = last >= prev;
+        return (
+          <div key={s.key} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: "11px 13px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
+              <span style={{ width: 9, height: 9, borderRadius: 2, background: s.color, flexShrink: 0 }} />
+              <span style={{ fontSize: 12, color: "var(--text-2)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.name}</span>
+            </div>
+            <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
+              <span style={{ fontSize: 20, fontWeight: 700, color: "var(--text)" }}>{last}</span>
+              {present.length > 1 && last !== prev && <span style={{ fontSize: 11, fontWeight: 600, color: up ? "#059669" : "#dc2626" }}>{up ? "▲" : "▼"} {Math.abs(last - prev)}</span>}
+            </div>
+            <svg width="100%" height={H} viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" style={{ display: "block", marginTop: 4 }}>
+              <polyline points={poly} fill="none" stroke={s.color} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
+            </svg>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function StatPill({ label, value, color="#2a5357" }) {  return (
     <div style={{background:"var(--surface-alt)",border:"1px solid var(--border)",borderRadius:10,padding:"12px 16px",textAlign:"center"}}>
       <div style={{fontSize:24,fontWeight:700,color,lineHeight:1.1}}>{value}</div>
@@ -522,6 +558,8 @@ export default function AnalyticsPage({ members, services, attendance, household
   const [activeSection, setActiveSection] = useState("attendance");
   const [attSub, setAttSub] = useState("overview"); // attendance sub-tab: "overview" | "bymember"
   const [svcTypeAxis, setSvcTypeAxis] = useState("month"); // service-type chart x-axis: "month" | "date"
+  const [svcTypeView, setSvcTypeView] = useState("chart"); // "chart" (combined) | "grid" (small multiples)
+  const [ageView, setAgeView] = useState("chart");
   const [savingInactive, setSavingInactive] = useState(null); // member id being marked inactive
 
   // ── All useMemo hooks in dependency order ─────────────────
@@ -1350,15 +1388,28 @@ export default function AnalyticsPage({ members, services, attendance, household
 
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",flexWrap:"wrap",gap:8}}>
             <SectionTitle>Attendance by Service Type</SectionTitle>
-            <div style={{display:"inline-flex",border:"1px solid var(--border)",borderRadius:20,overflow:"hidden",marginBottom:14}}>
-              {[["month","By month"],["date","By date"]].map(([k,label])=>(
-                <button key={k} onClick={()=>setSvcTypeAxis(k)} style={{border:"none",cursor:"pointer",fontSize:11.5,fontWeight:600,padding:"5px 14px",background:svcTypeAxis===k?TEAL:"var(--surface)",color:svcTypeAxis===k?"#fff":"var(--text-muted)"}}>{label}</button>
-              ))}
+            <div style={{display:"flex",gap:8,marginBottom:14,flexWrap:"wrap"}}>
+              <div style={{display:"inline-flex",border:"1px solid var(--border)",borderRadius:20,overflow:"hidden"}}>
+                {[["chart","Chart"],["grid","Grid"]].map(([k,label])=>(
+                  <button key={k} onClick={()=>setSvcTypeView(k)} style={{border:"none",cursor:"pointer",fontSize:11.5,fontWeight:600,padding:"5px 14px",background:svcTypeView===k?TEAL:"var(--surface)",color:svcTypeView===k?"#fff":"var(--text-muted)"}}>{label}</button>
+                ))}
+              </div>
+              {svcTypeView==="chart" && (
+                <div style={{display:"inline-flex",border:"1px solid var(--border)",borderRadius:20,overflow:"hidden"}}>
+                  {[["month","By month"],["date","By date"]].map(([k,label])=>(
+                    <button key={k} onClick={()=>setSvcTypeAxis(k)} style={{border:"none",cursor:"pointer",fontSize:11.5,fontWeight:600,padding:"5px 14px",background:svcTypeAxis===k?TEAL:"var(--surface)",color:svcTypeAxis===k?"#fff":"var(--text-muted)"}}>{label}</button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
           {svcTypeData.length === 0
             ? <div style={{textAlign:"center",padding:40,color:"var(--text-faint)",fontSize:13}}>No attendance data for this period</div>
-            : <ChartCard title={svcTypeAxis==="date"?"Attendance by Service Type (by date)":"Monthly Attendance by Service Type"} subtitle={svcTypeAxis==="date"?"Members present at each service, by date":"Distinct members per service type each month"}>
+            : svcTypeView === "grid"
+              ? <ChartCard title="Attendance by Service Type" subtitle={svcTypeAxis==="date"?"One mini chart per service type, by date":"One mini chart per service type, per month"}>
+                  <SmallMultiples data={svcTypeData} series={attByType.map((t,i)=>({key:t.name,name:t.name,color:LINE_COLORS[i%LINE_COLORS.length]}))} />
+                </ChartCard>
+              : <ChartCard title={svcTypeAxis==="date"?"Attendance by Service Type (by date)":"Monthly Attendance by Service Type"} subtitle={svcTypeAxis==="date"?"Members present at each service, by date":"Distinct members per service type each month"}>
                 <ResponsiveContainer width="100%" height={280}>
                   <LineChart data={svcTypeData} margin={{top:4,right:16,bottom:svcTypeAxis==="date"?44:4,left:0}}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
@@ -1374,10 +1425,21 @@ export default function AnalyticsPage({ members, services, attendance, household
               </ChartCard>
           }
 
-          <SectionTitle>Attendance by Age Group</SectionTitle>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",flexWrap:"wrap",gap:8}}>
+            <SectionTitle>Attendance by Age Group</SectionTitle>
+            <div style={{display:"inline-flex",border:"1px solid var(--border)",borderRadius:20,overflow:"hidden",marginBottom:14}}>
+              {[["chart","Chart"],["grid","Grid"]].map(([k,label])=>(
+                <button key={k} onClick={()=>setAgeView(k)} style={{border:"none",cursor:"pointer",fontSize:11.5,fontWeight:600,padding:"5px 14px",background:ageView===k?TEAL:"var(--surface)",color:ageView===k?"#fff":"var(--text-muted)"}}>{label}</button>
+              ))}
+            </div>
+          </div>
           {attByAgeMonthly.length === 0
             ? <div style={{textAlign:"center",padding:40,color:"var(--text-faint)",fontSize:13}}>No attendance data for this period</div>
-            : <ChartCard title="Monthly Attendance by Age Group" subtitle="Distinct members per age band each month">
+            : ageView === "grid"
+              ? <ChartCard title="Attendance by Age Group" subtitle="One mini chart per age band, per month">
+                  <SmallMultiples data={attByAgeMonthly} series={AGE_CATS.map(c=>({key:c.label,name:c.label,color:c.color}))} />
+                </ChartCard>
+              : <ChartCard title="Monthly Attendance by Age Group" subtitle="Distinct members per age band each month">
                 <ResponsiveContainer width="100%" height={260}>
                   <LineChart data={attByAgeMonthly} margin={{top:4,right:16,bottom:4,left:0}}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
