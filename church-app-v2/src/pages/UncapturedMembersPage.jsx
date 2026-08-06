@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "../supabase";
 import { Avatar, Spinner, fullName } from "../components";
-import { Search, ClipboardList, ArrowUpDown, StickyNote, UserCheck, X } from "lucide-react";
+import { Search, ClipboardList, ArrowUpDown, StickyNote, UserCheck, X, Users, UserMinus, Camera, CheckCircle2, Clock, UserX } from "lucide-react";
 
 // Same normalization the admin's Roster Check uses, so a name links to a member
 // record here exactly when it matches there. "Ali-Mohammed" === "Ali Mohammed".
@@ -54,12 +54,15 @@ function Chip({ label, children }) {
   );
 }
 
-function Stat({ label, value, sub, color = "var(--text-navy)" }) {
+function Stat({ icon, label, value, sub, color = "#2a5357" }) {
   return (
-    <div className="card" style={{padding:"14px 16px"}}>
-      <div style={{fontSize:24, fontWeight:800, color}}>{value}</div>
-      <div style={{fontSize:11, color:"var(--text-faint)", fontWeight:600, textTransform:"uppercase", letterSpacing:0.4, marginTop:2}}>{label}</div>
-      {sub && <div style={{fontSize:11, color:"var(--text-faint)", marginTop:2}}>{sub}</div>}
+    <div className="card" style={{padding:"14px 16px", display:"flex", alignItems:"center", gap:12}}>
+      <div style={{width:40, height:40, borderRadius:10, background:color+"1f", color, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0}}>{icon}</div>
+      <div style={{minWidth:0}}>
+        <div style={{fontSize:24, fontWeight:800, color, lineHeight:1.05}}>{value}</div>
+        <div style={{fontSize:11.5, fontWeight:600, color:"var(--text-2)"}}>{label}</div>
+        {sub && <div style={{fontSize:10.5, color:"var(--text-faint)"}}>{sub}</div>}
+      </div>
     </div>
   );
 }
@@ -349,14 +352,14 @@ export default function UncapturedMembersPage({ members = [] }) {
       </div>
 
       {/* Summary statistics */}
-      <div style={{display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(130px,1fr))", gap:12, marginBottom:16}}>
-        <Stat label="Total names"  value={stats.totalAll} />
-        <Stat label="Inactive"     value={stats.inactive} color="#8a94a6" />
-        <Stat label="To capture"   value={stats.toCapture} sub="total minus inactive" color="var(--brand)" />
-        <Stat label="Captured"     value={stats.captured} sub={`${stats.pct}% complete`} color="#2a8a50" />
-        <Stat label="Remaining"    value={stats.remaining} color="#c06010" />
-        <Stat label="Assigned"     value={stats.assigned} color="#3a8fd0" />
-        <Stat label="Unassigned"   value={stats.unassigned} color="#8a5a10" />
+      <div style={{display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(190px,1fr))", gap:12, marginBottom:16}}>
+        <Stat icon={<Users size={18}/>}       label="Total names"  value={stats.totalAll} color="#2a5357" />
+        <Stat icon={<UserMinus size={18}/>}   label="Inactive"     value={stats.inactive} color="#8a94a6" />
+        <Stat icon={<Camera size={18}/>}      label="To capture"   value={stats.toCapture} sub="total minus inactive" color="#7c3aed" />
+        <Stat icon={<CheckCircle2 size={18}/>}label="Captured"     value={stats.captured} sub={`${stats.pct}% complete`} color="#2a8a50" />
+        <Stat icon={<Clock size={18}/>}       label="Remaining"    value={stats.remaining} color="#c06010" />
+        <Stat icon={<UserCheck size={18}/>}   label="Assigned"     value={stats.assigned} color="#3a8fd0" />
+        <Stat icon={<UserX size={18}/>}       label="Unassigned"   value={stats.unassigned} color="#8a5a10" />
       </div>
 
       {/* Completion toward the real target (names left after inactive are removed). */}

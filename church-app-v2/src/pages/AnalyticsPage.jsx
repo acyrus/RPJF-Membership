@@ -1300,8 +1300,8 @@ export default function AnalyticsPage({ members, services, attendance, household
             <StatTile label="Total Members" value={distinctAttendees} delta={chg(distinctAttendees, prevStats.distinct)} spark={sparkTotal} />
             <StatTile label="Avg per Service" value={avgAtt} color={TURQUOISE} delta={chg(avgAtt, prevStats.avg)} spark={sparkAvg} sparkColor={TURQUOISE} />
             <StatTile label="Avg Turnout" value={`${avgTurnoutPct}%`} color={GREEN} delta={chg(avgTurnoutPct, prevStats.turnout)} spark={sparkTurn} sparkColor={GREEN} />
-            <StatTile label="Peak Attendance" value={peakAtt} color={ORANGE} delta={chg(peakAtt, prevStats.peak)} sub={fmtDay(peakSvc?.s?.service_date)} />
-            <StatTile label="Lowest Attendance" value={lowestAtt} color={RED} delta={chg(lowestAtt, prevStats.low)} sub={fmtDay(lowSvc?.s?.service_date)} />
+            <StatTile label="Peak Attendance" value={peakAtt} color={ORANGE} delta={chg(peakAtt, prevStats.peak)} sub={peakSvc?.s ? `${peakSvc.s.name} · ${fmtDay(peakSvc.s.service_date)}` : ""} />
+            <StatTile label="Lowest Attendance" value={lowestAtt} color={RED} delta={chg(lowestAtt, prevStats.low)} sub={lowSvc?.s ? `${lowSvc.s.name} · ${fmtDay(lowSvc.s.service_date)}` : ""} />
           </div>
           {prevStats.has && <div style={{fontSize:11,color:"var(--text-faint)",marginTop:6}}>▲▼ vs the previous {(() => { const dd=Math.max(1,Math.round((new Date(dateRange.to)-new Date(dateRange.from))/86400000)); return dd>=28 ? `${Math.round(dd/30)||1} month${Math.round(dd/30)>1?"s":""}` : `${dd} days`; })()}</div>}
 
