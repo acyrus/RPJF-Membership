@@ -1,11 +1,11 @@
 import { useMemo, useState, useEffect } from "react";
 import {
-  LineChart, Line, BarChart, Bar, PieChart, Pie, Cell,
-  XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
+  LineChart, Line, AreaChart, Area, ReferenceLine, BarChart, Bar, PieChart, Pie, Cell,
+  XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LabelList
 } from "recharts";
 import { ROLES, TRINIDAD_CITIES, calcAge, fullName, Avatar } from "../components";
 import { supabase } from "../supabase";
-import { Search, Home, Check, X, ChevronDown, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown, UserMinus, SlidersHorizontal } from "lucide-react";
+import { Search, Home, Check, X, ChevronDown, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown, UserMinus, SlidersHorizontal, Users, TrendingUp, Calendar, Clock, Baby, Music, Layers, UserCheck, Heart, User } from "lucide-react";
 
 const TEAL      = "#2a5357";
 const TURQUOISE = "#5edcd1";
@@ -16,6 +16,38 @@ const GOLD      = "#d97706";
 const GREEN     = "#059669";
 const PINK      = "#db2777";
 const CHART_COLORS = [TEAL, TURQUOISE, ORANGE, RED, PURPLE, GOLD, GREEN, PINK];
+
+// True when a member's age falls within an optional [min, max] range (blank = open end).
+// A member with no recorded age is excluded once any bound is set.
+function ageInRange(age, minStr, maxStr) {
+  const min = minStr === "" ? null : parseInt(minStr);
+  const max = maxStr === "" ? null : parseInt(maxStr);
+  if (min === null && max === null) return true;
+  if (age === null) return false;
+  if (min !== null && age < min) return false;
+  if (max !== null && age > max) return false;
+  return true;
+}
+
+// Phrase ministry names naturally for the overlap sentences.
+const MINISTRY_TEAM_RE = /team|media|finance|preparation|sanitation|ministry|committee|worship|choir|band|hospitality|production/i;
+function pluralizeWord(name) {
+  const parts = name.split(" ");
+  let last = parts[parts.length - 1];
+  if (/(s|x|z|ch|sh)$/i.test(last)) last += "es";
+  else if (/[^aeiou]y$/i.test(last)) last = last.slice(0, -1) + "ies";
+  else last += "s";
+  parts[parts.length - 1] = last;
+  return parts.join(" ");
+}
+function ministryPeople(name) { // "the Ushers" · "the Finances" · "the Social Media team"
+  if (MINISTRY_TEAM_RE.test(name)) return (/s$/i.test(name) || /team$/i.test(name)) ? `the ${name}` : `the ${name} team`;
+  return `the ${pluralizeWord(name)}`;
+}
+function ministryServeClause(name) { // "serve as Musicians" · "serve in the Worship Team"
+  if (MINISTRY_TEAM_RE.test(name)) return `serve in ${/team$/i.test(name) ? "the " + name : name}`;
+  return `serve as ${pluralizeWord(name)}`;
+}
 // Calmer, harmonised palette for multi-line charts (less visual noise than CHART_COLORS).
 const LINE_COLORS = ["#2a5357", "#4a7fa0", "#c98a3e", "#6f9a5e", "#8e6e9e", "#b79a4a", "#6f8a8a", "#a8737f"];
 
@@ -65,6 +97,102 @@ function StatPill({ label, value, color="#2a5357" }) {  return (
     <div style={{background:"var(--surface-alt)",border:"1px solid var(--border)",borderRadius:10,padding:"12px 16px",textAlign:"center"}}>
       <div style={{fontSize:24,fontWeight:700,color,lineHeight:1.1}}>{value}</div>
       <div style={{fontSize:11,color:"var(--text-faint)",textTransform:"uppercase",letterSpacing:0.5,marginTop:4,fontWeight:500}}>{label}</div>
+    </div>
+  );
+}
+
+// Tiny inline trend line for a stat tile.
+function Sparkline({ data, color, width=96, height=24 }) {
+  if (!data || data.length < 2) return null;
+  const min = Math.min(...data), max = Math.max(...data), span = (max - min) || 1;
+  const pts = data.map((v,i) => {
+    const x = (i/(data.length-1))*width;
+    const y = height - 2 - ((v-min)/span)*(height-4);
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(" ");
+  return (
+    <svg width="100%" height={height} viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" style={{display:"block",marginTop:8}}>
+      <polyline points={pts} fill="none" stroke={color} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+// Stat tile: value + optional change badge (vs the previous equal-length period) + sparkline.
+function StatTile({ label, value, color="#2a5357", delta=null, sub, spark, sparkColor }) {
+  let badge = null;
+  if (delta !== null && delta !== undefined && Number.isFinite(delta) && delta !== 0) {
+    const up = delta > 0;
+    badge = <span style={{fontSize:12,fontWeight:700,color:up?"#059669":"#dc2626",whiteSpace:"nowrap",display:"inline-flex",alignItems:"center",gap:1}}>{up?"▲":"▼"} {Math.abs(delta)}</span>;
+  }
+  return (
+    <div style={{background:"var(--surface-alt)",border:"1px solid var(--border)",borderRadius:10,padding:"12px 14px"}}>
+      <div style={{fontSize:11,color:"var(--text-faint)",textTransform:"uppercase",letterSpacing:0.5,fontWeight:500}}>{label}</div>
+      <div style={{display:"flex",alignItems:"baseline",gap:8,marginTop:4,flexWrap:"wrap"}}>
+        <span style={{fontSize:24,fontWeight:700,color,lineHeight:1.1}}>{value}</span>
+        {badge}
+        {sub && <span style={{fontSize:11,color:"var(--text-faint)"}}>{sub}</span>}
+      </div>
+      {spark && <Sparkline data={spark} color={sparkColor||color} />}
+    </div>
+  );
+}
+
+// Donut with a total in the centre + a legend that shows count, %, and a proportion bar.
+function DonutCard({ title, subtitle, data }) {
+  const sum = data.reduce((a,b)=>a+(b.value||0),0);
+  return (
+    <div style={{background:"var(--surface)",border:"1px solid #edf0f4",borderRadius:10,padding:"18px 20px",boxShadow:"0 1px 2px #0b13210a",marginBottom:4}}>
+      <div style={{marginBottom:16}}>
+        <div className="card-title">{title}</div>
+        {subtitle && <div style={{fontSize:12,color:"var(--text-muted-navy)",marginTop:2}}>{subtitle}</div>}
+      </div>
+      {sum === 0 ? <div style={{textAlign:"center",padding:30,color:"var(--text-faint)",fontSize:12}}>No data</div>
+        : <div style={{display:"flex",alignItems:"center",gap:18,flexWrap:"wrap"}}>
+            <div style={{position:"relative",width:160,height:160,flexShrink:0}}>
+              <ResponsiveContainer width={160} height={160}>
+                <PieChart>
+                  <Pie data={data} dataKey="value" cx="50%" cy="50%" innerRadius={54} outerRadius={72} paddingAngle={2} stroke="none">
+                    {data.map((e,i) => <Cell key={i} fill={e.color} />)}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+              <div style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",pointerEvents:"none"}}>
+                <div style={{fontSize:26,fontWeight:700,color:"var(--text)",lineHeight:1}}>{sum}</div>
+                <div style={{fontSize:10,color:"var(--text-faint)",textTransform:"uppercase",letterSpacing:0.5}}>total</div>
+              </div>
+            </div>
+            <div style={{flex:1,minWidth:150}}>
+              {data.map((d,i) => (
+                <div key={i} style={{marginBottom:9}}>
+                  <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:3}}>
+                    <div style={{width:10,height:10,borderRadius:2,background:d.color,flexShrink:0}} />
+                    <div style={{fontSize:12,color:"var(--text-2)",flex:1,minWidth:0}}>{d.name}</div>
+                    <div style={{fontSize:12,fontWeight:700,color:"var(--text)"}}>{d.value}</div>
+                    <div style={{fontSize:11,color:"var(--text-faint)",minWidth:36,textAlign:"right"}}>{Math.round(d.value/sum*100)}%</div>
+                  </div>
+                  <div style={{height:5,background:"var(--border-divider)",borderRadius:3,overflow:"hidden"}}>
+                    <div style={{width:`${d.value/sum*100}%`,height:"100%",background:d.color,borderRadius:3}} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+      }
+    </div>
+  );
+}
+
+// Compact icon stat card (used for member / ministry / household / instrument summaries).
+function IconStat({ icon, value, label, sub, color = "#2a5357" }) {
+  return (
+    <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: "14px 16px", display: "flex", alignItems: "center", gap: 12 }}>
+      <div style={{ width: 40, height: 40, borderRadius: 10, background: color + "18", color, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{icon}</div>
+      <div style={{ minWidth: 0 }}>
+        <div style={{ fontSize: 24, fontWeight: 700, color: "var(--text)", lineHeight: 1.05 }}>{value}</div>
+        <div style={{ fontSize: 12, fontWeight: 600, color: "var(--text-2)" }}>{label}</div>
+        {sub && <div style={{ fontSize: 10.5, color: "var(--text-faint)" }}>{sub}</div>}
+      </div>
     </div>
   );
 }
@@ -288,12 +416,12 @@ function HouseholdAttendance({ households, members, services, attendance }) {
     }), [households, membersByHh, cols, attendance, total]);
 
   if (total === 0) return <div style={{ textAlign: "center", padding: 30, color: "var(--text-faint)", fontSize: 13 }}>No services match the current filters.</div>;
-  if (!rows.length) return <div style={{ textAlign: "center", padding: 30, color: "var(--text-faint)", fontSize: 13 }}>No families with members yet — group members in the Families tab first.</div>;
+  if (!rows.length) return <div style={{ textAlign: "center", padding: 30, color: "var(--text-faint)", fontSize: 13 }}>No families with members yet. Group members in the Families tab first.</div>;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
       <div style={{ fontSize: 12, color: "var(--text-muted)", lineHeight: 1.6 }}>
-        Open a family to see who attended which service. Columns are the {total} service{total !== 1 ? "s" : ""} in view — narrow the date range or service type above if the grid is very wide.
+        Open a family to see who attended which service. Columns are the {total} service{total !== 1 ? "s" : ""} in view. Narrow the date range or service type above if the grid is very wide.
       </div>
       {rows.map(({ h, mem, rate }) => {
         const open = openId === h.id;
@@ -355,7 +483,14 @@ export default function AnalyticsPage({ members, services, attendance, household
   const [roleFilter, setRoleFilter]     = useState([]);
   const [selectedMemberIds, setSelectedMemberIds] = useState([]);
   const [statusFilter, setStatusFilter] = useState("active");
+  const [maritalFilter, setMaritalFilter] = useState([]);
+  const [interactionFilter, setInteractionFilter] = useState([]);
+  const [skillFilterA, setSkillFilterA] = useState([]);
+  const [ageMin, setAgeMin] = useState("");
+  const [ageMax, setAgeMax] = useState("");
   const [filtersOpen, setFiltersOpen] = useState(false); // slide-out filter drawer
+  const [memberSub, setMemberSub] = useState("overview"); // members sub-tab: "overview" | "households"
+  const [celebMode, setCelebMode] = useState("birthdays"); // "birthdays" | "anniversaries"
   const isMobile = useIsMobile();
   // Pin the Analytics header + filter bar just beneath the app's sticky top bar,
   // whose height varies (brand row + wrapping tab nav), so we measure it live.
@@ -384,6 +519,11 @@ export default function AnalyticsPage({ members, services, attendance, household
   const allSvcTypes = useMemo(() =>
     [...new Set(services.map(s => s.name))].sort()
   , [services]);
+
+  // Option lists for the extra member filters, built from the data present.
+  const maritalOptions = useMemo(() => [...new Set(members.map(m => m.marital_status).filter(Boolean))].sort(), [members]);
+  const interactionOptions = useMemo(() => [...new Set(members.map(m => m.interaction_type).filter(Boolean))].sort(), [members]);
+  const skillOptions = useMemo(() => { const s = new Set(); members.forEach(m => [m.skill1, m.skill2, m.skill3].filter(Boolean).forEach(k => s.add(k))); return [...s].sort(); }, [members]);
 
   // 3. Filtered services — no dependency on filteredMembers
   const filteredServices = useMemo(() => {
@@ -422,10 +562,14 @@ export default function AnalyticsPage({ members, services, attendance, household
           return cat && age !== null && age >= cat.min && age <= cat.max;
         });
       })();
+      const matchMarital = maritalFilter.length === 0 || maritalFilter.includes(m.marital_status);
+      const matchInteraction = interactionFilter.length === 0 || interactionFilter.includes(m.interaction_type);
+      const matchSkill = skillFilterA.length === 0 || skillFilterA.some(k => [m.skill1, m.skill2, m.skill3].includes(k));
+      const matchAgeRange = ageInRange(age, ageMin, ageMax);
       const matchAttended = !attendingMemberIds || attendingMemberIds.has(m.id);
-      return matchStatus && matchSex && matchCity && matchRole && matchAge && matchAttended;
+      return matchStatus && matchSex && matchCity && matchRole && matchAge && matchMarital && matchInteraction && matchSkill && matchAgeRange && matchAttended;
     });
-  }, [members, statusFilter, sexFilter, cityFilter, roleFilter, ageFilter, selectedMemberIds, attendingMemberIds]);
+  }, [members, statusFilter, sexFilter, cityFilter, roleFilter, ageFilter, maritalFilter, interactionFilter, skillFilterA, ageMin, ageMax, selectedMemberIds, attendingMemberIds]);
 
   // Same member filters WITHOUT the attended-only restriction, so the by-individual
   // list also shows people who attended none of the selected services (their "missed").
@@ -443,9 +587,13 @@ export default function AnalyticsPage({ members, services, attendance, household
         const cat = AGE_CATS.find(c => c.label === lbl);
         return cat && age !== null && age >= cat.min && age <= cat.max;
       });
-      return matchStatus && matchSex && matchCity && matchRole && matchAge;
+      const matchMarital = maritalFilter.length === 0 || maritalFilter.includes(m.marital_status);
+      const matchInteraction = interactionFilter.length === 0 || interactionFilter.includes(m.interaction_type);
+      const matchSkill = skillFilterA.length === 0 || skillFilterA.some(k => [m.skill1, m.skill2, m.skill3].includes(k));
+      const matchAgeRange = ageInRange(age, ageMin, ageMax);
+      return matchStatus && matchSex && matchCity && matchRole && matchAge && matchMarital && matchInteraction && matchSkill && matchAgeRange;
     });
-  }, [members, statusFilter, sexFilter, cityFilter, roleFilter, ageFilter, selectedMemberIds]);
+  }, [members, statusFilter, sexFilter, cityFilter, roleFilter, ageFilter, maritalFilter, interactionFilter, skillFilterA, ageMin, ageMax, selectedMemberIds]);
 
   // A one-line summary of what the By-Member list is currently scoped to, shown
   // (and kept visible) in its toolbar so the active filters stay in view.
@@ -703,6 +851,19 @@ export default function AnalyticsPage({ members, services, attendance, household
     return counts.map((count, i) => ({ name: MONTH_FULL[i], count }));
   }, [members]);
 
+  const anniversariesByMonth = useMemo(() => {
+    const counts = Array(12).fill(0);
+    const seen = new Set(); // count a spouse-linked couple once
+    members.filter(m => m.anniversary && m.is_active !== false).forEach(m => {
+      if (seen.has(m.id)) return;
+      seen.add(m.id);
+      if (m.spouse_id) seen.add(m.spouse_id);
+      const month = new Date(m.anniversary+"T00:00:00").getUTCMonth();
+      counts[month]++;
+    });
+    return counts.map((count, i) => ({ name: MONTH_FULL[i], count }));
+  }, [members]);
+
   const WEEKDAYS = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
 
   // 19. Day-of-week attendance patterns
@@ -795,7 +956,7 @@ export default function AnalyticsPage({ members, services, attendance, household
     let run = 0;
     return Object.keys(byMonth).sort().map(month => {
       run += byMonth[month];
-      return { label: MONTH_NAMES[parseInt(month.slice(5,7))-1]+" "+month.slice(2,4), total: run, added: byMonth[month] };
+      return { label: MONTH_NAMES[parseInt(month.slice(5,7))-1]+" '"+month.slice(2,4), total: run, added: byMonth[month] };
     });
   }, [members]);
 
@@ -865,6 +1026,43 @@ export default function AnalyticsPage({ members, services, attendance, household
     };
   }).filter(d => d.total>0).sort((a,b)=>b.total-a.total), [filteredMembers]);
 
+  // Notable one-directional overlaps: "X% of ministry A also serve in B".
+  const overlapInsights = useMemo(() => {
+    const sizeOf = n => (ministrySize.find(x => x.name === n) || {}).value || 0;
+    return crossMinistry.map(p => {
+      const [a, b] = p.pair.split(" + ");
+      const sa = sizeOf(a), sb = sizeOf(b);
+      const pctA = sa ? Math.round(p.count / sa * 100) : 0;
+      const pctB = sb ? Math.round(p.count / sb * 100) : 0;
+      return pctA >= pctB ? { from: a, to: b, pct: pctA, count: p.count } : { from: b, to: a, pct: pctB, count: p.count };
+    }).sort((x, y) => y.pct - x.pct).slice(0, 5);
+  }, [crossMinistry, ministrySize]);
+
+  // Instruments: parse the comma-separated `instruments` field on each member.
+  const instrumentData = useMemo(() => {
+    const instrsOf = m => String(m.instruments || "").split(",").map(s => s.trim()).filter(Boolean);
+    const musicians = filteredMembers.filter(m => instrsOf(m).length > 0 || (m.roles || []).includes("Musician"));
+    const withInstr = filteredMembers.filter(m => instrsOf(m).length > 0);
+    const byInstrument = {};
+    withInstr.forEach(m => { [...new Set(instrsOf(m))].forEach(inst => (byInstrument[inst] = byInstrument[inst] || []).push(m)); });
+    const dist = {};
+    const byCount = {};
+    withInstr.forEach(m => {
+      const insts = [...new Set(instrsOf(m))];
+      const n = insts.length;
+      dist[n] = (dist[n] || 0) + 1;
+      (byCount[n] = byCount[n] || []).push({ member: m, instruments: insts });
+    });
+    return {
+      total: musicians.length,
+      withInstr: withInstr.length,
+      multi: withInstr.filter(m => new Set(instrsOf(m)).size >= 2).length,
+      instrumentList: Object.entries(byInstrument).map(([instrument, members]) => ({ instrument, members, count: members.length })).sort((a, b) => b.count - a.count),
+      distList: Object.keys(dist).map(Number).sort((a, b) => a - b).map(n => ({ name: `${n} instrument${n > 1 ? "s" : ""}`, count: dist[n] })),
+      byCount: Object.keys(byCount).map(Number).sort((a, b) => b - a).map(n => ({ n, players: byCount[n].sort((x, y) => fullName(x.member).localeCompare(fullName(y.member))) })),
+    };
+  }, [filteredMembers]);
+
   // ── Helper ────────────────────────────────────────────────
   function toggleSvcType(name) {
     setSvcTypeFilter(prev => prev.includes(name) ? prev.filter(x => x !== name) : [...prev, name]);
@@ -876,7 +1074,9 @@ export default function AnalyticsPage({ members, services, attendance, household
   const activeFilterCount =
     (svcTypeFilter.length ? 1 : 0) + (sexFilter.length ? 1 : 0) + (ageFilter.length ? 1 : 0) +
     (cityFilter.length ? 1 : 0) + (roleFilter.length ? 1 : 0) + (selectedMemberIds.length ? 1 : 0) +
-    (statusFilter !== "active" ? 1 : 0) + (customRangeActive ? 1 : 0);
+    (statusFilter !== "active" ? 1 : 0) + (customRangeActive ? 1 : 0) +
+    (maritalFilter.length ? 1 : 0) + (interactionFilter.length ? 1 : 0) + (skillFilterA.length ? 1 : 0) +
+    ((ageMin !== "" || ageMax !== "") ? 1 : 0);
   const PERIOD_LABELS = { this_month: "This Month", last_3: "Last 3 Months", this_year: "This Year", last_year: "Last Year", all: "All Time" };
   const periodLabel = customRangeActive
     ? `${dateRange.from.split("-").reverse().join("/")} – ${dateRange.to.split("-").reverse().join("/")}`
@@ -884,6 +1084,8 @@ export default function AnalyticsPage({ members, services, attendance, household
   function clearAllFilters() {
     setSvcTypeFilter([]); setSexFilter([]); setAgeFilter([]); setCityFilter([]);
     setRoleFilter([]); setSelectedMemberIds([]); setStatusFilter("active");
+    setMaritalFilter([]); setInteractionFilter([]); setSkillFilterA([]);
+    setAgeMin(""); setAgeMax("");
     setCustomFrom(""); setCustomTo("");
   }
 
@@ -892,6 +1094,36 @@ export default function AnalyticsPage({ members, services, attendance, household
   const activeInScope = attMembers.filter(m => m.is_active !== false).length;
   const avgTurnoutPct = activeInScope ? Math.round(avgAtt / activeInScope * 100) : 0;
   const svcTypeData = svcTypeAxis === "date" ? attByTypeByDate : attByTypeMonthly;
+
+  // Which service hit peak / lowest attendance (for the date shown on those tiles).
+  const svcCounts = filteredServices.map(s => ({ s, c: presentCount(s) }));
+  const peakSvc = svcCounts.reduce((a,b) => (a === null || b.c > a.c) ? b : a, null);
+  const lowSvc  = svcCounts.reduce((a,b) => (a === null || b.c < a.c) ? b : a, null);
+  const fmtDay  = ds => ds ? new Date(ds + "T12:00:00").toLocaleString("default",{month:"short",day:"numeric"}) : "";
+
+  // Same stats over the previous equal-length window (same filters) → change badges.
+  const prevStats = useMemo(() => {
+    const fromD = new Date(dateRange.from + "T12:00:00"), toD = new Date(dateRange.to + "T12:00:00");
+    const spanDays = Math.max(1, Math.round((toD - fromD) / 86400000));
+    const iso = d => d.toISOString().slice(0,10);
+    const prevTo = new Date(fromD.getTime() - 86400000);
+    const prevFrom = new Date(prevTo.getTime() - spanDays * 86400000);
+    const pf = iso(prevFrom), pt = iso(prevTo);
+    const svcs = services.filter(s => (svcTypeFilter.length === 0 || svcTypeFilter.includes(s.name)) && s.service_date >= pf && s.service_date <= pt);
+    const counts = svcs.map(s => (attendance[s.id] || []).filter(id => filteredMemberIds.has(id)).length);
+    const ids = new Set(); svcs.forEach(s => (attendance[s.id] || []).forEach(id => { if (filteredMemberIds.has(id)) ids.add(id); }));
+    const avg = counts.length ? Math.round(counts.reduce((a,b)=>a+b,0) / counts.length) : 0;
+    return { has: svcs.length > 0, services: svcs.length, distinct: ids.size, avg,
+      turnout: activeInScope ? Math.round(avg / activeInScope * 100) : 0,
+      peak: counts.length ? Math.max(...counts) : 0, low: counts.length ? Math.min(...counts) : 0 };
+  }, [services, attendance, filteredMemberIds, dateRange, svcTypeFilter, activeInScope]);
+  const chg = (cur, prev) => prevStats.has ? cur - prev : null;
+
+  // Sparkline series + reference-line averages from the monthly trend.
+  const sparkTotal = attendanceTrend.map(x => x.total);
+  const sparkAvg   = attendanceTrend.map(x => x.avg);
+  const sparkTurn  = attendanceTrend.map(x => activeInScope ? Math.round(x.avg / activeInScope * 100) : 0);
+  const trendTotalAvg = sparkTotal.length ? Math.round(sparkTotal.reduce((a,b)=>a+b,0) / sparkTotal.length) : 0;
 
   // ── RENDER ────────────────────────────────────────────────
   return (
@@ -985,9 +1217,19 @@ export default function AnalyticsPage({ members, services, attendance, household
                 <div style={{fontSize:11,fontWeight:700,color:"var(--text-faint)",textTransform:"uppercase",letterSpacing:0.8,marginBottom:10}}>Members</div>
                 <div style={{display:"flex",flexDirection:"column",gap:10,alignItems:"flex-start"}}>
                   <MultiSelect label="Gender" options={["Male","Female"]} selected={sexFilter} onChange={setSexFilter} />
-                  <MultiSelect label="Age" options={AGE_CATS.map(c=>c.label)} selected={ageFilter} onChange={setAgeFilter} />
+                  <MultiSelect label="Age group" options={[...AGE_CATS.map(c=>c.label), "Unknown"]} selected={ageFilter} onChange={setAgeFilter} />
+                  <div style={{display:"flex",alignItems:"center",gap:6,fontSize:12,color:"var(--text-2)"}}>
+                    <span style={{fontWeight:600}}>Age range</span>
+                    <input type="number" min="0" max="120" placeholder="min" value={ageMin} onChange={e=>setAgeMin(e.target.value)} style={{width:56,padding:"5px 6px",fontSize:12}} />
+                    <span style={{color:"var(--text-faint)"}}>to</span>
+                    <input type="number" min="0" max="120" placeholder="max" value={ageMax} onChange={e=>setAgeMax(e.target.value)} style={{width:56,padding:"5px 6px",fontSize:12}} />
+                    {(ageMin!==""||ageMax!=="") && <button onClick={()=>{setAgeMin("");setAgeMax("");}} title="Clear age range" style={{background:"none",border:"1px solid var(--border)",borderRadius:8,color:"var(--text-faint)",cursor:"pointer",fontSize:11,padding:"3px 6px",display:"inline-flex"}}><X size={12}/></button>}
+                  </div>
                   <MultiSelect label="City" options={TRINIDAD_CITIES} selected={cityFilter} onChange={setCityFilter} />
                   <MultiSelect label="Ministry" options={ROLES} selected={roleFilter} onChange={setRoleFilter} />
+                  <MultiSelect label="Marital" options={maritalOptions} selected={maritalFilter} onChange={setMaritalFilter} />
+                  <MultiSelect label="Attends" options={interactionOptions} selected={interactionFilter} onChange={setInteractionFilter} />
+                  <MultiSelect label="Skill" options={skillOptions} selected={skillFilterA} onChange={setSkillFilterA} />
                   <select value={statusFilter} onChange={e=>setStatusFilter(e.target.value)} style={{fontSize:12,padding:"5px 8px"}}>
                     <option value="active">Active Only</option>
                     <option value="all">All Members</option>
@@ -1013,7 +1255,7 @@ export default function AnalyticsPage({ members, services, attendance, household
 
       {/* ── SECTION TABS ── */}
       <div style={{display:"flex",gap:4,borderBottom:"1.5px solid var(--border)",marginBottom:20}}>
-        {[["attendance","Attendance"],["members","Members"],["ministry","Ministry"]].map(([key,label]) => (
+        {[["attendance","Attendance"],["members","Members"],["ministry","Ministries"],["instruments","Musicians"]].map(([key,label]) => (
           <button key={key} onClick={()=>setActiveSection(key)} style={{
             background:"none",border:"none",cursor:"pointer",fontFamily:"Inter,sans-serif",
             fontSize:13,fontWeight:600,padding:"10px 18px",
@@ -1036,14 +1278,15 @@ export default function AnalyticsPage({ members, services, attendance, household
           </div>
 
           {attSub === "overview" && (<>
-          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(130px,1fr))",gap:12,marginBottom:4}}>
-            <StatPill label="Total Services" value={filteredServices.length} />
-            <StatPill label="Total Members" value={distinctAttendees} />
-            <StatPill label="Avg per Service" value={avgAtt} color={TURQUOISE} />
-            <StatPill label="Avg Turnout" value={`${avgTurnoutPct}%`} color={GREEN} />
-            <StatPill label="Peak Attendance" value={peakAtt} color={ORANGE} />
-            <StatPill label="Lowest Attendance" value={lowestAtt} color={RED} />
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(150px,1fr))",gap:12,marginBottom:4}}>
+            <StatTile label="Total Services" value={filteredServices.length} delta={chg(filteredServices.length, prevStats.services)} />
+            <StatTile label="Total Members" value={distinctAttendees} delta={chg(distinctAttendees, prevStats.distinct)} spark={sparkTotal} />
+            <StatTile label="Avg per Service" value={avgAtt} color={TURQUOISE} delta={chg(avgAtt, prevStats.avg)} spark={sparkAvg} sparkColor={TURQUOISE} />
+            <StatTile label="Avg Turnout" value={`${avgTurnoutPct}%`} color={GREEN} delta={chg(avgTurnoutPct, prevStats.turnout)} spark={sparkTurn} sparkColor={GREEN} />
+            <StatTile label="Peak Attendance" value={peakAtt} color={ORANGE} delta={chg(peakAtt, prevStats.peak)} sub={fmtDay(peakSvc?.s?.service_date)} />
+            <StatTile label="Lowest Attendance" value={lowestAtt} color={RED} delta={chg(lowestAtt, prevStats.low)} sub={fmtDay(lowSvc?.s?.service_date)} />
           </div>
+          {prevStats.has && <div style={{fontSize:11,color:"var(--text-faint)",marginTop:6}}>▲▼ vs the previous {(() => { const dd=Math.max(1,Math.round((new Date(dateRange.to)-new Date(dateRange.from))/86400000)); return dd>=28 ? `${Math.round(dd/30)||1} month${Math.round(dd/30)>1?"s":""}` : `${dd} days`; })()}</div>}
 
           <SectionTitle>Attendance Trend</SectionTitle>
           {attendanceTrend.length === 0
@@ -1051,24 +1294,38 @@ export default function AnalyticsPage({ members, services, attendance, household
             : <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(320px,1fr))",gap:14}}>
                 <ChartCard title="Total Members per Month" subtitle="Distinct members who attended each month">
                   <ResponsiveContainer width="100%" height={240}>
-                    <LineChart data={attendanceTrend} margin={{top:4,right:16,bottom:4,left:0}}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+                    <AreaChart data={attendanceTrend} margin={{top:4,right:16,bottom:4,left:0}}>
+                      <defs>
+                        <linearGradient id="gradTotal" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor={TEAL} stopOpacity={0.22} />
+                          <stop offset="100%" stopColor={TEAL} stopOpacity={0.02} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" vertical={false} />
                       <XAxis dataKey="label" tick={{fontSize:11,fill:"var(--text-faint)"}} />
                       <YAxis tick={{fontSize:11,fill:"var(--text-faint)"}} />
                       <Tooltip content={<CustomTooltip />} />
-                      <Line type="monotone" dataKey="total" name="Total Members" stroke={TEAL} strokeWidth={2.5} dot={{r:4,fill:TEAL}} activeDot={{r:6}} />
-                    </LineChart>
+                      {sparkTotal.length > 1 && <ReferenceLine y={trendTotalAvg} stroke="#98a2ad" strokeDasharray="5 5" strokeWidth={1.5} label={{value:`avg ${trendTotalAvg}`,position:"insideTopRight",fontSize:10,fill:"var(--text-faint)"}} />}
+                      <Area type="monotone" dataKey="total" name="Total Members" stroke={TEAL} strokeWidth={2.5} fill="url(#gradTotal)" dot={{r:3.5,fill:TEAL}} activeDot={{r:6}} />
+                    </AreaChart>
                   </ResponsiveContainer>
                 </ChartCard>
                 <ChartCard title="Average Attendance per Service" subtitle="Mean attendance per service each month">
                   <ResponsiveContainer width="100%" height={240}>
-                    <LineChart data={attendanceTrend} margin={{top:4,right:16,bottom:4,left:0}}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+                    <AreaChart data={attendanceTrend} margin={{top:4,right:16,bottom:4,left:0}}>
+                      <defs>
+                        <linearGradient id="gradAvg" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor={TURQUOISE} stopOpacity={0.28} />
+                          <stop offset="100%" stopColor={TURQUOISE} stopOpacity={0.03} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" vertical={false} />
                       <XAxis dataKey="label" tick={{fontSize:11,fill:"var(--text-faint)"}} />
                       <YAxis tick={{fontSize:11,fill:"var(--text-faint)"}} />
                       <Tooltip content={<CustomTooltip />} />
-                      <Line type="monotone" dataKey="avg" name="Avg per Service" stroke={TURQUOISE} strokeWidth={2.5} dot={{r:4,fill:TURQUOISE}} activeDot={{r:6}} />
-                    </LineChart>
+                      {avgAtt > 0 && <ReferenceLine y={avgAtt} stroke="#98a2ad" strokeDasharray="5 5" strokeWidth={1.5} label={{value:`avg ${avgAtt}`,position:"insideTopRight",fontSize:10,fill:"var(--text-faint)"}} />}
+                      <Area type="monotone" dataKey="avg" name="Avg per Service" stroke={TURQUOISE} strokeWidth={2.5} fill="url(#gradAvg)" dot={{r:3.5,fill:TURQUOISE}} activeDot={{r:6}} />
+                    </AreaChart>
                   </ResponsiveContainer>
                 </ChartCard>
               </div>
@@ -1211,7 +1468,7 @@ export default function AnalyticsPage({ members, services, attendance, household
             <strong>How this works:</strong> among the members and services currently in view, this
             lists anyone who had attended at least twice but hasn't come to any service in the last
             28 days (measured from the most recent service in view). New or one-time visitors never
-            appear — it needs a prior pattern to lapse from. It's a pastoral-care follow-up list.
+            appear; it needs a prior pattern to lapse from. It's a pastoral-care follow-up list.
           </div>
           <ChartCard title="Members Who've Gone Quiet" subtitle="Previously regular members with no attendance in the last 28 days">
             {slippingAway.length === 0
@@ -1296,92 +1553,49 @@ export default function AnalyticsPage({ members, services, attendance, household
 
       {activeSection === "members" && (
         <div>
-          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(130px,1fr))",gap:12,marginBottom:4}}>
-            <StatPill label="Total Filtered" value={filteredMembers.length} />
-            <StatPill label="Active" value={filteredMembers.filter(m=>m.is_active!==false).length} color={GREEN} />
-            <StatPill label="Male" value={filteredMembers.filter(m=>m.sex==="Male").length} color={TEAL} />
-            <StatPill label="Female" value={filteredMembers.filter(m=>m.sex==="Female").length} color={PINK} />
+          {(() => {
+            const n = filteredMembers.length || 1;
+            const male = filteredMembers.filter(m=>m.sex==="Male").length;
+            const female = filteredMembers.filter(m=>m.sex==="Female").length;
+            const active = filteredMembers.filter(m=>m.is_active!==false).length;
+            const married = filteredMembers.filter(m=>m.marital_status==="Married").length;
+            const single = filteredMembers.filter(m=>m.marital_status==="Single").length;
+            const parents = filteredMembers.filter(m=>m.household_role==="Father"||m.household_role==="Mother").length;
+            const cards = [
+              {icon:<Users size={18}/>, value:filteredMembers.length, label:"In view", sub:"current filter", color:TEAL},
+              {icon:<UserCheck size={18}/>, value:active, label:"Active", sub:`${Math.round(active/n*100)}% of view`, color:GREEN},
+              {icon:<User size={18}/>, value:male, label:"Male", sub:`${Math.round(male/n*100)}%`, color:TEAL},
+              {icon:<User size={18}/>, value:female, label:"Female", sub:`${Math.round(female/n*100)}%`, color:PINK},
+              {icon:<Heart size={18}/>, value:married, label:"Married", sub:`${single} single`, color:PURPLE},
+              {icon:<Baby size={18}/>, value:parents, label:"Parents", sub:"fathers & mothers", color:ORANGE},
+            ];
+            return (
+              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(170px,1fr))",gap:12,marginBottom:6}}>
+                {cards.map((c,i)=><IconStat key={i} {...c} />)}
+              </div>
+            );
+          })()}
+
+          <div style={{display:"flex",gap:4,margin:"16px 0"}}>
+            {[["overview","Overview"],["households","Households"]].map(([k,label])=>(
+              <button key={k} onClick={()=>setMemberSub(k)} style={{background:memberSub===k?TEAL:"var(--surface-alt)",color:memberSub===k?"#fff":"var(--text-2)",border:`1.5px solid ${memberSub===k?TEAL:"var(--border)"}`,borderRadius:20,cursor:"pointer",fontSize:12.5,fontWeight:600,padding:"6px 16px"}}>{label}</button>
+            ))}
           </div>
 
-          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(130px,1fr))",gap:12,marginTop:12,marginBottom:4}}>
-            <StatPill label="Married Men" value={filteredMembers.filter(m=>m.marital_status==="Married"&&m.sex==="Male").length} color={TEAL} />
-            <StatPill label="Married Women" value={filteredMembers.filter(m=>m.marital_status==="Married"&&m.sex==="Female").length} color={PINK} />
-            <StatPill label="Fathers" value={filteredMembers.filter(m=>m.household_role==="Father").length} color={TEAL} />
-            <StatPill label="Mothers" value={filteredMembers.filter(m=>m.household_role==="Mother").length} color={PINK} />
-          </div>
-
+          {memberSub === "overview" && (<>
           <SectionTitle>Demographics</SectionTitle>
-          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:14}}>
-            <ChartCard title="Age Group Breakdown" subtitle="Members by age category">
-              {ageBreakdown.length === 0 ? <div style={{textAlign:"center",padding:30,color:"var(--text-faint)",fontSize:12}}>No data</div>
-                : <div style={{display:"flex",alignItems:"center",gap:16}}>
-                    <ResponsiveContainer width={160} height={160}>
-                      <PieChart>
-                        <Pie data={ageBreakdown} dataKey="value" cx="50%" cy="50%" innerRadius={45} outerRadius={70}>
-                          {ageBreakdown.map((e,i) => <Cell key={i} fill={e.color} />)}
-                        </Pie>
-                        <Tooltip />
-                      </PieChart>
-                    </ResponsiveContainer>
-                    <div style={{flex:1}}>
-                      {ageBreakdown.map((d,i) => (
-                        <div key={i} style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
-                          <div style={{width:10,height:10,borderRadius:2,background:d.color,flexShrink:0}} />
-                          <div style={{fontSize:12,color:"var(--text-2)",flex:1}}>{d.name}</div>
-                          <div style={{fontSize:12,fontWeight:600,color:"var(--text)"}}>{d.value}</div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-              }
-            </ChartCard>
-            <ChartCard title="Gender Breakdown" subtitle="Gender distribution">
-              {sexBreakdown.length === 0 ? <div style={{textAlign:"center",padding:30,color:"var(--text-faint)",fontSize:12}}>No data</div>
-                : <div style={{display:"flex",alignItems:"center",gap:16}}>
-                    <ResponsiveContainer width={160} height={160}>
-                      <PieChart>
-                        <Pie data={sexBreakdown} dataKey="value" cx="50%" cy="50%" innerRadius={45} outerRadius={70}>
-                          {sexBreakdown.map((e,i) => <Cell key={i} fill={e.color} />)}
-                        </Pie>
-                        <Tooltip />
-                      </PieChart>
-                    </ResponsiveContainer>
-                    <div style={{flex:1}}>
-                      {sexBreakdown.map((d,i) => (
-                        <div key={i} style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
-                          <div style={{width:10,height:10,borderRadius:2,background:d.color,flexShrink:0}} />
-                          <div style={{fontSize:12,color:"var(--text-2)",flex:1}}>{d.name}</div>
-                          <div style={{fontSize:12,fontWeight:600,color:"var(--text)"}}>{d.value}</div>
-                          <div style={{fontSize:11,color:"var(--text-faint)"}}>({filteredMembers.length?Math.round(d.value/filteredMembers.length*100):0}%)</div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-              }
-            </ChartCard>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(300px,1fr))",gap:14}}>
+            <DonutCard title="Age Group Breakdown" subtitle="Members by age category" data={ageBreakdown} />
+            <DonutCard title="Gender Breakdown" subtitle="Gender distribution" data={sexBreakdown} />
           </div>
 
           {svcTypeFilter.length > 0 && (
             <>
               <SectionTitle>Members Who Attended</SectionTitle>
-              <ChartCard title={`Members attending: ${svcTypeFilter.join(", ")}`} subtitle={`${filteredMembers.length} unique member${filteredMembers.length!==1?"s":""} attended at least one session`}>
-                {filteredMembers.length === 0
-                  ? <div style={{textAlign:"center",padding:20,color:"var(--text-faint)",fontSize:12}}>No members matched</div>
-                  : <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))",gap:8}}>
-                      {filteredMembers.map(m => (
-                        <div key={m.id} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 10px",background:"var(--surface-alt)",borderRadius:8,border:"1px solid var(--border)"}}>
-                          <div style={{width:32,height:32,borderRadius:"50%",background:TEAL,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:"#fff",flexShrink:0}}>
-                            {(m.first_name||"?")[0]}{(m.last_name||"?")[0]}
-                          </div>
-                          <div>
-                            <div style={{fontSize:12,fontWeight:600,color:"var(--text)"}}>{m.first_name} {m.last_name}</div>
-                            <div style={{fontSize:10,color:"var(--text-faint)"}}>{(m.roles||[]).join(", ")||"No ministry"}</div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                }
-              </ChartCard>
+              <div style={{fontSize:12,color:"var(--text-muted)",marginBottom:12}}>
+                {filteredMembers.length} unique member{filteredMembers.length!==1?"s":""} attended {svcTypeFilter.join(", ")}. Expand a name to see which sessions.
+              </div>
+              <IndividualAttendance members={filteredMembers} services={filteredServices} attendance={attendance} scope={`Attending: ${svcTypeFilter.join(", ")}`} />
             </>
           )}
 
@@ -1389,13 +1603,13 @@ export default function AnalyticsPage({ members, services, attendance, household
           <ChartCard title="Members by City" subtitle="Top 10 cities represented">
             {cityBreakdown.length === 0 ? <div style={{textAlign:"center",padding:30,color:"var(--text-faint)",fontSize:12}}>No city data recorded</div>
               : <ResponsiveContainer width="100%" height={Math.max(160, cityBreakdown.length*30)}>
-                  <BarChart data={cityBreakdown} layout="vertical" margin={{top:4,right:40,bottom:4,left:100}}>
+                  <BarChart data={cityBreakdown} layout="vertical" margin={{top:4,right:44,bottom:4,left:100}}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" horizontal={false} />
                     <XAxis type="number" tick={{fontSize:11,fill:"var(--text-faint)"}} />
                     <YAxis type="category" dataKey="name" tick={{fontSize:11,fill:"var(--text-2)"}} width={95} />
                     <Tooltip content={<CustomTooltip />} />
-                    <Bar dataKey="value" name="Members" radius={[0,6,6,0]}>
-                      {cityBreakdown.map((_,i) => <Cell key={i} fill={CHART_COLORS[i%CHART_COLORS.length]} />)}
+                    <Bar dataKey="value" name="Members" radius={[0,6,6,0]} fill={TEAL}>
+                      <LabelList dataKey="value" position="right" style={{fontSize:11,fontWeight:700,fill:"var(--text-2)"}} />
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>
@@ -1417,60 +1631,141 @@ export default function AnalyticsPage({ members, services, attendance, household
             }
           </ChartCard>
 
-          <SectionTitle>Birthdays by Month</SectionTitle>
-          <ChartCard title="Birthday Distribution" subtitle="How many members have birthdays each month">
-            <ResponsiveContainer width="100%" height={200}>
-              <BarChart data={birthdaysByMonth} margin={{top:4,right:16,bottom:4,left:0}}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" vertical={false} />
-                <XAxis dataKey="name" tick={{fontSize:10,fill:"var(--text-faint)"}} />
-                <YAxis tick={{fontSize:11,fill:"var(--text-faint)"}} allowDecimals={false} />
-                <Tooltip content={<CustomTooltip />} />
-                <Bar dataKey="count" name="Birthdays" radius={[6,6,0,0]}>
-                  {birthdaysByMonth.map((_,i) => <Cell key={i} fill={i===new Date().getMonth()?RED:PINK} />)}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-            <div style={{fontSize:11,color:"var(--text-faint)",marginTop:8,textAlign:"center"}}>Current month highlighted in red</div>
-          </ChartCard>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",flexWrap:"wrap",gap:8}}>
+            <SectionTitle>Celebrations by Month</SectionTitle>
+            <div style={{display:"inline-flex",border:"1px solid var(--border)",borderRadius:20,overflow:"hidden",marginBottom:14}}>
+              {[["birthdays","Birthdays"],["anniversaries","Anniversaries"]].map(([k,label])=>(
+                <button key={k} onClick={()=>setCelebMode(k)} style={{border:"none",cursor:"pointer",fontSize:11.5,fontWeight:600,padding:"5px 14px",background:celebMode===k?TEAL:"var(--surface)",color:celebMode===k?"#fff":"var(--text-muted)"}}>{label}</button>
+              ))}
+            </div>
+          </div>
+          {(() => {
+            const data = celebMode === "birthdays" ? birthdaysByMonth : anniversariesByMonth;
+            const barColor = celebMode === "birthdays" ? PINK : PURPLE;
+            const total = data.reduce((a,b)=>a+b.count,0);
+            return (
+              <ChartCard title={celebMode==="birthdays"?"Birthday Distribution":"Anniversary Distribution"} subtitle={celebMode==="birthdays"
+                ? `${total} member${total!==1?"s":""} with a birthday on record · current month highlighted`
+                : `${total} anniversar${total!==1?"ies":"y"} · linked spouses counted once · current month highlighted`}>
+                <ResponsiveContainer width="100%" height={210}>
+                  <BarChart data={data} margin={{top:14,right:16,bottom:4,left:0}}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" vertical={false} />
+                    <XAxis dataKey="name" tick={{fontSize:10,fill:"var(--text-faint)"}} />
+                    <YAxis tick={{fontSize:11,fill:"var(--text-faint)"}} allowDecimals={false} />
+                    <Tooltip content={<CustomTooltip />} />
+                    <Bar dataKey="count" name={celebMode==="birthdays"?"Birthdays":"Anniversaries"} radius={[6,6,0,0]}>
+                      {data.map((_,i) => <Cell key={i} fill={i===new Date().getMonth()?RED:barColor} />)}
+                      <LabelList dataKey="count" position="top" formatter={v=>v||""} style={{fontSize:10,fontWeight:700,fill:"var(--text-faint)"}} />
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </ChartCard>
+            );
+          })()}
 
           <SectionTitle>Net Growth</SectionTitle>
           <ChartCard title="Cumulative Membership" subtitle="Running total of members over time, based on join dates (all-time)">
             {netGrowth.length === 0 ? <div style={{textAlign:"center",padding:30,color:"var(--text-faint)",fontSize:12}}>No join dates recorded</div>
-              : <ResponsiveContainer width="100%" height={240}>
-                  <LineChart data={netGrowth} margin={{top:4,right:16,bottom:4,left:0}}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
-                    <XAxis dataKey="label" tick={{fontSize:11,fill:"var(--text-faint)"}} />
-                    <YAxis tick={{fontSize:11,fill:"var(--text-faint)"}} allowDecimals={false} />
-                    <Tooltip content={<CustomTooltip />} />
-                    <Line type="monotone" dataKey="total" name="Total Members" stroke={TEAL} strokeWidth={2.5} dot={{r:3,fill:TEAL}} activeDot={{r:6}} />
-                  </LineChart>
-                </ResponsiveContainer>
+              : (() => {
+                  const now = netGrowth[netGrowth.length-1].total;
+                  const start = netGrowth[0];
+                  const biggest = netGrowth.reduce((a,b)=> b.added>(a?.added??-1)?b:a, null);
+                  const last12 = netGrowth.slice(-12).reduce((s,d)=>s+d.added,0);
+                  return (
+                    <div style={{display:"flex",gap:16,flexWrap:"wrap",alignItems:"stretch"}}>
+                      <div style={{flex:"1 1 320px",minWidth:280}}>
+                        <ResponsiveContainer width="100%" height={240}>
+                          <AreaChart data={netGrowth} margin={{top:4,right:16,bottom:4,left:0}}>
+                            <defs>
+                              <linearGradient id="gradGrowth" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stopColor={TEAL} stopOpacity={0.26} />
+                                <stop offset="100%" stopColor={TEAL} stopOpacity={0.02} />
+                              </linearGradient>
+                            </defs>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" vertical={false} />
+                            <XAxis dataKey="label" tick={{fontSize:11,fill:"var(--text-faint)"}} />
+                            <YAxis tick={{fontSize:11,fill:"var(--text-faint)"}} allowDecimals={false} />
+                            <Tooltip content={<CustomTooltip />} />
+                            <Area type="monotone" dataKey="total" name="Total Members" stroke={TEAL} strokeWidth={2.5} fill="url(#gradGrowth)" dot={false} activeDot={{r:6}} />
+                          </AreaChart>
+                        </ResponsiveContainer>
+                      </div>
+                      <div style={{flex:"0 0 190px",display:"flex",flexDirection:"column",gap:10,justifyContent:"center"}}>
+                        {[
+                          {icon:<Users size={15}/>, label:"Members today", value:now, color:TEAL},
+                          {icon:<TrendingUp size={15}/>, label:"Added last 12 mo", value:`+${last12}`, color:GREEN},
+                          {icon:<Calendar size={15}/>, label:"Best month", value:biggest?`+${biggest.added}`:"None", sub:biggest?biggest.label:"", color:ORANGE},
+                          {icon:<Clock size={15}/>, label:"Tracking since", value:start.label, color:PURPLE},
+                        ].map((s,i)=>(
+                          <div key={i} style={{background:"var(--surface-alt)",border:"1px solid var(--border)",borderRadius:10,padding:"10px 12px",display:"flex",alignItems:"center",gap:10}}>
+                            <span style={{color:s.color,display:"flex"}}>{s.icon}</span>
+                            <div style={{minWidth:0}}>
+                              <div style={{fontSize:16,fontWeight:700,color:"var(--text)",lineHeight:1.1}}>{s.value}{s.sub && <span style={{fontSize:11,fontWeight:500,color:"var(--text-faint)"}}> · {s.sub}</span>}</div>
+                              <div style={{fontSize:10.5,color:"var(--text-faint)",textTransform:"uppercase",letterSpacing:0.4}}>{s.label}</div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })()
             }
           </ChartCard>
 
           <SectionTitle>Age Pyramid</SectionTitle>
-          <ChartCard title="Age & Gender Pyramid" subtitle="Male (left) vs female (right) across age bands">
+          <ChartCard title="Age & Gender Pyramid" subtitle="Male on the left, female on the right, across age bands. Counts are labelled on each bar.">
             {filteredMembers.length === 0 ? <div style={{textAlign:"center",padding:30,color:"var(--text-faint)",fontSize:12}}>No data</div>
-              : <ResponsiveContainer width="100%" height={280}>
-                  <BarChart data={agePyramid} layout="vertical" stackOffset="sign" margin={{top:4,right:24,bottom:4,left:30}}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" horizontal={false} />
-                    <XAxis type="number" tick={{fontSize:11,fill:"var(--text-faint)"}} tickFormatter={v=>Math.abs(v)} allowDecimals={false} />
-                    <YAxis type="category" dataKey="band" tick={{fontSize:11,fill:"var(--text-2)"}} width={110} />
-                    <Tooltip formatter={(v,n)=>[Math.abs(v), n]} />
-                    <Legend wrapperStyle={{fontSize:12}} />
-                    <Bar dataKey="male" name="Male" fill={TEAL} stackId="pyr" radius={[0,4,4,0]} />
-                    <Bar dataKey="female" name="Female" fill={PINK} stackId="pyr" radius={[4,0,0,4]} />
-                  </BarChart>
-                </ResponsiveContainer>
+              : (() => {
+                  const withTotals = agePyramid.map(b => ({ ...b, band: b.band, tot: Math.abs(b.male) + b.female }));
+                  const top = withTotals.reduce((a,b)=> b.tot>(a?.tot??-1)?b:a, null);
+                  const mTot = agePyramid.reduce((s,b)=>s+Math.abs(b.male),0);
+                  const fTot = agePyramid.reduce((s,b)=>s+b.female,0);
+                  return (
+                    <>
+                      <ResponsiveContainer width="100%" height={300}>
+                        <BarChart data={agePyramid} layout="vertical" stackOffset="sign" margin={{top:4,right:34,bottom:4,left:30}}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" horizontal={false} />
+                          <XAxis type="number" tick={{fontSize:11,fill:"var(--text-faint)"}} tickFormatter={v=>Math.abs(v)} allowDecimals={false} />
+                          <YAxis type="category" dataKey="band" tick={{fontSize:11,fill:"var(--text-2)"}} width={110} />
+                          <Tooltip formatter={(v,n)=>[Math.abs(v), n]} />
+                          <Legend wrapperStyle={{fontSize:12}} />
+                          <Bar dataKey="male" name="Male" fill={TEAL} stackId="pyr" radius={[4,0,0,4]}>
+                            <LabelList dataKey="male" content={(p)=>{ const {x,y,height,value}=p; if(!value) return null; return <text x={x-5} y={y+height/2} textAnchor="end" dominantBaseline="central" fontSize={10} fontWeight={700} fill={TEAL}>{Math.abs(value)}</text>; }} />
+                          </Bar>
+                          <Bar dataKey="female" name="Female" fill={PINK} stackId="pyr" radius={[0,4,4,0]}>
+                            <LabelList dataKey="female" position="right" formatter={v=>v||""} style={{fontSize:10,fontWeight:700,fill:PINK}} />
+                          </Bar>
+                        </BarChart>
+                      </ResponsiveContainer>
+                      <div style={{display:"flex",gap:16,flexWrap:"wrap",marginTop:8,fontSize:12,color:"var(--text-muted)"}}>
+                        <span><strong style={{color:"var(--text)"}}>{top?.band||"None"}</strong> is the largest band ({top?.tot||0} members)</span>
+                        <span>Totals across all bands: <strong style={{color:TEAL}}>{mTot} male</strong>, <strong style={{color:PINK}}>{fTot} female</strong></span>
+                      </div>
+                    </>
+                  );
+                })()
             }
           </ChartCard>
 
-          <SectionTitle>Households</SectionTitle>
-          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(130px,1fr))",gap:12,marginBottom:14}}>
-            <StatPill label="Households" value={householdView.count} />
-            <StatPill label="Avg Size" value={householdView.avg ? householdView.avg.toFixed(1) : "0"} color={TURQUOISE} />
-            <StatPill label="In a Household" value={householdView.peopleInHouseholds} color={GREEN} />
-            <StatPill label="No Household" value={householdView.without} color={ORANGE} />
+          </>)}
+
+          {memberSub === "households" && (<>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(180px,1fr))",gap:12,marginTop:16,marginBottom:14}}>
+            {[
+              {icon:<Home size={18}/>, value:householdView.count, label:"Households", sub:`${householdView.avg?householdView.avg.toFixed(1):"0"} avg size`, color:TEAL},
+              {icon:<Users size={18}/>, value:householdView.peopleInHouseholds, label:"In a household", sub:`${filteredMembers.length?Math.round(householdView.peopleInHouseholds/filteredMembers.length*100):0}% of members`, color:GREEN},
+              {icon:<UserMinus size={18}/>, value:householdView.without, label:"Not linked", sub:"no family set", color:ORANGE},
+              {icon:<Baby size={18}/>, value:householdView.withChildren, label:"With children", sub:`${householdView.avgChildren?householdView.avgChildren.toFixed(1):"0"} kids avg`, color:PURPLE},
+            ].map((s,i)=>(
+              <div key={i} style={{background:"var(--surface)",border:"1px solid var(--border)",borderRadius:12,padding:"14px 16px",display:"flex",alignItems:"center",gap:12}}>
+                <div style={{width:40,height:40,borderRadius:10,background:s.color+"18",color:s.color,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{s.icon}</div>
+                <div style={{minWidth:0}}>
+                  <div style={{fontSize:24,fontWeight:700,color:"var(--text)",lineHeight:1.05}}>{s.value}</div>
+                  <div style={{fontSize:12,fontWeight:600,color:"var(--text-2)"}}>{s.label}</div>
+                  <div style={{fontSize:10.5,color:"var(--text-faint)"}}>{s.sub}</div>
+                </div>
+              </div>
+            ))}
           </div>
           {householdView.count === 0
             ? <ChartCard title="Households" subtitle="Link families together in the Members tab"><div style={{textAlign:"center",padding:20,color:"var(--text-faint)",fontSize:12}}>No households created yet</div></ChartCard>
@@ -1529,16 +1824,29 @@ export default function AnalyticsPage({ members, services, attendance, household
                 </ChartCard>
               </div>
           }
+          </>)}
         </div>
       )}
 
       {/* ── MINISTRY ── */}
       {activeSection === "ministry" && (
         <div>
-          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(130px,1fr))",gap:12,marginBottom:4}}>
-            <StatPill label="Total Ministries" value={ministrySize.length} />
-            <StatPill label="Distinct Members" value={distinctWithRole} color={TEAL} />
-            <StatPill label="No Ministry" value={filteredMembers.filter(m=>!(m.roles||[]).length).length} color={ORANGE} />
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(180px,1fr))",gap:12,marginBottom:8}}>
+            {[
+              {icon:<Users size={18}/>, value:filteredMembers.length, label:"Total members", sub:"in current filter", color:TEAL},
+              {icon:<Layers size={18}/>, value:ministrySize.length, label:"Ministries", sub:"with members", color:PURPLE},
+              {icon:<UserCheck size={18}/>, value:distinctWithRole, label:"Serving", sub:`${filteredMembers.length?Math.round(distinctWithRole/filteredMembers.length*100):0}% of members`, color:GREEN},
+              {icon:<UserMinus size={18}/>, value:filteredMembers.filter(m=>!(m.roles||[]).length).length, label:"No ministry", sub:"not yet serving", color:ORANGE},
+            ].map((s,i)=>(
+              <div key={i} style={{background:"var(--surface)",border:"1px solid var(--border)",borderRadius:12,padding:"14px 16px",display:"flex",alignItems:"center",gap:12}}>
+                <div style={{width:40,height:40,borderRadius:10,background:s.color+"18",color:s.color,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{s.icon}</div>
+                <div style={{minWidth:0}}>
+                  <div style={{fontSize:24,fontWeight:700,color:"var(--text)",lineHeight:1.05}}>{s.value}</div>
+                  <div style={{fontSize:12,fontWeight:600,color:"var(--text-2)"}}>{s.label}</div>
+                  <div style={{fontSize:10.5,color:"var(--text-faint)"}}>{s.sub}</div>
+                </div>
+              </div>
+            ))}
           </div>
 
           <SectionTitle>Ministry Size</SectionTitle>
@@ -1552,6 +1860,7 @@ export default function AnalyticsPage({ members, services, attendance, household
                     <Tooltip content={<CustomTooltip />} />
                     <Bar dataKey="value" name="Members" radius={[6,6,0,0]}>
                       {ministrySize.map((_,i) => <Cell key={i} fill={CHART_COLORS[i%CHART_COLORS.length]} />)}
+                      <LabelList dataKey="value" position="top" style={{fontSize:10,fontWeight:700,fill:"var(--text-faint)"}} />
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>
@@ -1561,16 +1870,22 @@ export default function AnalyticsPage({ members, services, attendance, household
           <SectionTitle>Role Distribution</SectionTitle>
           <ChartCard title="Members by Number of Ministries" subtitle="How many ministries each member serves in">
             {multiRoleData.length === 0 ? <div style={{textAlign:"center",padding:30,color:"var(--text-faint)",fontSize:12}}>No data</div>
-              : <div style={{display:"flex",alignItems:"center",gap:16}}>
-                  <ResponsiveContainer width={160} height={160}>
-                    <PieChart>
-                      <Pie data={multiRoleData} dataKey="value" cx="50%" cy="50%" innerRadius={45} outerRadius={70}>
-                        {multiRoleData.map((e,i) => <Cell key={i} fill={e.color} />)}
-                      </Pie>
-                      <Tooltip />
-                    </PieChart>
-                  </ResponsiveContainer>
-                  <div style={{flex:1}}>
+              : <div style={{display:"flex",alignItems:"center",gap:16,flexWrap:"wrap"}}>
+                  <div style={{position:"relative",width:160,height:160,flexShrink:0}}>
+                    <ResponsiveContainer width={160} height={160}>
+                      <PieChart>
+                        <Pie data={multiRoleData} dataKey="value" cx="50%" cy="50%" innerRadius={52} outerRadius={70} paddingAngle={2} stroke="none">
+                          {multiRoleData.map((e,i) => <Cell key={i} fill={e.color} />)}
+                        </Pie>
+                        <Tooltip />
+                      </PieChart>
+                    </ResponsiveContainer>
+                    <div style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",pointerEvents:"none"}}>
+                      <div style={{fontSize:22,fontWeight:700,color:"var(--text)",lineHeight:1}}>{filteredMembers.length}</div>
+                      <div style={{fontSize:9,color:"var(--text-faint)",textTransform:"uppercase",letterSpacing:0.5}}>members</div>
+                    </div>
+                  </div>
+                  <div style={{flex:1,minWidth:180}}>
                     {multiRoleData.map((d,i) => (
                       <div key={i} style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
                         <div style={{width:10,height:10,borderRadius:2,background:d.color,flexShrink:0}} />
@@ -1615,6 +1930,17 @@ export default function AnalyticsPage({ members, services, attendance, household
             {crossMinistry.length === 0
               ? <div style={{textAlign:"center",padding:24,color:"var(--text-faint)",fontSize:12}}>No members currently serve in more than one ministry</div>
               : <div>
+                  {overlapInsights.length > 0 && (
+                    <div style={{marginBottom:14,padding:"12px 14px",background:"var(--brand-tint-soft)",borderRadius:10}}>
+                      <div style={{fontSize:11,fontWeight:700,color:"var(--text-faint)",textTransform:"uppercase",letterSpacing:0.5,marginBottom:8}}>Strongest overlaps</div>
+                      {overlapInsights.map((o,i) => (
+                        <div key={i} style={{fontSize:12.5,color:"var(--text-2)",marginBottom:i<overlapInsights.length-1?6:0,lineHeight:1.5}}>
+                          <strong style={{color:PURPLE}}>{o.pct}%</strong> of {ministryPeople(o.from)} also {ministryServeClause(o.to)} <span style={{color:"var(--text-faint)"}}>({o.count} {o.count===1?"person":"people"})</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <div style={{fontSize:11,fontWeight:700,color:"var(--text-faint)",textTransform:"uppercase",letterSpacing:0.5,marginBottom:4}}>Ministry combinations</div>
                   {crossMinistry.map((p,i) => (
                     <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:i<crossMinistry.length-1?"1px solid var(--border-divider)":"none"}}>
                       <div style={{fontSize:13,color:"var(--text-2)",flex:1,marginRight:8}}>{p.pair}</div>
@@ -1640,29 +1966,111 @@ export default function AnalyticsPage({ members, services, attendance, household
                     <YAxis type="category" dataKey="name" tick={{fontSize:11,fill:"var(--text-2)"}} width={120} />
                     <Tooltip content={<CustomTooltip />} />
                     <Legend wrapperStyle={{fontSize:12}} />
-                    <Bar dataKey="male" name="Male" stackId="g" fill={TEAL} />
-                    <Bar dataKey="female" name="Female" stackId="g" fill={PINK} />
+                    <Bar dataKey="male" name="Male" stackId="g" fill={TEAL}>
+                      <LabelList dataKey="male" position="center" formatter={v=>v||""} style={{fontSize:9,fontWeight:700,fill:"#fff"}} />
+                    </Bar>
+                    <Bar dataKey="female" name="Female" stackId="g" fill={PINK}>
+                      <LabelList dataKey="female" position="center" formatter={v=>v||""} style={{fontSize:9,fontWeight:700,fill:"#fff"}} />
+                    </Bar>
                     <Bar dataKey="unknownSex" name="Unknown" stackId="g" fill="#e5e7eb" />
                   </BarChart>
                 </ResponsiveContainer>
             }
           </ChartCard>
-          <div style={{background:"var(--surface)",border:"1px solid var(--border)",borderRadius:14,overflow:"hidden",boxShadow:"0 1px 3px #0000000a",marginTop:14}}>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 70px 70px 80px",padding:"10px 16px",background:"var(--surface-alt)",fontSize:11,fontWeight:700,color:"var(--text-faint)",textTransform:"uppercase",letterSpacing:0.5}}>
-              <span>Ministry</span><span style={{textAlign:"right"}}>Male</span><span style={{textAlign:"right"}}>Female</span><span style={{textAlign:"right"}}>Avg Age</span>
-            </div>
-            {ministryCoverage.length === 0
-              ? <div style={{padding:"20px 16px",color:"var(--text-faint)",fontSize:12,textAlign:"center"}}>No data</div>
-              : ministryCoverage.map((m,i) => (
-                <div key={m.name} style={{display:"grid",gridTemplateColumns:"1fr 70px 70px 80px",padding:"11px 16px",borderTop:"1px solid var(--border-divider)",alignItems:"center"}}>
-                  <div style={{fontSize:13,fontWeight:500,color:"var(--text)"}}>{m.name}</div>
-                  <div style={{textAlign:"right",fontSize:13,color:TEAL,fontWeight:600}}>{m.male}</div>
-                  <div style={{textAlign:"right",fontSize:13,color:PINK,fontWeight:600}}>{m.female}</div>
-                  <div style={{textAlign:"right",fontSize:13,color:"var(--text-2)"}}>{m.avgAge ?? "-"}</div>
+        </div>
+      )}
+
+      {activeSection === "instruments" && (
+        <div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(180px,1fr))",gap:12,marginBottom:8}}>
+            {[
+              {icon:<Music size={18}/>, value:instrumentData.withInstr, label:"Musicians", sub:"with an instrument recorded", color:TEAL},
+              {icon:<Layers size={18}/>, value:instrumentData.instrumentList.length, label:"Different instruments", sub:"played across the church", color:PURPLE},
+              {icon:<Users size={18}/>, value:instrumentData.multi, label:"Play 2+ instruments", sub:"multi-instrumentalists", color:ORANGE},
+            ].map((s,i)=>(
+              <div key={i} style={{background:"var(--surface)",border:"1px solid var(--border)",borderRadius:12,padding:"14px 16px",display:"flex",alignItems:"center",gap:12}}>
+                <div style={{width:40,height:40,borderRadius:10,background:s.color+"18",color:s.color,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{s.icon}</div>
+                <div style={{minWidth:0}}>
+                  <div style={{fontSize:24,fontWeight:700,color:"var(--text)",lineHeight:1.05}}>{s.value}</div>
+                  <div style={{fontSize:12,fontWeight:600,color:"var(--text-2)"}}>{s.label}</div>
+                  <div style={{fontSize:10.5,color:"var(--text-faint)"}}>{s.sub}</div>
                 </div>
-              ))
-            }
+              </div>
+            ))}
           </div>
+
+          {instrumentData.instrumentList.length === 0
+            ? <ChartCard title="Instruments" subtitle="Add instruments to members in the Members tab"><div style={{textAlign:"center",padding:20,color:"var(--text-faint)",fontSize:12}}>No instruments recorded yet</div></ChartCard>
+            : <>
+                <SectionTitle>Musicians per Instrument</SectionTitle>
+                <ChartCard title="Players per Instrument" subtitle="How many musicians play each instrument">
+                  <ResponsiveContainer width="100%" height={Math.max(180, instrumentData.instrumentList.length*34)}>
+                    <BarChart data={instrumentData.instrumentList} layout="vertical" margin={{top:4,right:44,bottom:4,left:90}}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" horizontal={false} />
+                      <XAxis type="number" tick={{fontSize:11,fill:"var(--text-faint)"}} allowDecimals={false} />
+                      <YAxis type="category" dataKey="instrument" tick={{fontSize:11,fill:"var(--text-2)"}} width={85} />
+                      <Tooltip content={<CustomTooltip />} />
+                      <Bar dataKey="count" name="Musicians" radius={[0,6,6,0]} fill={TEAL}>
+                        <LabelList dataKey="count" position="right" style={{fontSize:11,fontWeight:700,fill:"var(--text-2)"}} />
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </ChartCard>
+
+                <SectionTitle>Who Plays What</SectionTitle>
+                <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(260px,1fr))",gap:14}}>
+                  {instrumentData.instrumentList.map(it => (
+                    <ChartCard key={it.instrument} title={it.instrument} subtitle={`${it.count} musician${it.count!==1?"s":""}`}>
+                      <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+                        {it.members.map(m => (
+                          <span key={m.id} style={{display:"inline-flex",alignItems:"center",gap:5,background:"var(--panel)",border:"1px solid var(--border)",borderRadius:16,padding:"2px 8px 2px 2px",fontSize:11,fontWeight:600,color:"var(--text-navy)"}}>
+                            <Avatar member={m} size={18} />{fullName(m)}
+                          </span>
+                        ))}
+                      </div>
+                    </ChartCard>
+                  ))}
+                </div>
+
+                <SectionTitle>Instruments per Musician</SectionTitle>
+                <ChartCard title="How Many Instruments Each Musician Plays" subtitle="Count of musicians by number of instruments">
+                  <ResponsiveContainer width="100%" height={210}>
+                    <BarChart data={instrumentData.distList} margin={{top:16,right:16,bottom:4,left:0}}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" vertical={false} />
+                      <XAxis dataKey="name" tick={{fontSize:11,fill:"var(--text-faint)"}} />
+                      <YAxis tick={{fontSize:11,fill:"var(--text-faint)"}} allowDecimals={false} />
+                      <Tooltip content={<CustomTooltip />} />
+                      <Bar dataKey="count" name="Musicians" fill={PURPLE} radius={[6,6,0,0]}>
+                        <LabelList dataKey="count" position="top" style={{fontSize:10,fontWeight:700,fill:"var(--text-faint)"}} />
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </ChartCard>
+
+                <SectionTitle>Musicians by Instrument Count</SectionTitle>
+                <div style={{display:"flex",flexDirection:"column",gap:14}}>
+                  {instrumentData.byCount.map(g => (
+                    <ChartCard key={g.n} title={`Plays ${g.n} instrument${g.n!==1?"s":""}`} subtitle={`${g.players.length} musician${g.players.length!==1?"s":""}`}>
+                      <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                        {g.players.map(({member,instruments}) => (
+                          <div key={member.id} style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
+                            <span style={{display:"inline-flex",alignItems:"center",gap:6,minWidth:150}}>
+                              <Avatar member={member} size={22} />
+                              <span style={{fontSize:12.5,fontWeight:600,color:"var(--text)"}}>{fullName(member)}</span>
+                            </span>
+                            <span style={{display:"flex",flexWrap:"wrap",gap:5}}>
+                              {instruments.map(inst => (
+                                <span key={inst} style={{fontSize:10.5,fontWeight:600,background:"var(--brand-tint-soft)",color:TEAL,borderRadius:12,padding:"1px 8px"}}>{inst}</span>
+                              ))}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </ChartCard>
+                  ))}
+                </div>
+              </>
+          }
         </div>
       )}
     </div>
