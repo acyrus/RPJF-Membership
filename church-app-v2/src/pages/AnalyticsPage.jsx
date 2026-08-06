@@ -439,6 +439,7 @@ export default function AnalyticsPage({ members, services, attendance, household
   const [statusFilter, setStatusFilter] = useState("active");
   const [filtersOpen, setFiltersOpen] = useState(false); // slide-out filter drawer
   const [memberSub, setMemberSub] = useState("overview"); // members sub-tab: "overview" | "households"
+  const [minSub, setMinSub] = useState("ministries"); // ministries sub-tab: "ministries" | "instruments"
   const [celebMode, setCelebMode] = useState("birthdays"); // "birthdays" | "anniversaries"
   const isMobile = useIsMobile();
   // Pin the Analytics header + filter bar just beneath the app's sticky top bar,
@@ -962,6 +963,35 @@ export default function AnalyticsPage({ members, services, attendance, household
     };
   }).filter(d => d.total>0).sort((a,b)=>b.total-a.total), [filteredMembers]);
 
+  // Notable one-directional overlaps: "X% of ministry A also serve in B".
+  const overlapInsights = useMemo(() => {
+    const sizeOf = n => (ministrySize.find(x => x.name === n) || {}).value || 0;
+    return crossMinistry.map(p => {
+      const [a, b] = p.pair.split(" + ");
+      const sa = sizeOf(a), sb = sizeOf(b);
+      const pctA = sa ? Math.round(p.count / sa * 100) : 0;
+      const pctB = sb ? Math.round(p.count / sb * 100) : 0;
+      return pctA >= pctB ? { from: a, to: b, pct: pctA, count: p.count } : { from: b, to: a, pct: pctB, count: p.count };
+    }).sort((x, y) => y.pct - x.pct).slice(0, 5);
+  }, [crossMinistry, ministrySize]);
+
+  // Instruments: parse the comma-separated `instruments` field on each member.
+  const instrumentData = useMemo(() => {
+    const instrsOf = m => String(m.instruments || "").split(",").map(s => s.trim()).filter(Boolean);
+    const musicians = filteredMembers.filter(m => instrsOf(m).length > 0 || (m.roles || []).includes("Musician"));
+    const withInstr = filteredMembers.filter(m => instrsOf(m).length > 0);
+    const byInstrument = {};
+    withInstr.forEach(m => { [...new Set(instrsOf(m))].forEach(inst => (byInstrument[inst] = byInstrument[inst] || []).push(m)); });
+    const dist = {};
+    withInstr.forEach(m => { const n = new Set(instrsOf(m)).size; dist[n] = (dist[n] || 0) + 1; });
+    return {
+      total: musicians.length,
+      withInstr: withInstr.length,
+      instrumentList: Object.entries(byInstrument).map(([instrument, members]) => ({ instrument, members, count: members.length })).sort((a, b) => b.count - a.count),
+      distList: Object.keys(dist).map(Number).sort((a, b) => a - b).map(n => ({ name: `${n} instrument${n > 1 ? "s" : ""}`, count: dist[n] })),
+    };
+  }, [filteredMembers]);
+
   // ── Helper ────────────────────────────────────────────────
   function toggleSvcType(name) {
     setSvcTypeFilter(prev => prev.includes(name) ? prev.filter(x => x !== name) : [...prev, name]);
@@ -1140,7 +1170,7 @@ export default function AnalyticsPage({ members, services, attendance, household
 
       {/* ── SECTION TABS ── */}
       <div style={{display:"flex",gap:4,borderBottom:"1.5px solid var(--border)",marginBottom:20}}>
-        {[["attendance","Attendance"],["members","Members"],["ministry","Ministry"]].map(([key,label]) => (
+        {[["attendance","Attendance"],["members","Members"],["ministry","Ministries"]].map(([key,label]) => (
           <button key={key} onClick={()=>setActiveSection(key)} style={{
             background:"none",border:"none",cursor:"pointer",fontFamily:"Inter,sans-serif",
             fontSize:13,fontWeight:600,padding:"10px 18px",
@@ -1708,7 +1738,15 @@ export default function AnalyticsPage({ members, services, attendance, household
       {/* ── MINISTRY ── */}
       {activeSection === "ministry" && (
         <div>
+          <div style={{display:"flex",gap:4,marginBottom:16}}>
+            {[["ministries","Ministries"],["instruments","Instruments"]].map(([k,label])=>(
+              <button key={k} onClick={()=>setMinSub(k)} style={{background:minSub===k?TEAL:"var(--surface-alt)",color:minSub===k?"#fff":"var(--text-2)",border:`1.5px solid ${minSub===k?TEAL:"var(--border)"}`,borderRadius:20,cursor:"pointer",fontSize:12.5,fontWeight:600,padding:"6px 16px"}}>{label}</button>
+            ))}
+          </div>
+
+          {minSub === "ministries" && (<>
           <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(130px,1fr))",gap:12,marginBottom:4}}>
+            <StatPill label="Total Members" value={filteredMembers.length} />
             <StatPill label="Total Ministries" value={ministrySize.length} />
             <StatPill label="Distinct Members" value={distinctWithRole} color={TEAL} />
             <StatPill label="No Ministry" value={filteredMembers.filter(m=>!(m.roles||[]).length).length} color={ORANGE} />
@@ -1725,6 +1763,7 @@ export default function AnalyticsPage({ members, services, attendance, household
                     <Tooltip content={<CustomTooltip />} />
                     <Bar dataKey="value" name="Members" radius={[6,6,0,0]}>
                       {ministrySize.map((_,i) => <Cell key={i} fill={CHART_COLORS[i%CHART_COLORS.length]} />)}
+                      <LabelList dataKey="value" position="top" style={{fontSize:10,fontWeight:700,fill:"var(--text-faint)"}} />
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>
@@ -1734,16 +1773,22 @@ export default function AnalyticsPage({ members, services, attendance, household
           <SectionTitle>Role Distribution</SectionTitle>
           <ChartCard title="Members by Number of Ministries" subtitle="How many ministries each member serves in">
             {multiRoleData.length === 0 ? <div style={{textAlign:"center",padding:30,color:"var(--text-faint)",fontSize:12}}>No data</div>
-              : <div style={{display:"flex",alignItems:"center",gap:16}}>
-                  <ResponsiveContainer width={160} height={160}>
-                    <PieChart>
-                      <Pie data={multiRoleData} dataKey="value" cx="50%" cy="50%" innerRadius={45} outerRadius={70}>
-                        {multiRoleData.map((e,i) => <Cell key={i} fill={e.color} />)}
-                      </Pie>
-                      <Tooltip />
-                    </PieChart>
-                  </ResponsiveContainer>
-                  <div style={{flex:1}}>
+              : <div style={{display:"flex",alignItems:"center",gap:16,flexWrap:"wrap"}}>
+                  <div style={{position:"relative",width:160,height:160,flexShrink:0}}>
+                    <ResponsiveContainer width={160} height={160}>
+                      <PieChart>
+                        <Pie data={multiRoleData} dataKey="value" cx="50%" cy="50%" innerRadius={52} outerRadius={70} paddingAngle={2} stroke="none">
+                          {multiRoleData.map((e,i) => <Cell key={i} fill={e.color} />)}
+                        </Pie>
+                        <Tooltip />
+                      </PieChart>
+                    </ResponsiveContainer>
+                    <div style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",pointerEvents:"none"}}>
+                      <div style={{fontSize:22,fontWeight:700,color:"var(--text)",lineHeight:1}}>{filteredMembers.length}</div>
+                      <div style={{fontSize:9,color:"var(--text-faint)",textTransform:"uppercase",letterSpacing:0.5}}>members</div>
+                    </div>
+                  </div>
+                  <div style={{flex:1,minWidth:180}}>
                     {multiRoleData.map((d,i) => (
                       <div key={i} style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
                         <div style={{width:10,height:10,borderRadius:2,background:d.color,flexShrink:0}} />
@@ -1788,6 +1833,16 @@ export default function AnalyticsPage({ members, services, attendance, household
             {crossMinistry.length === 0
               ? <div style={{textAlign:"center",padding:24,color:"var(--text-faint)",fontSize:12}}>No members currently serve in more than one ministry</div>
               : <div>
+                  {overlapInsights.length > 0 && (
+                    <div style={{marginBottom:14,padding:"12px 14px",background:"var(--brand-tint-soft)",borderRadius:10}}>
+                      <div style={{fontSize:11,fontWeight:700,color:"var(--text-faint)",textTransform:"uppercase",letterSpacing:0.5,marginBottom:8}}>Strongest overlaps</div>
+                      {overlapInsights.map((o,i) => (
+                        <div key={i} style={{fontSize:12.5,color:"var(--text-2)",marginBottom:i<overlapInsights.length-1?6:0,lineHeight:1.5}}>
+                          <strong style={{color:PURPLE}}>{o.pct}%</strong> of <strong style={{color:"var(--text)"}}>{o.from}</strong> also serve in <strong style={{color:"var(--text)"}}>{o.to}</strong> <span style={{color:"var(--text-faint)"}}>({o.count} {o.count===1?"person":"people"})</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                   {crossMinistry.map((p,i) => (
                     <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:i<crossMinistry.length-1?"1px solid var(--border-divider)":"none"}}>
                       <div style={{fontSize:13,color:"var(--text-2)",flex:1,marginRight:8}}>{p.pair}</div>
@@ -1813,29 +1868,76 @@ export default function AnalyticsPage({ members, services, attendance, household
                     <YAxis type="category" dataKey="name" tick={{fontSize:11,fill:"var(--text-2)"}} width={120} />
                     <Tooltip content={<CustomTooltip />} />
                     <Legend wrapperStyle={{fontSize:12}} />
-                    <Bar dataKey="male" name="Male" stackId="g" fill={TEAL} />
-                    <Bar dataKey="female" name="Female" stackId="g" fill={PINK} />
+                    <Bar dataKey="male" name="Male" stackId="g" fill={TEAL}>
+                      <LabelList dataKey="male" position="center" formatter={v=>v||""} style={{fontSize:9,fontWeight:700,fill:"#fff"}} />
+                    </Bar>
+                    <Bar dataKey="female" name="Female" stackId="g" fill={PINK}>
+                      <LabelList dataKey="female" position="center" formatter={v=>v||""} style={{fontSize:9,fontWeight:700,fill:"#fff"}} />
+                    </Bar>
                     <Bar dataKey="unknownSex" name="Unknown" stackId="g" fill="#e5e7eb" />
                   </BarChart>
                 </ResponsiveContainer>
             }
           </ChartCard>
-          <div style={{background:"var(--surface)",border:"1px solid var(--border)",borderRadius:14,overflow:"hidden",boxShadow:"0 1px 3px #0000000a",marginTop:14}}>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 70px 70px 80px",padding:"10px 16px",background:"var(--surface-alt)",fontSize:11,fontWeight:700,color:"var(--text-faint)",textTransform:"uppercase",letterSpacing:0.5}}>
-              <span>Ministry</span><span style={{textAlign:"right"}}>Male</span><span style={{textAlign:"right"}}>Female</span><span style={{textAlign:"right"}}>Avg Age</span>
-            </div>
-            {ministryCoverage.length === 0
-              ? <div style={{padding:"20px 16px",color:"var(--text-faint)",fontSize:12,textAlign:"center"}}>No data</div>
-              : ministryCoverage.map((m,i) => (
-                <div key={m.name} style={{display:"grid",gridTemplateColumns:"1fr 70px 70px 80px",padding:"11px 16px",borderTop:"1px solid var(--border-divider)",alignItems:"center"}}>
-                  <div style={{fontSize:13,fontWeight:500,color:"var(--text)"}}>{m.name}</div>
-                  <div style={{textAlign:"right",fontSize:13,color:TEAL,fontWeight:600}}>{m.male}</div>
-                  <div style={{textAlign:"right",fontSize:13,color:PINK,fontWeight:600}}>{m.female}</div>
-                  <div style={{textAlign:"right",fontSize:13,color:"var(--text-2)"}}>{m.avgAge ?? "-"}</div>
-                </div>
-              ))
-            }
+          </>)}
+
+          {minSub === "instruments" && (<>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(150px,1fr))",gap:12,marginBottom:4}}>
+            <StatTile label="Musicians" value={instrumentData.total} />
+            <StatTile label="With instruments listed" value={instrumentData.withInstr} color={TEAL} />
+            <StatTile label="Distinct instruments" value={instrumentData.instrumentList.length} color={PURPLE} />
           </div>
+
+          {instrumentData.instrumentList.length === 0
+            ? <ChartCard title="Instruments" subtitle="Add instruments to members in the Members tab"><div style={{textAlign:"center",padding:20,color:"var(--text-faint)",fontSize:12}}>No instruments recorded yet</div></ChartCard>
+            : <>
+                <SectionTitle>Musicians per Instrument</SectionTitle>
+                <ChartCard title="Players per Instrument" subtitle="How many musicians play each instrument">
+                  <ResponsiveContainer width="100%" height={Math.max(180, instrumentData.instrumentList.length*34)}>
+                    <BarChart data={instrumentData.instrumentList} layout="vertical" margin={{top:4,right:44,bottom:4,left:90}}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" horizontal={false} />
+                      <XAxis type="number" tick={{fontSize:11,fill:"var(--text-faint)"}} allowDecimals={false} />
+                      <YAxis type="category" dataKey="instrument" tick={{fontSize:11,fill:"var(--text-2)"}} width={85} />
+                      <Tooltip content={<CustomTooltip />} />
+                      <Bar dataKey="count" name="Musicians" radius={[0,6,6,0]} fill={TEAL}>
+                        <LabelList dataKey="count" position="right" style={{fontSize:11,fontWeight:700,fill:"var(--text-2)"}} />
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </ChartCard>
+
+                <SectionTitle>Who Plays What</SectionTitle>
+                <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(260px,1fr))",gap:14}}>
+                  {instrumentData.instrumentList.map(it => (
+                    <ChartCard key={it.instrument} title={it.instrument} subtitle={`${it.count} musician${it.count!==1?"s":""}`}>
+                      <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+                        {it.members.map(m => (
+                          <span key={m.id} style={{display:"inline-flex",alignItems:"center",gap:5,background:"var(--panel)",border:"1px solid var(--border)",borderRadius:16,padding:"2px 8px 2px 2px",fontSize:11,fontWeight:600,color:"var(--text-navy)"}}>
+                            <Avatar member={m} size={18} />{fullName(m)}
+                          </span>
+                        ))}
+                      </div>
+                    </ChartCard>
+                  ))}
+                </div>
+
+                <SectionTitle>Instruments per Musician</SectionTitle>
+                <ChartCard title="How Many Instruments Each Musician Plays" subtitle="Count of musicians by number of instruments">
+                  <ResponsiveContainer width="100%" height={210}>
+                    <BarChart data={instrumentData.distList} margin={{top:16,right:16,bottom:4,left:0}}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" vertical={false} />
+                      <XAxis dataKey="name" tick={{fontSize:11,fill:"var(--text-faint)"}} />
+                      <YAxis tick={{fontSize:11,fill:"var(--text-faint)"}} allowDecimals={false} />
+                      <Tooltip content={<CustomTooltip />} />
+                      <Bar dataKey="count" name="Musicians" fill={PURPLE} radius={[6,6,0,0]}>
+                        <LabelList dataKey="count" position="top" style={{fontSize:10,fontWeight:700,fill:"var(--text-faint)"}} />
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </ChartCard>
+              </>
+          }
+          </>)}
         </div>
       )}
     </div>
