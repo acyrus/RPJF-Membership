@@ -1,6 +1,6 @@
 import { useMemo, useState, useEffect } from "react";
 import {
-  LineChart, Line, BarChart, Bar, PieChart, Pie, Cell,
+  LineChart, Line, AreaChart, Area, ReferenceLine, BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
 } from "recharts";
 import { ROLES, TRINIDAD_CITIES, calcAge, fullName, Avatar } from "../components";
@@ -65,6 +65,42 @@ function StatPill({ label, value, color="#2a5357" }) {  return (
     <div style={{background:"var(--surface-alt)",border:"1px solid var(--border)",borderRadius:10,padding:"12px 16px",textAlign:"center"}}>
       <div style={{fontSize:24,fontWeight:700,color,lineHeight:1.1}}>{value}</div>
       <div style={{fontSize:11,color:"var(--text-faint)",textTransform:"uppercase",letterSpacing:0.5,marginTop:4,fontWeight:500}}>{label}</div>
+    </div>
+  );
+}
+
+// Tiny inline trend line for a stat tile.
+function Sparkline({ data, color, width=96, height=24 }) {
+  if (!data || data.length < 2) return null;
+  const min = Math.min(...data), max = Math.max(...data), span = (max - min) || 1;
+  const pts = data.map((v,i) => {
+    const x = (i/(data.length-1))*width;
+    const y = height - 2 - ((v-min)/span)*(height-4);
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(" ");
+  return (
+    <svg width="100%" height={height} viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" style={{display:"block",marginTop:8}}>
+      <polyline points={pts} fill="none" stroke={color} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+// Stat tile: value + optional change badge (vs the previous equal-length period) + sparkline.
+function StatTile({ label, value, color="#2a5357", delta=null, sub, spark, sparkColor }) {
+  let badge = null;
+  if (delta !== null && delta !== undefined && Number.isFinite(delta) && delta !== 0) {
+    const up = delta > 0;
+    badge = <span style={{fontSize:12,fontWeight:700,color:up?"#059669":"#dc2626",whiteSpace:"nowrap",display:"inline-flex",alignItems:"center",gap:1}}>{up?"▲":"▼"} {Math.abs(delta)}</span>;
+  }
+  return (
+    <div style={{background:"var(--surface-alt)",border:"1px solid var(--border)",borderRadius:10,padding:"12px 14px"}}>
+      <div style={{fontSize:11,color:"var(--text-faint)",textTransform:"uppercase",letterSpacing:0.5,fontWeight:500}}>{label}</div>
+      <div style={{display:"flex",alignItems:"baseline",gap:8,marginTop:4,flexWrap:"wrap"}}>
+        <span style={{fontSize:24,fontWeight:700,color,lineHeight:1.1}}>{value}</span>
+        {badge}
+        {sub && <span style={{fontSize:11,color:"var(--text-faint)"}}>{sub}</span>}
+      </div>
+      {spark && <Sparkline data={spark} color={sparkColor||color} />}
     </div>
   );
 }
@@ -893,6 +929,36 @@ export default function AnalyticsPage({ members, services, attendance, household
   const avgTurnoutPct = activeInScope ? Math.round(avgAtt / activeInScope * 100) : 0;
   const svcTypeData = svcTypeAxis === "date" ? attByTypeByDate : attByTypeMonthly;
 
+  // Which service hit peak / lowest attendance (for the date shown on those tiles).
+  const svcCounts = filteredServices.map(s => ({ s, c: presentCount(s) }));
+  const peakSvc = svcCounts.reduce((a,b) => (a === null || b.c > a.c) ? b : a, null);
+  const lowSvc  = svcCounts.reduce((a,b) => (a === null || b.c < a.c) ? b : a, null);
+  const fmtDay  = ds => ds ? new Date(ds + "T12:00:00").toLocaleString("default",{month:"short",day:"numeric"}) : "";
+
+  // Same stats over the previous equal-length window (same filters) → change badges.
+  const prevStats = useMemo(() => {
+    const fromD = new Date(dateRange.from + "T12:00:00"), toD = new Date(dateRange.to + "T12:00:00");
+    const spanDays = Math.max(1, Math.round((toD - fromD) / 86400000));
+    const iso = d => d.toISOString().slice(0,10);
+    const prevTo = new Date(fromD.getTime() - 86400000);
+    const prevFrom = new Date(prevTo.getTime() - spanDays * 86400000);
+    const pf = iso(prevFrom), pt = iso(prevTo);
+    const svcs = services.filter(s => (svcTypeFilter.length === 0 || svcTypeFilter.includes(s.name)) && s.service_date >= pf && s.service_date <= pt);
+    const counts = svcs.map(s => (attendance[s.id] || []).filter(id => filteredMemberIds.has(id)).length);
+    const ids = new Set(); svcs.forEach(s => (attendance[s.id] || []).forEach(id => { if (filteredMemberIds.has(id)) ids.add(id); }));
+    const avg = counts.length ? Math.round(counts.reduce((a,b)=>a+b,0) / counts.length) : 0;
+    return { has: svcs.length > 0, services: svcs.length, distinct: ids.size, avg,
+      turnout: activeInScope ? Math.round(avg / activeInScope * 100) : 0,
+      peak: counts.length ? Math.max(...counts) : 0, low: counts.length ? Math.min(...counts) : 0 };
+  }, [services, attendance, filteredMemberIds, dateRange, svcTypeFilter, activeInScope]);
+  const chg = (cur, prev) => prevStats.has ? cur - prev : null;
+
+  // Sparkline series + reference-line averages from the monthly trend.
+  const sparkTotal = attendanceTrend.map(x => x.total);
+  const sparkAvg   = attendanceTrend.map(x => x.avg);
+  const sparkTurn  = attendanceTrend.map(x => activeInScope ? Math.round(x.avg / activeInScope * 100) : 0);
+  const trendTotalAvg = sparkTotal.length ? Math.round(sparkTotal.reduce((a,b)=>a+b,0) / sparkTotal.length) : 0;
+
   // ── RENDER ────────────────────────────────────────────────
   return (
     <div className="fade-in">
@@ -1036,14 +1102,15 @@ export default function AnalyticsPage({ members, services, attendance, household
           </div>
 
           {attSub === "overview" && (<>
-          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(130px,1fr))",gap:12,marginBottom:4}}>
-            <StatPill label="Total Services" value={filteredServices.length} />
-            <StatPill label="Total Members" value={distinctAttendees} />
-            <StatPill label="Avg per Service" value={avgAtt} color={TURQUOISE} />
-            <StatPill label="Avg Turnout" value={`${avgTurnoutPct}%`} color={GREEN} />
-            <StatPill label="Peak Attendance" value={peakAtt} color={ORANGE} />
-            <StatPill label="Lowest Attendance" value={lowestAtt} color={RED} />
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(150px,1fr))",gap:12,marginBottom:4}}>
+            <StatTile label="Total Services" value={filteredServices.length} delta={chg(filteredServices.length, prevStats.services)} />
+            <StatTile label="Total Members" value={distinctAttendees} delta={chg(distinctAttendees, prevStats.distinct)} spark={sparkTotal} />
+            <StatTile label="Avg per Service" value={avgAtt} color={TURQUOISE} delta={chg(avgAtt, prevStats.avg)} spark={sparkAvg} sparkColor={TURQUOISE} />
+            <StatTile label="Avg Turnout" value={`${avgTurnoutPct}%`} color={GREEN} delta={chg(avgTurnoutPct, prevStats.turnout)} spark={sparkTurn} sparkColor={GREEN} />
+            <StatTile label="Peak Attendance" value={peakAtt} color={ORANGE} delta={chg(peakAtt, prevStats.peak)} sub={fmtDay(peakSvc?.s?.service_date)} />
+            <StatTile label="Lowest Attendance" value={lowestAtt} color={RED} delta={chg(lowestAtt, prevStats.low)} sub={fmtDay(lowSvc?.s?.service_date)} />
           </div>
+          {prevStats.has && <div style={{fontSize:11,color:"var(--text-faint)",marginTop:6}}>▲▼ vs the previous {(() => { const dd=Math.max(1,Math.round((new Date(dateRange.to)-new Date(dateRange.from))/86400000)); return dd>=28 ? `${Math.round(dd/30)||1} month${Math.round(dd/30)>1?"s":""}` : `${dd} days`; })()}</div>}
 
           <SectionTitle>Attendance Trend</SectionTitle>
           {attendanceTrend.length === 0
@@ -1051,24 +1118,38 @@ export default function AnalyticsPage({ members, services, attendance, household
             : <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(320px,1fr))",gap:14}}>
                 <ChartCard title="Total Members per Month" subtitle="Distinct members who attended each month">
                   <ResponsiveContainer width="100%" height={240}>
-                    <LineChart data={attendanceTrend} margin={{top:4,right:16,bottom:4,left:0}}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+                    <AreaChart data={attendanceTrend} margin={{top:4,right:16,bottom:4,left:0}}>
+                      <defs>
+                        <linearGradient id="gradTotal" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor={TEAL} stopOpacity={0.22} />
+                          <stop offset="100%" stopColor={TEAL} stopOpacity={0.02} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" vertical={false} />
                       <XAxis dataKey="label" tick={{fontSize:11,fill:"var(--text-faint)"}} />
                       <YAxis tick={{fontSize:11,fill:"var(--text-faint)"}} />
                       <Tooltip content={<CustomTooltip />} />
-                      <Line type="monotone" dataKey="total" name="Total Members" stroke={TEAL} strokeWidth={2.5} dot={{r:4,fill:TEAL}} activeDot={{r:6}} />
-                    </LineChart>
+                      {sparkTotal.length > 1 && <ReferenceLine y={trendTotalAvg} stroke="#98a2ad" strokeDasharray="5 5" strokeWidth={1.5} label={{value:`avg ${trendTotalAvg}`,position:"insideTopRight",fontSize:10,fill:"var(--text-faint)"}} />}
+                      <Area type="monotone" dataKey="total" name="Total Members" stroke={TEAL} strokeWidth={2.5} fill="url(#gradTotal)" dot={{r:3.5,fill:TEAL}} activeDot={{r:6}} />
+                    </AreaChart>
                   </ResponsiveContainer>
                 </ChartCard>
                 <ChartCard title="Average Attendance per Service" subtitle="Mean attendance per service each month">
                   <ResponsiveContainer width="100%" height={240}>
-                    <LineChart data={attendanceTrend} margin={{top:4,right:16,bottom:4,left:0}}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+                    <AreaChart data={attendanceTrend} margin={{top:4,right:16,bottom:4,left:0}}>
+                      <defs>
+                        <linearGradient id="gradAvg" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor={TURQUOISE} stopOpacity={0.28} />
+                          <stop offset="100%" stopColor={TURQUOISE} stopOpacity={0.03} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" vertical={false} />
                       <XAxis dataKey="label" tick={{fontSize:11,fill:"var(--text-faint)"}} />
                       <YAxis tick={{fontSize:11,fill:"var(--text-faint)"}} />
                       <Tooltip content={<CustomTooltip />} />
-                      <Line type="monotone" dataKey="avg" name="Avg per Service" stroke={TURQUOISE} strokeWidth={2.5} dot={{r:4,fill:TURQUOISE}} activeDot={{r:6}} />
-                    </LineChart>
+                      {avgAtt > 0 && <ReferenceLine y={avgAtt} stroke="#98a2ad" strokeDasharray="5 5" strokeWidth={1.5} label={{value:`avg ${avgAtt}`,position:"insideTopRight",fontSize:10,fill:"var(--text-faint)"}} />}
+                      <Area type="monotone" dataKey="avg" name="Avg per Service" stroke={TURQUOISE} strokeWidth={2.5} fill="url(#gradAvg)" dot={{r:3.5,fill:TURQUOISE}} activeDot={{r:6}} />
+                    </AreaChart>
                   </ResponsiveContainer>
                 </ChartCard>
               </div>

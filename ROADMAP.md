@@ -57,10 +57,11 @@ most complex left for last. Overlapping requests have been folded together
     popover (writes member_roles.position, no migration needed). (was #23, #28)
 
 16. **Analytics polish.** 🔄 In progress — filters moved into a right slide-out drawer (a
-    Filters button with an active-count badge + summary line, backdrop, Clear all / Done).
-    Remaining: the prototyped visualization upgrades (attendance heatmap, average reference
-    lines, change badges, fixed per-type colours) and any other useful views. (folds old #10,
-    #24 + viz mockup)
+    Filters button with an active-count badge + summary line, backdrop, Clear all / Done);
+    Attendance Overview stat tiles now show a change badge vs the previous equal-length period
+    plus sparklines, and the two trend charts have an average reference line + filled area.
+    Remaining: attendance heatmap (months × service type) and fixed per-service-type colours
+    across charts. (folds old #10, #24 + viz mockup)
 17. **Revise the individual member view.** 🔄 In progress — member detail is now a centered
     popout modal (was a side panel), with Edit / Delete moved to the top; clicking a member
     anywhere (Ministries, Skills, Families, Celebrations) jumps to the Members tab and
