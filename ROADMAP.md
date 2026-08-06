@@ -56,7 +56,7 @@ most complex left for last. Overlapping requests have been folded together
     member's Leader / Co-Leader position directly from the Ministries page via a per-member
     popover (writes member_roles.position, no migration needed). (was #23, #28)
 
-16. **Analytics polish.** 🔄 Nearly done — filter slide-out drawer (active-count badge, summary
+16. **Analytics polish.** ✅ Done — filter slide-out drawer (active-count badge, summary
     line, Clear all / Done) with marital / attends / skill / age-range filters added; sticky
     Analytics header + filter bar; Attendance Overview stat tiles with change badges +
     sparklines and service-type on the peak/lowest tiles; trend charts with average reference
@@ -71,12 +71,13 @@ most complex left for last. Overlapping requests have been folded together
     colours across every chart (keyed off the full type list so filtering never repaints) both
     done. Plus a new **Data** tab (field completeness with progress bars) and the redundant
     "Services per Type" bar removed. (folds old #10, #24 + viz mockup)
-17. **Revise the individual member view.** 🔄 In progress — member detail is now a centered
-    popout modal (was a side panel), with Edit / Delete moved to the top; clicking a member
-    anywhere (Ministries, Skills, Families, Celebrations) jumps to the Members tab and
-    highlights that person's row instead of landing at the top of the list; the detail shows
-    the household with clickable family members + spouse, and switching between them resets the
-    popout scroll. Remaining: any further rework of the interaction panel. (was #27)
+17. **Revise the individual member view.** ✅ Done — member detail is now a centered popout
+    modal (was a side panel), with Edit / Delete moved to the top; clicking a member anywhere
+    (Ministries, Skills, Families, Celebrations) jumps to the Members tab and highlights that
+    person's row instead of landing at the top of the list; the detail shows the household with
+    clickable family members + spouse, and switching between them resets the popout scroll.
+    (Tap-to-call / tap-to-email on the phone and email rows was deferred to the communication
+    work, #20.) (was #27)
 18. **App shell & branding polish.** A title / splash screen, and collapsible / expandable
     navigation (drawer). (was #17, #19)
 
@@ -105,7 +106,8 @@ most complex left for last. Overlapping requests have been folded together
 ## Notes
 
 - "Slipping Away" already exists in Analytics; #13 is a refinement of it plus the inactive flag.
-- Much of the original "improve analytics" (old #10) was delivered in item 11; #16 is the
-  remaining polish.
+- Analytics (#16) is complete: the original "improve analytics" (old #10) plus the polish pass.
+- The next unstarted item is **#18 (app shell & branding: splash screen + collapsible nav
+  drawer)**; #19–22 are the larger later builds.
 - The plan docs `ITEM8-THEMING-PLAN.md` and `ITEM9-FAMILY-VIEW-PLAN.md` cover completed work
   and can be archived.
