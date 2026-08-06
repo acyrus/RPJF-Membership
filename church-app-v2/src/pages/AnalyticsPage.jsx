@@ -844,17 +844,17 @@ export default function AnalyticsPage({ members, services, attendance, household
   // 18. Birthdays by month
   const birthdaysByMonth = useMemo(() => {
     const counts = Array(12).fill(0);
-    members.filter(m => m.dob && m.is_active !== false).forEach(m => {
+    filteredMembers.filter(m => m.dob).forEach(m => {
       const month = new Date(m.dob+"T00:00:00").getUTCMonth();
       counts[month]++;
     });
     return counts.map((count, i) => ({ name: MONTH_FULL[i], count }));
-  }, [members]);
+  }, [filteredMembers]);
 
   const anniversariesByMonth = useMemo(() => {
     const counts = Array(12).fill(0);
     const seen = new Set(); // count a spouse-linked couple once
-    members.filter(m => m.anniversary && m.is_active !== false).forEach(m => {
+    filteredMembers.filter(m => m.anniversary).forEach(m => {
       if (seen.has(m.id)) return;
       seen.add(m.id);
       if (m.spouse_id) seen.add(m.spouse_id);
@@ -862,7 +862,7 @@ export default function AnalyticsPage({ members, services, attendance, household
       counts[month]++;
     });
     return counts.map((count, i) => ({ name: MONTH_FULL[i], count }));
-  }, [members]);
+  }, [filteredMembers]);
 
   const WEEKDAYS = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
 
@@ -949,7 +949,7 @@ export default function AnalyticsPage({ members, services, attendance, household
   // 22. Net growth — cumulative membership over time (all members with a join date)
   const netGrowth = useMemo(() => {
     const byMonth = {};
-    members.filter(m => m.join_date).forEach(m => {
+    filteredMembers.filter(m => m.join_date).forEach(m => {
       const month = m.join_date.slice(0,7);
       byMonth[month] = (byMonth[month]||0)+1;
     });
@@ -958,7 +958,7 @@ export default function AnalyticsPage({ members, services, attendance, household
       run += byMonth[month];
       return { label: MONTH_NAMES[parseInt(month.slice(5,7))-1]+" '"+month.slice(2,4), total: run, added: byMonth[month] };
     });
-  }, [members]);
+  }, [filteredMembers]);
 
   // 23. Age pyramid — male (left, negative) vs female (right) per age band
   const agePyramid = useMemo(() => AGE_CATS.map(cat => {
