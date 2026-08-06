@@ -5,7 +5,7 @@ import {
 } from "recharts";
 import { ROLES, TRINIDAD_CITIES, calcAge, fullName, Avatar } from "../components";
 import { supabase } from "../supabase";
-import { Search, Home, Check, X, ChevronDown, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown, UserMinus, SlidersHorizontal, Users, TrendingUp, Calendar, Clock, Baby, Music, Layers, UserCheck } from "lucide-react";
+import { Search, Home, Check, X, ChevronDown, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown, UserMinus, SlidersHorizontal, Users, TrendingUp, Calendar, Clock, Baby, Music, Layers, UserCheck, Heart, User } from "lucide-react";
 
 const TEAL      = "#2a5357";
 const TURQUOISE = "#5edcd1";
@@ -16,6 +16,18 @@ const GOLD      = "#d97706";
 const GREEN     = "#059669";
 const PINK      = "#db2777";
 const CHART_COLORS = [TEAL, TURQUOISE, ORANGE, RED, PURPLE, GOLD, GREEN, PINK];
+
+// True when a member's age falls within an optional [min, max] range (blank = open end).
+// A member with no recorded age is excluded once any bound is set.
+function ageInRange(age, minStr, maxStr) {
+  const min = minStr === "" ? null : parseInt(minStr);
+  const max = maxStr === "" ? null : parseInt(maxStr);
+  if (min === null && max === null) return true;
+  if (age === null) return false;
+  if (min !== null && age < min) return false;
+  if (max !== null && age > max) return false;
+  return true;
+}
 
 // Phrase ministry names naturally for the overlap sentences.
 const MINISTRY_TEAM_RE = /team|media|finance|preparation|sanitation|ministry|committee|worship|choir|band|hospitality|production/i;
@@ -167,6 +179,20 @@ function DonutCard({ title, subtitle, data }) {
             </div>
           </div>
       }
+    </div>
+  );
+}
+
+// Compact icon stat card (used for member / ministry / household / instrument summaries).
+function IconStat({ icon, value, label, sub, color = "#2a5357" }) {
+  return (
+    <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: "14px 16px", display: "flex", alignItems: "center", gap: 12 }}>
+      <div style={{ width: 40, height: 40, borderRadius: 10, background: color + "18", color, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{icon}</div>
+      <div style={{ minWidth: 0 }}>
+        <div style={{ fontSize: 24, fontWeight: 700, color: "var(--text)", lineHeight: 1.05 }}>{value}</div>
+        <div style={{ fontSize: 12, fontWeight: 600, color: "var(--text-2)" }}>{label}</div>
+        {sub && <div style={{ fontSize: 10.5, color: "var(--text-faint)" }}>{sub}</div>}
+      </div>
     </div>
   );
 }
@@ -390,12 +416,12 @@ function HouseholdAttendance({ households, members, services, attendance }) {
     }), [households, membersByHh, cols, attendance, total]);
 
   if (total === 0) return <div style={{ textAlign: "center", padding: 30, color: "var(--text-faint)", fontSize: 13 }}>No services match the current filters.</div>;
-  if (!rows.length) return <div style={{ textAlign: "center", padding: 30, color: "var(--text-faint)", fontSize: 13 }}>No families with members yet — group members in the Families tab first.</div>;
+  if (!rows.length) return <div style={{ textAlign: "center", padding: 30, color: "var(--text-faint)", fontSize: 13 }}>No families with members yet. Group members in the Families tab first.</div>;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
       <div style={{ fontSize: 12, color: "var(--text-muted)", lineHeight: 1.6 }}>
-        Open a family to see who attended which service. Columns are the {total} service{total !== 1 ? "s" : ""} in view — narrow the date range or service type above if the grid is very wide.
+        Open a family to see who attended which service. Columns are the {total} service{total !== 1 ? "s" : ""} in view. Narrow the date range or service type above if the grid is very wide.
       </div>
       {rows.map(({ h, mem, rate }) => {
         const open = openId === h.id;
@@ -457,6 +483,11 @@ export default function AnalyticsPage({ members, services, attendance, household
   const [roleFilter, setRoleFilter]     = useState([]);
   const [selectedMemberIds, setSelectedMemberIds] = useState([]);
   const [statusFilter, setStatusFilter] = useState("active");
+  const [maritalFilter, setMaritalFilter] = useState([]);
+  const [interactionFilter, setInteractionFilter] = useState([]);
+  const [skillFilterA, setSkillFilterA] = useState([]);
+  const [ageMin, setAgeMin] = useState("");
+  const [ageMax, setAgeMax] = useState("");
   const [filtersOpen, setFiltersOpen] = useState(false); // slide-out filter drawer
   const [memberSub, setMemberSub] = useState("overview"); // members sub-tab: "overview" | "households"
   const [celebMode, setCelebMode] = useState("birthdays"); // "birthdays" | "anniversaries"
@@ -488,6 +519,11 @@ export default function AnalyticsPage({ members, services, attendance, household
   const allSvcTypes = useMemo(() =>
     [...new Set(services.map(s => s.name))].sort()
   , [services]);
+
+  // Option lists for the extra member filters, built from the data present.
+  const maritalOptions = useMemo(() => [...new Set(members.map(m => m.marital_status).filter(Boolean))].sort(), [members]);
+  const interactionOptions = useMemo(() => [...new Set(members.map(m => m.interaction_type).filter(Boolean))].sort(), [members]);
+  const skillOptions = useMemo(() => { const s = new Set(); members.forEach(m => [m.skill1, m.skill2, m.skill3].filter(Boolean).forEach(k => s.add(k))); return [...s].sort(); }, [members]);
 
   // 3. Filtered services — no dependency on filteredMembers
   const filteredServices = useMemo(() => {
@@ -526,10 +562,14 @@ export default function AnalyticsPage({ members, services, attendance, household
           return cat && age !== null && age >= cat.min && age <= cat.max;
         });
       })();
+      const matchMarital = maritalFilter.length === 0 || maritalFilter.includes(m.marital_status);
+      const matchInteraction = interactionFilter.length === 0 || interactionFilter.includes(m.interaction_type);
+      const matchSkill = skillFilterA.length === 0 || skillFilterA.some(k => [m.skill1, m.skill2, m.skill3].includes(k));
+      const matchAgeRange = ageInRange(age, ageMin, ageMax);
       const matchAttended = !attendingMemberIds || attendingMemberIds.has(m.id);
-      return matchStatus && matchSex && matchCity && matchRole && matchAge && matchAttended;
+      return matchStatus && matchSex && matchCity && matchRole && matchAge && matchMarital && matchInteraction && matchSkill && matchAgeRange && matchAttended;
     });
-  }, [members, statusFilter, sexFilter, cityFilter, roleFilter, ageFilter, selectedMemberIds, attendingMemberIds]);
+  }, [members, statusFilter, sexFilter, cityFilter, roleFilter, ageFilter, maritalFilter, interactionFilter, skillFilterA, ageMin, ageMax, selectedMemberIds, attendingMemberIds]);
 
   // Same member filters WITHOUT the attended-only restriction, so the by-individual
   // list also shows people who attended none of the selected services (their "missed").
@@ -547,9 +587,13 @@ export default function AnalyticsPage({ members, services, attendance, household
         const cat = AGE_CATS.find(c => c.label === lbl);
         return cat && age !== null && age >= cat.min && age <= cat.max;
       });
-      return matchStatus && matchSex && matchCity && matchRole && matchAge;
+      const matchMarital = maritalFilter.length === 0 || maritalFilter.includes(m.marital_status);
+      const matchInteraction = interactionFilter.length === 0 || interactionFilter.includes(m.interaction_type);
+      const matchSkill = skillFilterA.length === 0 || skillFilterA.some(k => [m.skill1, m.skill2, m.skill3].includes(k));
+      const matchAgeRange = ageInRange(age, ageMin, ageMax);
+      return matchStatus && matchSex && matchCity && matchRole && matchAge && matchMarital && matchInteraction && matchSkill && matchAgeRange;
     });
-  }, [members, statusFilter, sexFilter, cityFilter, roleFilter, ageFilter, selectedMemberIds]);
+  }, [members, statusFilter, sexFilter, cityFilter, roleFilter, ageFilter, maritalFilter, interactionFilter, skillFilterA, ageMin, ageMax, selectedMemberIds]);
 
   // A one-line summary of what the By-Member list is currently scoped to, shown
   // (and kept visible) in its toolbar so the active filters stay in view.
@@ -1030,7 +1074,9 @@ export default function AnalyticsPage({ members, services, attendance, household
   const activeFilterCount =
     (svcTypeFilter.length ? 1 : 0) + (sexFilter.length ? 1 : 0) + (ageFilter.length ? 1 : 0) +
     (cityFilter.length ? 1 : 0) + (roleFilter.length ? 1 : 0) + (selectedMemberIds.length ? 1 : 0) +
-    (statusFilter !== "active" ? 1 : 0) + (customRangeActive ? 1 : 0);
+    (statusFilter !== "active" ? 1 : 0) + (customRangeActive ? 1 : 0) +
+    (maritalFilter.length ? 1 : 0) + (interactionFilter.length ? 1 : 0) + (skillFilterA.length ? 1 : 0) +
+    ((ageMin !== "" || ageMax !== "") ? 1 : 0);
   const PERIOD_LABELS = { this_month: "This Month", last_3: "Last 3 Months", this_year: "This Year", last_year: "Last Year", all: "All Time" };
   const periodLabel = customRangeActive
     ? `${dateRange.from.split("-").reverse().join("/")} – ${dateRange.to.split("-").reverse().join("/")}`
@@ -1038,6 +1084,8 @@ export default function AnalyticsPage({ members, services, attendance, household
   function clearAllFilters() {
     setSvcTypeFilter([]); setSexFilter([]); setAgeFilter([]); setCityFilter([]);
     setRoleFilter([]); setSelectedMemberIds([]); setStatusFilter("active");
+    setMaritalFilter([]); setInteractionFilter([]); setSkillFilterA([]);
+    setAgeMin(""); setAgeMax("");
     setCustomFrom(""); setCustomTo("");
   }
 
@@ -1169,9 +1217,19 @@ export default function AnalyticsPage({ members, services, attendance, household
                 <div style={{fontSize:11,fontWeight:700,color:"var(--text-faint)",textTransform:"uppercase",letterSpacing:0.8,marginBottom:10}}>Members</div>
                 <div style={{display:"flex",flexDirection:"column",gap:10,alignItems:"flex-start"}}>
                   <MultiSelect label="Gender" options={["Male","Female"]} selected={sexFilter} onChange={setSexFilter} />
-                  <MultiSelect label="Age" options={AGE_CATS.map(c=>c.label)} selected={ageFilter} onChange={setAgeFilter} />
+                  <MultiSelect label="Age group" options={[...AGE_CATS.map(c=>c.label), "Unknown"]} selected={ageFilter} onChange={setAgeFilter} />
+                  <div style={{display:"flex",alignItems:"center",gap:6,fontSize:12,color:"var(--text-2)"}}>
+                    <span style={{fontWeight:600}}>Age range</span>
+                    <input type="number" min="0" max="120" placeholder="min" value={ageMin} onChange={e=>setAgeMin(e.target.value)} style={{width:56,padding:"5px 6px",fontSize:12}} />
+                    <span style={{color:"var(--text-faint)"}}>to</span>
+                    <input type="number" min="0" max="120" placeholder="max" value={ageMax} onChange={e=>setAgeMax(e.target.value)} style={{width:56,padding:"5px 6px",fontSize:12}} />
+                    {(ageMin!==""||ageMax!=="") && <button onClick={()=>{setAgeMin("");setAgeMax("");}} title="Clear age range" style={{background:"none",border:"1px solid var(--border)",borderRadius:8,color:"var(--text-faint)",cursor:"pointer",fontSize:11,padding:"3px 6px",display:"inline-flex"}}><X size={12}/></button>}
+                  </div>
                   <MultiSelect label="City" options={TRINIDAD_CITIES} selected={cityFilter} onChange={setCityFilter} />
                   <MultiSelect label="Ministry" options={ROLES} selected={roleFilter} onChange={setRoleFilter} />
+                  <MultiSelect label="Marital" options={maritalOptions} selected={maritalFilter} onChange={setMaritalFilter} />
+                  <MultiSelect label="Attends" options={interactionOptions} selected={interactionFilter} onChange={setInteractionFilter} />
+                  <MultiSelect label="Skill" options={skillOptions} selected={skillFilterA} onChange={setSkillFilterA} />
                   <select value={statusFilter} onChange={e=>setStatusFilter(e.target.value)} style={{fontSize:12,padding:"5px 8px"}}>
                     <option value="active">Active Only</option>
                     <option value="all">All Members</option>
@@ -1410,7 +1468,7 @@ export default function AnalyticsPage({ members, services, attendance, household
             <strong>How this works:</strong> among the members and services currently in view, this
             lists anyone who had attended at least twice but hasn't come to any service in the last
             28 days (measured from the most recent service in view). New or one-time visitors never
-            appear — it needs a prior pattern to lapse from. It's a pastoral-care follow-up list.
+            appear; it needs a prior pattern to lapse from. It's a pastoral-care follow-up list.
           </div>
           <ChartCard title="Members Who've Gone Quiet" subtitle="Previously regular members with no attendance in the last 28 days">
             {slippingAway.length === 0
@@ -1495,19 +1553,28 @@ export default function AnalyticsPage({ members, services, attendance, household
 
       {activeSection === "members" && (
         <div>
-          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(130px,1fr))",gap:12,marginBottom:4}}>
-            <StatPill label="Total Filtered" value={filteredMembers.length} />
-            <StatPill label="Active" value={filteredMembers.filter(m=>m.is_active!==false).length} color={GREEN} />
-            <StatPill label="Male" value={filteredMembers.filter(m=>m.sex==="Male").length} color={TEAL} />
-            <StatPill label="Female" value={filteredMembers.filter(m=>m.sex==="Female").length} color={PINK} />
-          </div>
-
-          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(130px,1fr))",gap:12,marginTop:12,marginBottom:4}}>
-            <StatPill label="Married Men" value={filteredMembers.filter(m=>m.marital_status==="Married"&&m.sex==="Male").length} color={TEAL} />
-            <StatPill label="Married Women" value={filteredMembers.filter(m=>m.marital_status==="Married"&&m.sex==="Female").length} color={PINK} />
-            <StatPill label="Fathers" value={filteredMembers.filter(m=>m.household_role==="Father").length} color={TEAL} />
-            <StatPill label="Mothers" value={filteredMembers.filter(m=>m.household_role==="Mother").length} color={PINK} />
-          </div>
+          {(() => {
+            const n = filteredMembers.length || 1;
+            const male = filteredMembers.filter(m=>m.sex==="Male").length;
+            const female = filteredMembers.filter(m=>m.sex==="Female").length;
+            const active = filteredMembers.filter(m=>m.is_active!==false).length;
+            const married = filteredMembers.filter(m=>m.marital_status==="Married").length;
+            const single = filteredMembers.filter(m=>m.marital_status==="Single").length;
+            const parents = filteredMembers.filter(m=>m.household_role==="Father"||m.household_role==="Mother").length;
+            const cards = [
+              {icon:<Users size={18}/>, value:filteredMembers.length, label:"In view", sub:"current filter", color:TEAL},
+              {icon:<UserCheck size={18}/>, value:active, label:"Active", sub:`${Math.round(active/n*100)}% of view`, color:GREEN},
+              {icon:<User size={18}/>, value:male, label:"Male", sub:`${Math.round(male/n*100)}%`, color:TEAL},
+              {icon:<User size={18}/>, value:female, label:"Female", sub:`${Math.round(female/n*100)}%`, color:PINK},
+              {icon:<Heart size={18}/>, value:married, label:"Married", sub:`${single} single`, color:PURPLE},
+              {icon:<Baby size={18}/>, value:parents, label:"Parents", sub:"fathers & mothers", color:ORANGE},
+            ];
+            return (
+              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(170px,1fr))",gap:12,marginBottom:6}}>
+                {cards.map((c,i)=><IconStat key={i} {...c} />)}
+              </div>
+            );
+          })()}
 
           <div style={{display:"flex",gap:4,margin:"16px 0"}}>
             {[["overview","Overview"],["households","Households"]].map(([k,label])=>(
@@ -1526,7 +1593,7 @@ export default function AnalyticsPage({ members, services, attendance, household
             <>
               <SectionTitle>Members Who Attended</SectionTitle>
               <div style={{fontSize:12,color:"var(--text-muted)",marginBottom:12}}>
-                {filteredMembers.length} unique member{filteredMembers.length!==1?"s":""} attended {svcTypeFilter.join(", ")} — expand a name to see which sessions.
+                {filteredMembers.length} unique member{filteredMembers.length!==1?"s":""} attended {svcTypeFilter.join(", ")}. Expand a name to see which sessions.
               </div>
               <IndividualAttendance members={filteredMembers} services={filteredServices} attendance={attendance} scope={`Attending: ${svcTypeFilter.join(", ")}`} />
             </>
@@ -1627,7 +1694,7 @@ export default function AnalyticsPage({ members, services, attendance, household
                         {[
                           {icon:<Users size={15}/>, label:"Members today", value:now, color:TEAL},
                           {icon:<TrendingUp size={15}/>, label:"Added last 12 mo", value:`+${last12}`, color:GREEN},
-                          {icon:<Calendar size={15}/>, label:"Best month", value:biggest?`+${biggest.added}`:"—", sub:biggest?biggest.label:"", color:ORANGE},
+                          {icon:<Calendar size={15}/>, label:"Best month", value:biggest?`+${biggest.added}`:"None", sub:biggest?biggest.label:"", color:ORANGE},
                           {icon:<Clock size={15}/>, label:"Tracking since", value:start.label, color:PURPLE},
                         ].map((s,i)=>(
                           <div key={i} style={{background:"var(--surface-alt)",border:"1px solid var(--border)",borderRadius:10,padding:"10px 12px",display:"flex",alignItems:"center",gap:10}}>
@@ -1646,7 +1713,7 @@ export default function AnalyticsPage({ members, services, attendance, household
           </ChartCard>
 
           <SectionTitle>Age Pyramid</SectionTitle>
-          <ChartCard title="Age & Gender Pyramid" subtitle="Male (left) vs female (right) across age bands — counts labelled on each bar">
+          <ChartCard title="Age & Gender Pyramid" subtitle="Male on the left, female on the right, across age bands. Counts are labelled on each bar.">
             {filteredMembers.length === 0 ? <div style={{textAlign:"center",padding:30,color:"var(--text-faint)",fontSize:12}}>No data</div>
               : (() => {
                   const withTotals = agePyramid.map(b => ({ ...b, band: b.band, tot: Math.abs(b.male) + b.female }));
@@ -1671,9 +1738,8 @@ export default function AnalyticsPage({ members, services, attendance, household
                         </BarChart>
                       </ResponsiveContainer>
                       <div style={{display:"flex",gap:16,flexWrap:"wrap",marginTop:8,fontSize:12,color:"var(--text-muted)"}}>
-                        <span><strong style={{color:"var(--text)"}}>{top?.band||"—"}</strong> is the largest band ({top?.tot||0} members)</span>
-                        <span style={{color:TEAL,fontWeight:600}}>{mTot} male</span>
-                        <span style={{color:PINK,fontWeight:600}}>{fTot} female</span>
+                        <span><strong style={{color:"var(--text)"}}>{top?.band||"None"}</strong> is the largest band ({top?.tot||0} members)</span>
+                        <span>Totals across all bands: <strong style={{color:TEAL}}>{mTot} male</strong>, <strong style={{color:PINK}}>{fTot} female</strong></span>
                       </div>
                     </>
                   );
