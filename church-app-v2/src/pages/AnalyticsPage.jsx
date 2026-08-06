@@ -93,6 +93,23 @@ function ChartCard({ title, subtitle, children }) {
   );
 }
 
+// Card whose body collapses behind a clickable header (default closed).
+function CollapsibleCard({ title, subtitle, defaultOpen = false, children }) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div style={{ background: "var(--surface)", border: "1px solid #edf0f4", borderRadius: 10, boxShadow: "0 1px 2px #0b13210a", overflow: "hidden" }}>
+      <div onClick={() => setOpen(o => !o)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "14px 18px", cursor: "pointer" }}>
+        {open ? <ChevronDown size={16} color="var(--text-muted-navy)" /> : <ChevronRight size={16} color="var(--text-muted-navy)" />}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div className="card-title">{title}</div>
+          {subtitle && <div style={{ fontSize: 12, color: "var(--text-muted-navy)", marginTop: 2 }}>{subtitle}</div>}
+        </div>
+      </div>
+      {open && <div style={{ padding: "0 18px 18px" }}>{children}</div>}
+    </div>
+  );
+}
+
 function StatPill({ label, value, color="#2a5357" }) {  return (
     <div style={{background:"var(--surface-alt)",border:"1px solid var(--border)",borderRadius:10,padding:"12px 16px",textAlign:"center"}}>
       <div style={{fontSize:24,fontWeight:700,color,lineHeight:1.1}}>{value}</div>
@@ -2018,9 +2035,9 @@ export default function AnalyticsPage({ members, services, attendance, household
                 </ChartCard>
 
                 <SectionTitle>Who Plays What</SectionTitle>
-                <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(260px,1fr))",gap:14}}>
+                <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(260px,1fr))",gap:14,alignItems:"start"}}>
                   {instrumentData.instrumentList.map(it => (
-                    <ChartCard key={it.instrument} title={it.instrument} subtitle={`${it.count} musician${it.count!==1?"s":""}`}>
+                    <CollapsibleCard key={it.instrument} title={it.instrument} subtitle={`${it.count} musician${it.count!==1?"s":""}`}>
                       <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
                         {it.members.map(m => (
                           <span key={m.id} style={{display:"inline-flex",alignItems:"center",gap:5,background:"var(--panel)",border:"1px solid var(--border)",borderRadius:16,padding:"2px 8px 2px 2px",fontSize:11,fontWeight:600,color:"var(--text-navy)"}}>
@@ -2028,7 +2045,7 @@ export default function AnalyticsPage({ members, services, attendance, household
                           </span>
                         ))}
                       </div>
-                    </ChartCard>
+                    </CollapsibleCard>
                   ))}
                 </div>
 
@@ -2050,7 +2067,7 @@ export default function AnalyticsPage({ members, services, attendance, household
                 <SectionTitle>Musicians by Instrument Count</SectionTitle>
                 <div style={{display:"flex",flexDirection:"column",gap:14}}>
                   {instrumentData.byCount.map(g => (
-                    <ChartCard key={g.n} title={`Plays ${g.n} instrument${g.n!==1?"s":""}`} subtitle={`${g.players.length} musician${g.players.length!==1?"s":""}`}>
+                    <CollapsibleCard key={g.n} title={`Plays ${g.n} instrument${g.n!==1?"s":""}`} subtitle={`${g.players.length} musician${g.players.length!==1?"s":""}`}>
                       <div style={{display:"flex",flexDirection:"column",gap:8}}>
                         {g.players.map(({member,instruments}) => (
                           <div key={member.id} style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
@@ -2066,7 +2083,7 @@ export default function AnalyticsPage({ members, services, attendance, household
                           </div>
                         ))}
                       </div>
-                    </ChartCard>
+                    </CollapsibleCard>
                   ))}
                 </div>
               </>
