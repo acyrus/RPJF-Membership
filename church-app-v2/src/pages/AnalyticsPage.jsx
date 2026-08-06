@@ -5,7 +5,7 @@ import {
 } from "recharts";
 import { ROLES, TRINIDAD_CITIES, calcAge, fullName, Avatar } from "../components";
 import { supabase } from "../supabase";
-import { Search, Home, Check, X, ChevronDown, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown, UserMinus, SlidersHorizontal, Users, TrendingUp, Calendar, Clock, Baby } from "lucide-react";
+import { Search, Home, Check, X, ChevronDown, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown, UserMinus, SlidersHorizontal, Users, TrendingUp, Calendar, Clock, Baby, Music, Layers, UserCheck } from "lucide-react";
 
 const TEAL      = "#2a5357";
 const TURQUOISE = "#5edcd1";
@@ -16,6 +16,26 @@ const GOLD      = "#d97706";
 const GREEN     = "#059669";
 const PINK      = "#db2777";
 const CHART_COLORS = [TEAL, TURQUOISE, ORANGE, RED, PURPLE, GOLD, GREEN, PINK];
+
+// Phrase ministry names naturally for the overlap sentences.
+const MINISTRY_TEAM_RE = /team|media|finance|preparation|sanitation|ministry|committee|worship|choir|band|hospitality|production/i;
+function pluralizeWord(name) {
+  const parts = name.split(" ");
+  let last = parts[parts.length - 1];
+  if (/(s|x|z|ch|sh)$/i.test(last)) last += "es";
+  else if (/[^aeiou]y$/i.test(last)) last = last.slice(0, -1) + "ies";
+  else last += "s";
+  parts[parts.length - 1] = last;
+  return parts.join(" ");
+}
+function ministryPeople(name) { // "the Ushers" · "the Finances" · "the Social Media team"
+  if (MINISTRY_TEAM_RE.test(name)) return (/s$/i.test(name) || /team$/i.test(name)) ? `the ${name}` : `the ${name} team`;
+  return `the ${pluralizeWord(name)}`;
+}
+function ministryServeClause(name) { // "serve as Musicians" · "serve in the Worship Team"
+  if (MINISTRY_TEAM_RE.test(name)) return `serve in ${/team$/i.test(name) ? "the " + name : name}`;
+  return `serve as ${pluralizeWord(name)}`;
+}
 // Calmer, harmonised palette for multi-line charts (less visual noise than CHART_COLORS).
 const LINE_COLORS = ["#2a5357", "#4a7fa0", "#c98a3e", "#6f9a5e", "#8e6e9e", "#b79a4a", "#6f8a8a", "#a8737f"];
 
@@ -439,7 +459,6 @@ export default function AnalyticsPage({ members, services, attendance, household
   const [statusFilter, setStatusFilter] = useState("active");
   const [filtersOpen, setFiltersOpen] = useState(false); // slide-out filter drawer
   const [memberSub, setMemberSub] = useState("overview"); // members sub-tab: "overview" | "households"
-  const [minSub, setMinSub] = useState("ministries"); // ministries sub-tab: "ministries" | "instruments"
   const [celebMode, setCelebMode] = useState("birthdays"); // "birthdays" | "anniversaries"
   const isMobile = useIsMobile();
   // Pin the Analytics header + filter bar just beneath the app's sticky top bar,
@@ -983,12 +1002,20 @@ export default function AnalyticsPage({ members, services, attendance, household
     const byInstrument = {};
     withInstr.forEach(m => { [...new Set(instrsOf(m))].forEach(inst => (byInstrument[inst] = byInstrument[inst] || []).push(m)); });
     const dist = {};
-    withInstr.forEach(m => { const n = new Set(instrsOf(m)).size; dist[n] = (dist[n] || 0) + 1; });
+    const byCount = {};
+    withInstr.forEach(m => {
+      const insts = [...new Set(instrsOf(m))];
+      const n = insts.length;
+      dist[n] = (dist[n] || 0) + 1;
+      (byCount[n] = byCount[n] || []).push({ member: m, instruments: insts });
+    });
     return {
       total: musicians.length,
       withInstr: withInstr.length,
+      multi: withInstr.filter(m => new Set(instrsOf(m)).size >= 2).length,
       instrumentList: Object.entries(byInstrument).map(([instrument, members]) => ({ instrument, members, count: members.length })).sort((a, b) => b.count - a.count),
       distList: Object.keys(dist).map(Number).sort((a, b) => a - b).map(n => ({ name: `${n} instrument${n > 1 ? "s" : ""}`, count: dist[n] })),
+      byCount: Object.keys(byCount).map(Number).sort((a, b) => b - a).map(n => ({ n, players: byCount[n].sort((x, y) => fullName(x.member).localeCompare(fullName(y.member))) })),
     };
   }, [filteredMembers]);
 
@@ -1170,7 +1197,7 @@ export default function AnalyticsPage({ members, services, attendance, household
 
       {/* ── SECTION TABS ── */}
       <div style={{display:"flex",gap:4,borderBottom:"1.5px solid var(--border)",marginBottom:20}}>
-        {[["attendance","Attendance"],["members","Members"],["ministry","Ministries"]].map(([key,label]) => (
+        {[["attendance","Attendance"],["members","Members"],["ministry","Ministries"],["instruments","Instruments"]].map(([key,label]) => (
           <button key={key} onClick={()=>setActiveSection(key)} style={{
             background:"none",border:"none",cursor:"pointer",fontFamily:"Inter,sans-serif",
             fontSize:13,fontWeight:600,padding:"10px 18px",
@@ -1738,18 +1765,22 @@ export default function AnalyticsPage({ members, services, attendance, household
       {/* ── MINISTRY ── */}
       {activeSection === "ministry" && (
         <div>
-          <div style={{display:"flex",gap:4,marginBottom:16}}>
-            {[["ministries","Ministries"],["instruments","Instruments"]].map(([k,label])=>(
-              <button key={k} onClick={()=>setMinSub(k)} style={{background:minSub===k?TEAL:"var(--surface-alt)",color:minSub===k?"#fff":"var(--text-2)",border:`1.5px solid ${minSub===k?TEAL:"var(--border)"}`,borderRadius:20,cursor:"pointer",fontSize:12.5,fontWeight:600,padding:"6px 16px"}}>{label}</button>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(180px,1fr))",gap:12,marginBottom:8}}>
+            {[
+              {icon:<Users size={18}/>, value:filteredMembers.length, label:"Total members", sub:"in current filter", color:TEAL},
+              {icon:<Layers size={18}/>, value:ministrySize.length, label:"Ministries", sub:"with members", color:PURPLE},
+              {icon:<UserCheck size={18}/>, value:distinctWithRole, label:"Serving", sub:`${filteredMembers.length?Math.round(distinctWithRole/filteredMembers.length*100):0}% of members`, color:GREEN},
+              {icon:<UserMinus size={18}/>, value:filteredMembers.filter(m=>!(m.roles||[]).length).length, label:"No ministry", sub:"not yet serving", color:ORANGE},
+            ].map((s,i)=>(
+              <div key={i} style={{background:"var(--surface)",border:"1px solid var(--border)",borderRadius:12,padding:"14px 16px",display:"flex",alignItems:"center",gap:12}}>
+                <div style={{width:40,height:40,borderRadius:10,background:s.color+"18",color:s.color,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{s.icon}</div>
+                <div style={{minWidth:0}}>
+                  <div style={{fontSize:24,fontWeight:700,color:"var(--text)",lineHeight:1.05}}>{s.value}</div>
+                  <div style={{fontSize:12,fontWeight:600,color:"var(--text-2)"}}>{s.label}</div>
+                  <div style={{fontSize:10.5,color:"var(--text-faint)"}}>{s.sub}</div>
+                </div>
+              </div>
             ))}
-          </div>
-
-          {minSub === "ministries" && (<>
-          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(130px,1fr))",gap:12,marginBottom:4}}>
-            <StatPill label="Total Members" value={filteredMembers.length} />
-            <StatPill label="Total Ministries" value={ministrySize.length} />
-            <StatPill label="Distinct Members" value={distinctWithRole} color={TEAL} />
-            <StatPill label="No Ministry" value={filteredMembers.filter(m=>!(m.roles||[]).length).length} color={ORANGE} />
           </div>
 
           <SectionTitle>Ministry Size</SectionTitle>
@@ -1838,11 +1869,12 @@ export default function AnalyticsPage({ members, services, attendance, household
                       <div style={{fontSize:11,fontWeight:700,color:"var(--text-faint)",textTransform:"uppercase",letterSpacing:0.5,marginBottom:8}}>Strongest overlaps</div>
                       {overlapInsights.map((o,i) => (
                         <div key={i} style={{fontSize:12.5,color:"var(--text-2)",marginBottom:i<overlapInsights.length-1?6:0,lineHeight:1.5}}>
-                          <strong style={{color:PURPLE}}>{o.pct}%</strong> of <strong style={{color:"var(--text)"}}>{o.from}</strong> also serve in <strong style={{color:"var(--text)"}}>{o.to}</strong> <span style={{color:"var(--text-faint)"}}>({o.count} {o.count===1?"person":"people"})</span>
+                          <strong style={{color:PURPLE}}>{o.pct}%</strong> of {ministryPeople(o.from)} also {ministryServeClause(o.to)} <span style={{color:"var(--text-faint)"}}>({o.count} {o.count===1?"person":"people"})</span>
                         </div>
                       ))}
                     </div>
                   )}
+                  <div style={{fontSize:11,fontWeight:700,color:"var(--text-faint)",textTransform:"uppercase",letterSpacing:0.5,marginBottom:4}}>Ministry combinations</div>
                   {crossMinistry.map((p,i) => (
                     <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:i<crossMinistry.length-1?"1px solid var(--border-divider)":"none"}}>
                       <div style={{fontSize:13,color:"var(--text-2)",flex:1,marginRight:8}}>{p.pair}</div>
@@ -1879,13 +1911,26 @@ export default function AnalyticsPage({ members, services, attendance, household
                 </ResponsiveContainer>
             }
           </ChartCard>
-          </>)}
+        </div>
+      )}
 
-          {minSub === "instruments" && (<>
-          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(150px,1fr))",gap:12,marginBottom:4}}>
-            <StatTile label="Musicians" value={instrumentData.total} />
-            <StatTile label="With instruments listed" value={instrumentData.withInstr} color={TEAL} />
-            <StatTile label="Distinct instruments" value={instrumentData.instrumentList.length} color={PURPLE} />
+      {activeSection === "instruments" && (
+        <div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(180px,1fr))",gap:12,marginBottom:8}}>
+            {[
+              {icon:<Music size={18}/>, value:instrumentData.withInstr, label:"Musicians", sub:"with an instrument recorded", color:TEAL},
+              {icon:<Layers size={18}/>, value:instrumentData.instrumentList.length, label:"Different instruments", sub:"played across the church", color:PURPLE},
+              {icon:<Users size={18}/>, value:instrumentData.multi, label:"Play 2+ instruments", sub:"multi-instrumentalists", color:ORANGE},
+            ].map((s,i)=>(
+              <div key={i} style={{background:"var(--surface)",border:"1px solid var(--border)",borderRadius:12,padding:"14px 16px",display:"flex",alignItems:"center",gap:12}}>
+                <div style={{width:40,height:40,borderRadius:10,background:s.color+"18",color:s.color,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{s.icon}</div>
+                <div style={{minWidth:0}}>
+                  <div style={{fontSize:24,fontWeight:700,color:"var(--text)",lineHeight:1.05}}>{s.value}</div>
+                  <div style={{fontSize:12,fontWeight:600,color:"var(--text-2)"}}>{s.label}</div>
+                  <div style={{fontSize:10.5,color:"var(--text-faint)"}}>{s.sub}</div>
+                </div>
+              </div>
+            ))}
           </div>
 
           {instrumentData.instrumentList.length === 0
@@ -1935,9 +1980,31 @@ export default function AnalyticsPage({ members, services, attendance, household
                     </BarChart>
                   </ResponsiveContainer>
                 </ChartCard>
+
+                <SectionTitle>Musicians by Instrument Count</SectionTitle>
+                <div style={{display:"flex",flexDirection:"column",gap:14}}>
+                  {instrumentData.byCount.map(g => (
+                    <ChartCard key={g.n} title={`Plays ${g.n} instrument${g.n!==1?"s":""}`} subtitle={`${g.players.length} musician${g.players.length!==1?"s":""}`}>
+                      <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                        {g.players.map(({member,instruments}) => (
+                          <div key={member.id} style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
+                            <span style={{display:"inline-flex",alignItems:"center",gap:6,minWidth:150}}>
+                              <Avatar member={member} size={22} />
+                              <span style={{fontSize:12.5,fontWeight:600,color:"var(--text)"}}>{fullName(member)}</span>
+                            </span>
+                            <span style={{display:"flex",flexWrap:"wrap",gap:5}}>
+                              {instruments.map(inst => (
+                                <span key={inst} style={{fontSize:10.5,fontWeight:600,background:"var(--brand-tint-soft)",color:TEAL,borderRadius:12,padding:"1px 8px"}}>{inst}</span>
+                              ))}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </ChartCard>
+                  ))}
+                </div>
               </>
           }
-          </>)}
         </div>
       )}
     </div>
