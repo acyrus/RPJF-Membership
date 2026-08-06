@@ -892,7 +892,7 @@ export default function AnalyticsPage({ members, services, attendance, household
     let run = 0;
     return Object.keys(byMonth).sort().map(month => {
       run += byMonth[month];
-      return { label: MONTH_NAMES[parseInt(month.slice(5,7))-1]+" "+month.slice(2,4), total: run, added: byMonth[month] };
+      return { label: MONTH_NAMES[parseInt(month.slice(5,7))-1]+" '"+month.slice(2,4), total: run, added: byMonth[month] };
     });
   }, [members]);
 
@@ -1606,7 +1606,7 @@ export default function AnalyticsPage({ members, services, attendance, household
                           <Tooltip formatter={(v,n)=>[Math.abs(v), n]} />
                           <Legend wrapperStyle={{fontSize:12}} />
                           <Bar dataKey="male" name="Male" fill={TEAL} stackId="pyr" radius={[4,0,0,4]}>
-                            <LabelList dataKey="male" position="left" formatter={v=>v?Math.abs(v):""} style={{fontSize:10,fontWeight:700,fill:TEAL}} />
+                            <LabelList dataKey="male" content={(p)=>{ const {x,y,height,value}=p; if(!value) return null; return <text x={x-5} y={y+height/2} textAnchor="end" dominantBaseline="central" fontSize={10} fontWeight={700} fill={TEAL}>{Math.abs(value)}</text>; }} />
                           </Bar>
                           <Bar dataKey="female" name="Female" fill={PINK} stackId="pyr" radius={[0,4,4,0]}>
                             <LabelList dataKey="female" position="right" formatter={v=>v||""} style={{fontSize:10,fontWeight:700,fill:PINK}} />
