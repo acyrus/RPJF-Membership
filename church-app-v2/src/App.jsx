@@ -324,10 +324,9 @@ export default function App() {
   }
 
   if (loading) return (
-    <div style={{minHeight:"100dvh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:22,background:"var(--bg-body)",padding:24,textAlign:"center"}}>
-      <img src={branding.logo.full} alt={branding.fullName} style={{width:"min(340px, 82vw)",height:"auto",display:"block"}} />
-      <div style={{fontSize:13,color:"var(--text-muted)",fontWeight:500}}>{branding.motto}</div>
-      <div><Spinner /></div>
+    <div style={{minHeight:"100dvh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:36,background:"var(--brand)",padding:24,boxShadow:"inset 0 0 220px rgba(0,0,0,0.28)"}}>
+      <img className="splash-logo" src={branding.logo.full} alt={branding.fullName} style={{width:"min(340px, 82vw)",height:"auto",display:"block"}} />
+      <div className="splash-dots" role="status" aria-label="Loading"><span/><span/><span/></div>
     </div>
   );
   if (recovery) return <SetPasswordScreen onDone={handlePasswordSet} onCancel={logout} />;
