@@ -56,24 +56,32 @@ most complex left for last. Overlapping requests have been folded together
     member's Leader / Co-Leader position directly from the Ministries page via a per-member
     popover (writes member_roles.position, no migration needed). (was #23, #28)
 
-16. **Analytics polish.** 🔄 In progress — filters moved into a right slide-out drawer (a
-    Filters button with an active-count badge + summary line, backdrop, Clear all / Done);
-    Attendance Overview stat tiles now show a change badge vs the previous equal-length period
-    plus sparklines, and the two trend charts have an average reference line + filled area.
-    Members subtab reworked too: centre-total donuts with % bars, expandable attenders with
-    attendance rate, calm single-colour city bars with value labels, a birthday/anniversary
-    toggle, a filled cumulative-growth area with side stats, a labelled age pyramid with an
-    insight line, and Households split into its own sub-tab with richer icon cards.
-    Remaining: attendance heatmap (months × service type) and fixed per-service-type colours
-    across charts. (folds old #10, #24 + viz mockup)
-17. **Revise the individual member view.** 🔄 In progress — member detail is now a centered
-    popout modal (was a side panel), with Edit / Delete moved to the top; clicking a member
-    anywhere (Ministries, Skills, Families, Celebrations) jumps to the Members tab and
-    highlights that person's row instead of landing at the top of the list; the detail shows
-    the household with clickable family members + spouse, and switching between them resets the
-    popout scroll. Remaining: any further rework of the interaction panel. (was #27)
-18. **App shell & branding polish.** A title / splash screen, and collapsible / expandable
-    navigation (drawer). (was #17, #19)
+16. **Analytics polish.** ✅ Done — filter slide-out drawer (active-count badge, summary
+    line, Clear all / Done) with marital / attends / skill / age-range filters added; sticky
+    Analytics header + filter bar; Attendance Overview stat tiles with change badges +
+    sparklines and service-type on the peak/lowest tiles; trend charts with average reference
+    lines + filled areas; Chart/Grid small-multiples toggle on the service-type and age-group
+    charts. Members subtab reworked (centre-total donuts, expandable attenders with rate, calm
+    labelled city bars, birthday/anniversary toggle with spouse-merge, filled cumulative-growth
+    area with side stats, labelled age pyramid, Households sub-tab with icon cards, icon
+    scorecards). Ministries subtab (icon cards, data labels, natural overlap phrasing, dropped
+    the duplicate coverage table) and a new **Musicians** tab (collapsible per-instrument
+    lists, by-count table). All chart descriptions de-em-dashed. ✅ Attendance heatmap
+    (months × service type, each row shaded to its own busiest month) and stable per-service-type
+    colours across every chart (keyed off the full type list so filtering never repaints) both
+    done. Plus a new **Data** tab (field completeness with progress bars) and the redundant
+    "Services per Type" bar removed. (folds old #10, #24 + viz mockup)
+17. **Revise the individual member view.** ✅ Done — member detail is now a centered popout
+    modal (was a side panel), with Edit / Delete moved to the top; clicking a member anywhere
+    (Ministries, Skills, Families, Celebrations) jumps to the Members tab and highlights that
+    person's row instead of landing at the top of the list; the detail shows the household with
+    clickable family members + spouse, and switching between them resets the popout scroll.
+    (Tap-to-call / tap-to-email on the phone and email rows was deferred to the communication
+    work, #20.) (was #27)
+18. **App shell & branding polish.** ✅ Done — a branded splash screen replaces the bare boot
+    spinner (logo, church name, tagline, loader); the horizontal tab bar is replaced by a
+    collapsible left sidebar (expanded / icons-only toggle on desktop, hamburger slide-out
+    drawer on mobile) driven by the same TAB_ACCESS list. (was #17, #19)
 
 ### Larger builds — later
 
@@ -92,11 +100,16 @@ most complex left for last. Overlapping requests have been folded together
   with a mini profile (avatar, name, key info) and access-gated actions (View details, Edit,
   Call / Email, View family) instead of navigating straight to the Members tab — also gives
   lower-access accounts a read-only quick-look. Shelved Aug 2026.
+- **Ministry Health + per-ministry staffing targets.** An analytics card flagging ministries
+  that need a leader or more people, driven by an admin-set "needs at least N" target per
+  ministry (new `ministry_targets` table + an editor on the Ministries page). A fixed-threshold
+  version was built and removed; shelved Aug 2026 until the per-ministry targets are wanted.
 
 ## Notes
 
 - "Slipping Away" already exists in Analytics; #13 is a refinement of it plus the inactive flag.
-- Much of the original "improve analytics" (old #10) was delivered in item 11; #16 is the
-  remaining polish.
+- Analytics (#16) is complete: the original "improve analytics" (old #10) plus the polish pass.
+- The next unstarted item is **#19 (private meetings tracking)**; #20–22 are the larger later
+  builds (communication + notification centre, letter template, offline).
 - The plan docs `ITEM8-THEMING-PLAN.md` and `ITEM9-FAMILY-VIEW-PLAN.md` cover completed work
   and can be archived.

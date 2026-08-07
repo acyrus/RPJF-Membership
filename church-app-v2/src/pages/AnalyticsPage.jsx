@@ -17,6 +17,15 @@ const GREEN     = "#059669";
 const PINK      = "#db2777";
 const CHART_COLORS = [TEAL, TURQUOISE, ORANGE, RED, PURPLE, GOLD, GREEN, PINK];
 
+// A child: an explicit child title, or (no title) under 18. Mirrors the Families tab rule.
+const CHILD_TITLES = ["Son", "Daughter", "Grandson", "Granddaughter"];
+function isChildMember(m) {
+  if (m.household_role && CHILD_TITLES.includes(m.household_role)) return true;
+  if (m.household_role) return false;
+  const a = calcAge(m.dob);
+  return a !== null && a < 18;
+}
+
 // True when a member's age falls within an optional [min, max] range (blank = open end).
 // A member with no recorded age is excluded once any bound is set.
 function ageInRange(age, minStr, maxStr) {
@@ -89,6 +98,59 @@ function ChartCard({ title, subtitle, children }) {
         {subtitle && <div style={{fontSize:12,color:"var(--text-muted-navy)",marginTop:2}}>{subtitle}</div>}
       </div>
       {children}
+    </div>
+  );
+}
+
+// Card whose body collapses behind a clickable header (default closed).
+function CollapsibleCard({ title, subtitle, defaultOpen = false, children }) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div style={{ background: "var(--surface)", border: "1px solid #edf0f4", borderRadius: 10, boxShadow: "0 1px 2px #0b13210a", overflow: "hidden" }}>
+      <div onClick={() => setOpen(o => !o)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "14px 18px", cursor: "pointer" }}>
+        {open ? <ChevronDown size={16} color="var(--text-muted-navy)" /> : <ChevronRight size={16} color="var(--text-muted-navy)" />}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div className="card-title">{title}</div>
+          {subtitle && <div style={{ fontSize: 12, color: "var(--text-muted-navy)", marginTop: 2 }}>{subtitle}</div>}
+        </div>
+      </div>
+      {open && <div style={{ padding: "0 18px 18px" }}>{children}</div>}
+    </div>
+  );
+}
+
+// Small-multiples grid: one mini line chart per series, all on a shared y-scale,
+// so many overlapping lines become a tidy set of individually-readable trends.
+function SmallMultiples({ data, series }) {
+  const nums = [];
+  data.forEach(d => series.forEach(s => { const v = d[s.key]; if (typeof v === "number") nums.push(v); }));
+  const max = Math.max(1, ...nums);
+  const W = 220, H = 54, pad = 4;
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))", gap: 12 }}>
+      {series.map(s => {
+        const vals = data.map(d => (typeof d[s.key] === "number" ? d[s.key] : null));
+        const present = vals.filter(v => v !== null);
+        const last = present.length ? present[present.length - 1] : 0;
+        const prev = present.length > 1 ? present[present.length - 2] : last;
+        const poly = vals.map((v, i) => (v === null ? null : `${(pad + (i / Math.max(1, vals.length - 1)) * (W - 2 * pad)).toFixed(1)},${(H - pad - (v / max) * (H - 2 * pad)).toFixed(1)}`)).filter(Boolean).join(" ");
+        const up = last >= prev;
+        return (
+          <div key={s.key} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: "11px 13px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
+              <span style={{ width: 9, height: 9, borderRadius: 2, background: s.color, flexShrink: 0 }} />
+              <span style={{ fontSize: 12, color: "var(--text-2)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.name}</span>
+            </div>
+            <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
+              <span style={{ fontSize: 20, fontWeight: 700, color: "var(--text)" }}>{last}</span>
+              {present.length > 1 && last !== prev && <span style={{ fontSize: 11, fontWeight: 600, color: up ? "#059669" : "#dc2626" }}>{up ? "▲" : "▼"} {Math.abs(last - prev)}</span>}
+            </div>
+            <svg width="100%" height={H} viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" style={{ display: "block", marginTop: 4 }}>
+              <polyline points={poly} fill="none" stroke={s.color} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
+            </svg>
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -488,6 +550,7 @@ export default function AnalyticsPage({ members, services, attendance, household
   const [skillFilterA, setSkillFilterA] = useState([]);
   const [ageMin, setAgeMin] = useState("");
   const [ageMax, setAgeMax] = useState("");
+  const [parentFilter, setParentFilter] = useState("all"); // "all" | "parents" | "nonparents"
   const [filtersOpen, setFiltersOpen] = useState(false); // slide-out filter drawer
   const [memberSub, setMemberSub] = useState("overview"); // members sub-tab: "overview" | "households"
   const [celebMode, setCelebMode] = useState("birthdays"); // "birthdays" | "anniversaries"
@@ -505,6 +568,8 @@ export default function AnalyticsPage({ members, services, attendance, household
   const [activeSection, setActiveSection] = useState("attendance");
   const [attSub, setAttSub] = useState("overview"); // attendance sub-tab: "overview" | "bymember"
   const [svcTypeAxis, setSvcTypeAxis] = useState("month"); // service-type chart x-axis: "month" | "date"
+  const [svcTypeView, setSvcTypeView] = useState("chart"); // "chart" (combined) | "grid" (small multiples)
+  const [ageView, setAgeView] = useState("chart");
   const [savingInactive, setSavingInactive] = useState(null); // member id being marked inactive
 
   // ── All useMemo hooks in dependency order ─────────────────
@@ -520,10 +585,45 @@ export default function AnalyticsPage({ members, services, attendance, household
     [...new Set(services.map(s => s.name))].sort()
   , [services]);
 
+  // Stable colour per service type, keyed off the full (unfiltered) sorted type list so a
+  // type keeps the same colour across every chart even when the filter set changes.
+  const svcColorMap = useMemo(() => {
+    const m = {};
+    allSvcTypes.forEach((n, i) => { m[n] = LINE_COLORS[i % LINE_COLORS.length]; });
+    return m;
+  }, [allSvcTypes]);
+  const svcColor = n => svcColorMap[n] || TEAL;
+
   // Option lists for the extra member filters, built from the data present.
   const maritalOptions = useMemo(() => [...new Set(members.map(m => m.marital_status).filter(Boolean))].sort(), [members]);
   const interactionOptions = useMemo(() => [...new Set(members.map(m => m.interaction_type).filter(Boolean))].sort(), [members]);
   const skillOptions = useMemo(() => { const s = new Set(); members.forEach(m => [m.skill1, m.skill2, m.skill3].filter(Boolean).forEach(k => s.add(k))); return [...s].sort(); }, [members]);
+
+  // Per household: whether it has a child and the youngest child's known age.
+  const childInfo = useMemo(() => {
+    const map = {};
+    members.forEach(m => {
+      if (!m.household_id || !isChildMember(m)) return;
+      const rec = map[m.household_id] || { minChildAge: null };
+      const a = calcAge(m.dob);
+      if (a !== null) rec.minChildAge = rec.minChildAge === null ? a : Math.min(rec.minChildAge, a);
+      map[m.household_id] = rec;
+    });
+    return map;
+  }, [members]);
+  // A parent = explicitly titled Father/Mother, or an adult sharing a household with a child
+  // AND at least ~16 years older than the youngest child (drops adult siblings). When either
+  // age is unknown the gap can't be checked, so we fall back to inclusion.
+  const PARENT_GAP = 16;
+  const isParent = m => {
+    if (m.household_role === "Father" || m.household_role === "Mother") return true;
+    if (!m.household_id) return false;
+    const info = childInfo[m.household_id];
+    if (!info || isChildMember(m)) return false;
+    const a = calcAge(m.dob);
+    if (a !== null && info.minChildAge !== null) return a - info.minChildAge >= PARENT_GAP;
+    return true;
+  };
 
   // 3. Filtered services — no dependency on filteredMembers
   const filteredServices = useMemo(() => {
@@ -566,10 +666,11 @@ export default function AnalyticsPage({ members, services, attendance, household
       const matchInteraction = interactionFilter.length === 0 || interactionFilter.includes(m.interaction_type);
       const matchSkill = skillFilterA.length === 0 || skillFilterA.some(k => [m.skill1, m.skill2, m.skill3].includes(k));
       const matchAgeRange = ageInRange(age, ageMin, ageMax);
+      const matchParent = parentFilter === "all" || (parentFilter === "parents" ? isParent(m) : !isParent(m));
       const matchAttended = !attendingMemberIds || attendingMemberIds.has(m.id);
-      return matchStatus && matchSex && matchCity && matchRole && matchAge && matchMarital && matchInteraction && matchSkill && matchAgeRange && matchAttended;
+      return matchStatus && matchSex && matchCity && matchRole && matchAge && matchMarital && matchInteraction && matchSkill && matchAgeRange && matchParent && matchAttended;
     });
-  }, [members, statusFilter, sexFilter, cityFilter, roleFilter, ageFilter, maritalFilter, interactionFilter, skillFilterA, ageMin, ageMax, selectedMemberIds, attendingMemberIds]);
+  }, [members, statusFilter, sexFilter, cityFilter, roleFilter, ageFilter, maritalFilter, interactionFilter, skillFilterA, ageMin, ageMax, parentFilter, childInfo, selectedMemberIds, attendingMemberIds]);
 
   // Same member filters WITHOUT the attended-only restriction, so the by-individual
   // list also shows people who attended none of the selected services (their "missed").
@@ -591,9 +692,10 @@ export default function AnalyticsPage({ members, services, attendance, household
       const matchInteraction = interactionFilter.length === 0 || interactionFilter.includes(m.interaction_type);
       const matchSkill = skillFilterA.length === 0 || skillFilterA.some(k => [m.skill1, m.skill2, m.skill3].includes(k));
       const matchAgeRange = ageInRange(age, ageMin, ageMax);
-      return matchStatus && matchSex && matchCity && matchRole && matchAge && matchMarital && matchInteraction && matchSkill && matchAgeRange;
+      const matchParent = parentFilter === "all" || (parentFilter === "parents" ? isParent(m) : !isParent(m));
+      return matchStatus && matchSex && matchCity && matchRole && matchAge && matchMarital && matchInteraction && matchSkill && matchAgeRange && matchParent;
     });
-  }, [members, statusFilter, sexFilter, cityFilter, roleFilter, ageFilter, maritalFilter, interactionFilter, skillFilterA, ageMin, ageMax, selectedMemberIds]);
+  }, [members, statusFilter, sexFilter, cityFilter, roleFilter, ageFilter, maritalFilter, interactionFilter, skillFilterA, ageMin, ageMax, parentFilter, childInfo, selectedMemberIds]);
 
   // A one-line summary of what the By-Member list is currently scoped to, shown
   // (and kept visible) in its toolbar so the active filters stay in view.
@@ -1026,6 +1128,34 @@ export default function AnalyticsPage({ members, services, attendance, household
     };
   }).filter(d => d.total>0).sort((a,b)=>b.total-a.total), [filteredMembers]);
 
+  // Data completeness: share of members in view with each key field filled.
+  const dataCompleteness = useMemo(() => {
+    const n = filteredMembers.length || 1;
+    const fields = [
+      ["Photo", m => !!m.photo_url],
+      ["Household", m => !!m.household_id],
+      ["Skills", m => !!(m.skill1 || m.skill2 || m.skill3)],
+      ["Attends (In person / Online)", m => !!m.interaction_type],
+      ["Home address", m => !!m.address],
+      ["Ministry", m => (m.roles || []).length > 0],
+      ["Date of birth", m => !!m.dob],
+      ["Marital status", m => !!m.marital_status],
+      ["Email", m => !!m.email],
+      ["Phone", m => !!m.phone],
+      ["City", m => !!m.city],
+      ["Join date", m => !!m.join_date],
+      ["Sex", m => !!m.sex],
+    ];
+    const rows = fields.map(([label, fn]) => {
+      const filled = filteredMembers.filter(fn).length;
+      return { label, filled, pct: Math.round(filled / n * 100) };
+    }).sort((a, b) => a.pct - b.pct);
+    const avg = rows.length ? Math.round(rows.reduce((s, r) => s + r.pct, 0) / rows.length) : 0;
+    return { rows, avg, total: filteredMembers.length,
+      noPhoto: filteredMembers.filter(m => !m.photo_url).length,
+      noMinistry: filteredMembers.filter(m => !(m.roles || []).length).length };
+  }, [filteredMembers]);
+
   // Notable one-directional overlaps: "X% of ministry A also serve in B".
   const overlapInsights = useMemo(() => {
     const sizeOf = n => (ministrySize.find(x => x.name === n) || {}).value || 0;
@@ -1076,7 +1206,7 @@ export default function AnalyticsPage({ members, services, attendance, household
     (cityFilter.length ? 1 : 0) + (roleFilter.length ? 1 : 0) + (selectedMemberIds.length ? 1 : 0) +
     (statusFilter !== "active" ? 1 : 0) + (customRangeActive ? 1 : 0) +
     (maritalFilter.length ? 1 : 0) + (interactionFilter.length ? 1 : 0) + (skillFilterA.length ? 1 : 0) +
-    ((ageMin !== "" || ageMax !== "") ? 1 : 0);
+    ((ageMin !== "" || ageMax !== "") ? 1 : 0) + (parentFilter !== "all" ? 1 : 0);
   const PERIOD_LABELS = { this_month: "This Month", last_3: "Last 3 Months", this_year: "This Year", last_year: "Last Year", all: "All Time" };
   const periodLabel = customRangeActive
     ? `${dateRange.from.split("-").reverse().join("/")} – ${dateRange.to.split("-").reverse().join("/")}`
@@ -1085,7 +1215,7 @@ export default function AnalyticsPage({ members, services, attendance, household
     setSvcTypeFilter([]); setSexFilter([]); setAgeFilter([]); setCityFilter([]);
     setRoleFilter([]); setSelectedMemberIds([]); setStatusFilter("active");
     setMaritalFilter([]); setInteractionFilter([]); setSkillFilterA([]);
-    setAgeMin(""); setAgeMax("");
+    setAgeMin(""); setAgeMax(""); setParentFilter("all");
     setCustomFrom(""); setCustomTo("");
   }
 
@@ -1230,6 +1360,11 @@ export default function AnalyticsPage({ members, services, attendance, household
                   <MultiSelect label="Marital" options={maritalOptions} selected={maritalFilter} onChange={setMaritalFilter} />
                   <MultiSelect label="Attends" options={interactionOptions} selected={interactionFilter} onChange={setInteractionFilter} />
                   <MultiSelect label="Skill" options={skillOptions} selected={skillFilterA} onChange={setSkillFilterA} />
+                  <select value={parentFilter} onChange={e=>setParentFilter(e.target.value)} title="Filter by parent status" style={{fontSize:12,padding:"5px 8px"}}>
+                    <option value="all">Parents & non-parents</option>
+                    <option value="parents">Parents only</option>
+                    <option value="nonparents">Non-parents only</option>
+                  </select>
                   <select value={statusFilter} onChange={e=>setStatusFilter(e.target.value)} style={{fontSize:12,padding:"5px 8px"}}>
                     <option value="active">Active Only</option>
                     <option value="all">All Members</option>
@@ -1254,11 +1389,11 @@ export default function AnalyticsPage({ members, services, attendance, household
       )}
 
       {/* ── SECTION TABS ── */}
-      <div style={{display:"flex",gap:4,borderBottom:"1.5px solid var(--border)",marginBottom:20}}>
-        {[["attendance","Attendance"],["members","Members"],["ministry","Ministries"],["instruments","Musicians"]].map(([key,label]) => (
+      <div style={{display:"flex",gap:4,borderBottom:"1.5px solid var(--border)",marginBottom:20,overflowX:"auto",WebkitOverflowScrolling:"touch",scrollbarWidth:"none"}}>
+        {[["attendance","Attendance"],["members","Members"],["ministry","Ministries"],["instruments","Musicians"],["data","Data"]].map(([key,label]) => (
           <button key={key} onClick={()=>setActiveSection(key)} style={{
-            background:"none",border:"none",cursor:"pointer",fontFamily:"Inter,sans-serif",
-            fontSize:13,fontWeight:600,padding:"10px 18px",
+            background:"none",border:"none",cursor:"pointer",fontFamily:"Inter,sans-serif",flexShrink:0,whiteSpace:"nowrap",
+            fontSize:13,fontWeight:600,padding:isMobile?"10px 12px":"10px 18px",
             color:activeSection===key?TEAL:"var(--text-faint)",
             borderBottom:`2px solid ${activeSection===key?TURQUOISE:"transparent"}`,
           }}>{label}</button>
@@ -1283,8 +1418,8 @@ export default function AnalyticsPage({ members, services, attendance, household
             <StatTile label="Total Members" value={distinctAttendees} delta={chg(distinctAttendees, prevStats.distinct)} spark={sparkTotal} />
             <StatTile label="Avg per Service" value={avgAtt} color={TURQUOISE} delta={chg(avgAtt, prevStats.avg)} spark={sparkAvg} sparkColor={TURQUOISE} />
             <StatTile label="Avg Turnout" value={`${avgTurnoutPct}%`} color={GREEN} delta={chg(avgTurnoutPct, prevStats.turnout)} spark={sparkTurn} sparkColor={GREEN} />
-            <StatTile label="Peak Attendance" value={peakAtt} color={ORANGE} delta={chg(peakAtt, prevStats.peak)} sub={fmtDay(peakSvc?.s?.service_date)} />
-            <StatTile label="Lowest Attendance" value={lowestAtt} color={RED} delta={chg(lowestAtt, prevStats.low)} sub={fmtDay(lowSvc?.s?.service_date)} />
+            <StatTile label="Peak Attendance" value={peakAtt} color={ORANGE} delta={chg(peakAtt, prevStats.peak)} sub={peakSvc?.s ? `${peakSvc.s.name} · ${fmtDay(peakSvc.s.service_date)}` : ""} />
+            <StatTile label="Lowest Attendance" value={lowestAtt} color={RED} delta={chg(lowestAtt, prevStats.low)} sub={lowSvc?.s ? `${lowSvc.s.name} · ${fmtDay(lowSvc.s.service_date)}` : ""} />
           </div>
           {prevStats.has && <div style={{fontSize:11,color:"var(--text-faint)",marginTop:6}}>▲▼ vs the previous {(() => { const dd=Math.max(1,Math.round((new Date(dateRange.to)-new Date(dateRange.from))/86400000)); return dd>=28 ? `${Math.round(dd/30)||1} month${Math.round(dd/30)>1?"s":""}` : `${dd} days`; })()}</div>}
 
@@ -1333,15 +1468,28 @@ export default function AnalyticsPage({ members, services, attendance, household
 
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",flexWrap:"wrap",gap:8}}>
             <SectionTitle>Attendance by Service Type</SectionTitle>
-            <div style={{display:"inline-flex",border:"1px solid var(--border)",borderRadius:20,overflow:"hidden",marginBottom:14}}>
-              {[["month","By month"],["date","By date"]].map(([k,label])=>(
-                <button key={k} onClick={()=>setSvcTypeAxis(k)} style={{border:"none",cursor:"pointer",fontSize:11.5,fontWeight:600,padding:"5px 14px",background:svcTypeAxis===k?TEAL:"var(--surface)",color:svcTypeAxis===k?"#fff":"var(--text-muted)"}}>{label}</button>
-              ))}
+            <div style={{display:"flex",gap:8,marginBottom:14,flexWrap:"wrap"}}>
+              <div style={{display:"inline-flex",border:"1px solid var(--border)",borderRadius:20,overflow:"hidden"}}>
+                {[["chart","Chart"],["grid","Grid"]].map(([k,label])=>(
+                  <button key={k} onClick={()=>setSvcTypeView(k)} style={{border:"none",cursor:"pointer",fontSize:11.5,fontWeight:600,padding:"5px 14px",background:svcTypeView===k?TEAL:"var(--surface)",color:svcTypeView===k?"#fff":"var(--text-muted)"}}>{label}</button>
+                ))}
+              </div>
+              {svcTypeView==="chart" && (
+                <div style={{display:"inline-flex",border:"1px solid var(--border)",borderRadius:20,overflow:"hidden"}}>
+                  {[["month","By month"],["date","By date"]].map(([k,label])=>(
+                    <button key={k} onClick={()=>setSvcTypeAxis(k)} style={{border:"none",cursor:"pointer",fontSize:11.5,fontWeight:600,padding:"5px 14px",background:svcTypeAxis===k?TEAL:"var(--surface)",color:svcTypeAxis===k?"#fff":"var(--text-muted)"}}>{label}</button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
           {svcTypeData.length === 0
             ? <div style={{textAlign:"center",padding:40,color:"var(--text-faint)",fontSize:13}}>No attendance data for this period</div>
-            : <ChartCard title={svcTypeAxis==="date"?"Attendance by Service Type (by date)":"Monthly Attendance by Service Type"} subtitle={svcTypeAxis==="date"?"Members present at each service, by date":"Distinct members per service type each month"}>
+            : svcTypeView === "grid"
+              ? <ChartCard title="Attendance by Service Type" subtitle={svcTypeAxis==="date"?"One mini chart per service type, by date":"One mini chart per service type, per month"}>
+                  <SmallMultiples data={svcTypeData} series={attByType.map(t=>({key:t.name,name:t.name,color:svcColor(t.name)}))} />
+                </ChartCard>
+              : <ChartCard title={svcTypeAxis==="date"?"Attendance by Service Type (by date)":"Monthly Attendance by Service Type"} subtitle={svcTypeAxis==="date"?"Members present at each service, by date":"Distinct members per service type each month"}>
                 <ResponsiveContainer width="100%" height={280}>
                   <LineChart data={svcTypeData} margin={{top:4,right:16,bottom:svcTypeAxis==="date"?44:4,left:0}}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
@@ -1349,18 +1497,29 @@ export default function AnalyticsPage({ members, services, attendance, household
                     <YAxis tick={{fontSize:11,fill:"var(--text-faint)"}} allowDecimals={false} />
                     <Tooltip content={<CustomTooltip />} />
                     <Legend wrapperStyle={{fontSize:12}} />
-                    {attByType.map((t,i) => (
-                      <Line key={t.name} type="monotone" dataKey={t.name} name={t.name} stroke={LINE_COLORS[i%LINE_COLORS.length]} strokeWidth={2.5} dot={{r:2.5}} activeDot={{r:6}} connectNulls />
+                    {attByType.map((t) => (
+                      <Line key={t.name} type="monotone" dataKey={t.name} name={t.name} stroke={svcColor(t.name)} strokeWidth={2.5} dot={{r:2.5}} activeDot={{r:6}} connectNulls />
                     ))}
                   </LineChart>
                 </ResponsiveContainer>
               </ChartCard>
           }
 
-          <SectionTitle>Attendance by Age Group</SectionTitle>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",flexWrap:"wrap",gap:8}}>
+            <SectionTitle>Attendance by Age Group</SectionTitle>
+            <div style={{display:"inline-flex",border:"1px solid var(--border)",borderRadius:20,overflow:"hidden",marginBottom:14}}>
+              {[["chart","Chart"],["grid","Grid"]].map(([k,label])=>(
+                <button key={k} onClick={()=>setAgeView(k)} style={{border:"none",cursor:"pointer",fontSize:11.5,fontWeight:600,padding:"5px 14px",background:ageView===k?TEAL:"var(--surface)",color:ageView===k?"#fff":"var(--text-muted)"}}>{label}</button>
+              ))}
+            </div>
+          </div>
           {attByAgeMonthly.length === 0
             ? <div style={{textAlign:"center",padding:40,color:"var(--text-faint)",fontSize:13}}>No attendance data for this period</div>
-            : <ChartCard title="Monthly Attendance by Age Group" subtitle="Distinct members per age band each month">
+            : ageView === "grid"
+              ? <ChartCard title="Attendance by Age Group" subtitle="One mini chart per age band, per month">
+                  <SmallMultiples data={attByAgeMonthly} series={AGE_CATS.map(c=>({key:c.label,name:c.label,color:c.color}))} />
+                </ChartCard>
+              : <ChartCard title="Monthly Attendance by Age Group" subtitle="Distinct members per age band each month">
                 <ResponsiveContainer width="100%" height={260}>
                   <LineChart data={attByAgeMonthly} margin={{top:4,right:16,bottom:4,left:0}}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
@@ -1376,6 +1535,41 @@ export default function AnalyticsPage({ members, services, attendance, household
               </ChartCard>
           }
 
+          <SectionTitle>Attendance Heatmap</SectionTitle>
+          {attByTypeMonthly.length === 0 || attByType.length === 0
+            ? <div style={{textAlign:"center",padding:40,color:"var(--text-faint)",fontSize:13}}>No attendance data for this period</div>
+            : <ChartCard title="Attendance by Month & Service Type" subtitle="Darker cell = higher turnout. Each row is shaded against its own busiest month, so a pale cell is a soft spot for that service.">
+                <div style={{overflowX:"auto"}}>
+                  <div style={{display:"flex",flexDirection:"column",gap:4,minWidth:186+attByTypeMonthly.length*46}}>
+                    <div style={{display:"flex",gap:4}}>
+                      <div style={{width:176,flexShrink:0}} />
+                      {attByTypeMonthly.map(d => <div key={d.label} style={{flex:1,minWidth:42,textAlign:"center",fontSize:10,fontWeight:600,color:"var(--text-faint)"}}>{d.label}</div>)}
+                    </div>
+                    {attByType.map(t => {
+                      const color = svcColor(t.name);
+                      const rowVals = attByTypeMonthly.map(d => d[t.name] || 0);
+                      const rowMax = Math.max(1, ...rowVals);
+                      return (
+                        <div key={t.name} style={{display:"flex",gap:4,alignItems:"center"}}>
+                          <div style={{width:176,flexShrink:0,display:"flex",alignItems:"center",gap:6,fontSize:11.5,fontWeight:600,color:"var(--text-2)"}}>
+                            <span style={{width:9,height:9,borderRadius:2,background:color,flexShrink:0}} />
+                            <span style={{lineHeight:1.2}}>{t.name}</span>
+                          </div>
+                          {attByTypeMonthly.map((d,ci) => {
+                            const v = d[t.name] || 0;
+                            const norm = v / rowMax;
+                            return (
+                              <div key={ci} title={`${t.name} · ${d.label}: ${v}`} style={{flex:1,minWidth:42,height:34,borderRadius:5,background:v===0?"var(--border-divider)":color,opacity:v===0?0.5:0.2+norm*0.8,display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:700,color:norm>0.55?"#fff":"var(--text-2)"}}>{v||""}</div>
+                            );
+                          })}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </ChartCard>
+          }
+
           <SectionTitle>By Service Type</SectionTitle>
           <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:14}}>
             <ChartCard title="Average Attendance by Type" subtitle="Mean attendance per service">
@@ -1387,22 +1581,7 @@ export default function AnalyticsPage({ members, services, attendance, household
                       <YAxis tick={{fontSize:11,fill:"var(--text-faint)"}} />
                       <Tooltip content={<CustomTooltip />} />
                       <Bar dataKey="avg" name="Avg Attendance" radius={[6,6,0,0]}>
-                        {attByType.map((_,i) => <Cell key={i} fill={CHART_COLORS[i%CHART_COLORS.length]} />)}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-              }
-            </ChartCard>
-            <ChartCard title="Services per Type" subtitle="How many times each service ran">
-              {attByType.length === 0 ? <div style={{textAlign:"center",padding:30,color:"var(--text-faint)",fontSize:12}}>No data</div>
-                : <ResponsiveContainer width="100%" height={220}>
-                    <BarChart data={attByType} margin={{top:4,right:8,bottom:40,left:0}}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" vertical={false} />
-                      <XAxis dataKey="name" tick={{fontSize:10,fill:"var(--text-faint)"}} angle={-25} textAnchor="end" interval={0} />
-                      <YAxis tick={{fontSize:11,fill:"var(--text-faint)"}} />
-                      <Tooltip content={<CustomTooltip />} />
-                      <Bar dataKey="sessions" name="Services" radius={[6,6,0,0]}>
-                        {attByType.map((_,i) => <Cell key={i} fill={CHART_COLORS[i%CHART_COLORS.length]} />)}
+                        {attByType.map((t,i) => <Cell key={i} fill={svcColor(t.name)} />)}
                       </Bar>
                     </BarChart>
                   </ResponsiveContainer>
@@ -1560,14 +1739,20 @@ export default function AnalyticsPage({ members, services, attendance, household
             const active = filteredMembers.filter(m=>m.is_active!==false).length;
             const married = filteredMembers.filter(m=>m.marital_status==="Married").length;
             const single = filteredMembers.filter(m=>m.marital_status==="Single").length;
-            const parents = filteredMembers.filter(m=>m.household_role==="Father"||m.household_role==="Mother").length;
+            const isFather = m => m.household_role==="Father" || (isParent(m) && m.sex==="Male");
+            const isMother = m => m.household_role==="Mother" || (isParent(m) && m.sex==="Female");
+            const fathers = filteredMembers.filter(isFather).length;
+            const mothers = filteredMembers.filter(isMother).length;
+            const parents = filteredMembers.filter(isParent).length;
             const cards = [
               {icon:<Users size={18}/>, value:filteredMembers.length, label:"In view", sub:"current filter", color:TEAL},
               {icon:<UserCheck size={18}/>, value:active, label:"Active", sub:`${Math.round(active/n*100)}% of view`, color:GREEN},
               {icon:<User size={18}/>, value:male, label:"Male", sub:`${Math.round(male/n*100)}%`, color:TEAL},
               {icon:<User size={18}/>, value:female, label:"Female", sub:`${Math.round(female/n*100)}%`, color:PINK},
               {icon:<Heart size={18}/>, value:married, label:"Married", sub:`${single} single`, color:PURPLE},
-              {icon:<Baby size={18}/>, value:parents, label:"Parents", sub:"fathers & mothers", color:ORANGE},
+              {icon:<Baby size={18}/>, value:parents, label:"Parents", sub:"in a family with children", color:ORANGE},
+              {icon:<User size={18}/>, value:fathers, label:"Fathers", sub:"by title or inferred", color:TEAL},
+              {icon:<User size={18}/>, value:mothers, label:"Mothers", sub:"by title or inferred", color:PINK},
             ];
             return (
               <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(170px,1fr))",gap:12,marginBottom:6}}>
@@ -1730,10 +1915,10 @@ export default function AnalyticsPage({ members, services, attendance, household
                           <Tooltip formatter={(v,n)=>[Math.abs(v), n]} />
                           <Legend wrapperStyle={{fontSize:12}} />
                           <Bar dataKey="male" name="Male" fill={TEAL} stackId="pyr" radius={[4,0,0,4]}>
-                            <LabelList dataKey="male" content={(p)=>{ const {x,y,height,value}=p; if(!value) return null; return <text x={x-5} y={y+height/2} textAnchor="end" dominantBaseline="central" fontSize={10} fontWeight={700} fill={TEAL}>{Math.abs(value)}</text>; }} />
+                            <LabelList dataKey="male" position="insideLeft" formatter={v=>v?Math.abs(v):""} style={{fontSize:10,fontWeight:700,fill:"#fff"}} />
                           </Bar>
                           <Bar dataKey="female" name="Female" fill={PINK} stackId="pyr" radius={[0,4,4,0]}>
-                            <LabelList dataKey="female" position="right" formatter={v=>v||""} style={{fontSize:10,fontWeight:700,fill:PINK}} />
+                            <LabelList dataKey="female" position="insideRight" formatter={v=>v||""} style={{fontSize:10,fontWeight:700,fill:"#fff"}} />
                           </Bar>
                         </BarChart>
                       </ResponsiveContainer>
@@ -2018,9 +2203,9 @@ export default function AnalyticsPage({ members, services, attendance, household
                 </ChartCard>
 
                 <SectionTitle>Who Plays What</SectionTitle>
-                <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(260px,1fr))",gap:14}}>
+                <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(260px,1fr))",gap:14,alignItems:"start"}}>
                   {instrumentData.instrumentList.map(it => (
-                    <ChartCard key={it.instrument} title={it.instrument} subtitle={`${it.count} musician${it.count!==1?"s":""}`}>
+                    <CollapsibleCard key={it.instrument} title={it.instrument} subtitle={`${it.count} musician${it.count!==1?"s":""}`}>
                       <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
                         {it.members.map(m => (
                           <span key={m.id} style={{display:"inline-flex",alignItems:"center",gap:5,background:"var(--panel)",border:"1px solid var(--border)",borderRadius:16,padding:"2px 8px 2px 2px",fontSize:11,fontWeight:600,color:"var(--text-navy)"}}>
@@ -2028,7 +2213,7 @@ export default function AnalyticsPage({ members, services, attendance, household
                           </span>
                         ))}
                       </div>
-                    </ChartCard>
+                    </CollapsibleCard>
                   ))}
                 </div>
 
@@ -2050,7 +2235,7 @@ export default function AnalyticsPage({ members, services, attendance, household
                 <SectionTitle>Musicians by Instrument Count</SectionTitle>
                 <div style={{display:"flex",flexDirection:"column",gap:14}}>
                   {instrumentData.byCount.map(g => (
-                    <ChartCard key={g.n} title={`Plays ${g.n} instrument${g.n!==1?"s":""}`} subtitle={`${g.players.length} musician${g.players.length!==1?"s":""}`}>
+                    <CollapsibleCard key={g.n} title={`Plays ${g.n} instrument${g.n!==1?"s":""}`} subtitle={`${g.players.length} musician${g.players.length!==1?"s":""}`}>
                       <div style={{display:"flex",flexDirection:"column",gap:8}}>
                         {g.players.map(({member,instruments}) => (
                           <div key={member.id} style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
@@ -2066,11 +2251,46 @@ export default function AnalyticsPage({ members, services, attendance, household
                           </div>
                         ))}
                       </div>
-                    </ChartCard>
+                    </CollapsibleCard>
                   ))}
                 </div>
               </>
           }
+        </div>
+      )}
+
+      {activeSection === "data" && (
+        <div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(180px,1fr))",gap:12,marginBottom:8}}>
+            <IconStat icon={<Users size={18}/>} value={dataCompleteness.total} label="Members in view" sub="current filter" color="#2a5357" />
+            <IconStat icon={<Check size={18}/>} value={`${dataCompleteness.avg}%`} label="Avg completeness" sub="across all fields" color={dataCompleteness.avg>=80?"#2a8a50":dataCompleteness.avg>=50?"#c07a1e":"#dc2626"} />
+            <IconStat icon={<X size={18}/>} value={dataCompleteness.noPhoto} label="Missing a photo" sub="not yet captured" color="#7c3aed" />
+            <IconStat icon={<UserMinus size={18}/>} value={dataCompleteness.noMinistry} label="No ministry" sub="not serving" color="#c06010" />
+          </div>
+
+          <SectionTitle>Field Completeness</SectionTitle>
+          <ChartCard title="How complete is each field?" subtitle="Share of members in view with each field filled in. The least-complete fields are listed first, so you know where to tidy up.">
+            <div style={{display:"flex",flexDirection:"column",gap:12}}>
+              {dataCompleteness.rows.map(r => {
+                const c = r.pct>=80 ? "#2a8a50" : r.pct>=50 ? "#c07a1e" : "#dc2626";
+                return (
+                  <div key={r.label}>
+                    <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}>
+                      <div style={{flex:1,minWidth:0,fontSize:12.5,color:"var(--text-2)",fontWeight:500}}>{r.label}</div>
+                      <div style={{fontSize:12.5,fontWeight:700,color:"var(--text)"}}>{r.pct}%</div>
+                      <div style={{fontSize:11,color:"var(--text-faint)",minWidth:96,textAlign:"right"}}>{r.filled} of {dataCompleteness.total}</div>
+                    </div>
+                    <div style={{height:7,background:"var(--border-divider)",borderRadius:4,overflow:"hidden"}}>
+                      <div style={{width:`${r.pct}%`,height:"100%",background:c,borderRadius:4}} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <div style={{fontSize:11,color:"var(--text-faint)",marginTop:14,lineHeight:1.6}}>
+              Filters apply here too, so you can check completeness for a subset (e.g. only active members, or one ministry). Improving these fields makes every other chart on this page more accurate.
+            </div>
+          </ChartCard>
         </div>
       )}
     </div>

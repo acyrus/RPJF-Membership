@@ -15,9 +15,9 @@ import ImportPage from "./pages/ImportPage";
 import HouseholdsPage from "./pages/HouseholdsPage";
 import PhotoRequestsPage from "./pages/PhotoRequestsPage";
 import UncapturedMembersPage from "./pages/UncapturedMembersPage";
-import { Spinner, fullName, PhotoLightbox, MfaChallenge, SecurityModal, SetPasswordScreen, OnboardingFlow, ROLES, TAB_LABELS, tabsForProfile, defaultTabForProfile } from "./components";
+import { Spinner, fullName, PhotoLightbox, MfaChallenge, SecurityModal, SetPasswordScreen, OnboardingFlow, ROLES, TAB_LABELS, tabsForProfile, defaultTabForProfile, useIsMobile } from "./components";
 import { branding } from "./branding";
-import { AlertTriangle, Home, Users, ClipboardList, Camera, Tag, LayoutDashboard, PartyPopper, Zap, BarChart3, UserCog, ScrollText, Upload, ShieldCheck, LogOut, ListChecks, Moon, Sun } from "lucide-react";
+import { AlertTriangle, Home, Users, ClipboardList, Camera, Tag, LayoutDashboard, PartyPopper, Zap, BarChart3, UserCog, ScrollText, Upload, ShieldCheck, LogOut, ListChecks, Moon, Sun, Menu, X, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 
 
 export default function App() {
@@ -26,6 +26,18 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [mfaStatus, setMfaStatus] = useState("checking"); // checking | required | ok
   const [securityOpen, setSecurityOpen] = useState(false);
+  const [navOpen, setNavOpen] = useState(false);        // mobile nav drawer open
+  const [navCollapsed, setNavCollapsed] = useState(false); // desktop sidebar collapsed to icons
+  const isMobile = useIsMobile();
+  const [headerH, setHeaderH] = useState(56);           // measured header height, for the sticky sidebar offset
+  useEffect(() => {
+    const measure = () => { const hb = document.querySelector(".header-bar"); if (hb) setHeaderH(Math.round(hb.getBoundingClientRect().height)); };
+    measure();
+    window.addEventListener("resize", measure);
+    const id = setInterval(measure, 500); // header only appears after auth; keep re-measuring briefly
+    const stop = setTimeout(() => clearInterval(id), 3000);
+    return () => { window.removeEventListener("resize", measure); clearInterval(id); clearTimeout(stop); };
+  }, []);
   const [recovery, setRecovery] = useState(false); // arrived via password-reset link
   const [passwordSet, setPasswordSet] = useState(false); // just set a password this session (invite/reset)
   const [needs2fa, setNeeds2fa] = useState(false); // logged in but no 2FA factor enrolled
@@ -311,7 +323,16 @@ export default function App() {
     setTab("members"); setMembers([]); setServices([]); setAttendance([]);
   }
 
-  if (loading) return <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"var(--panel)"}}><Spinner /></div>;
+  if (loading) return (
+    <div style={{minHeight:"100dvh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:20,background:"var(--bg-body)",padding:24,textAlign:"center"}}>
+      <img src={branding.logo.mark} alt="" style={{height:88,width:"auto",display:"block"}} />
+      <div>
+        <div style={{fontFamily:"'Space Grotesk','Inter',sans-serif",fontSize:20,fontWeight:700,color:"var(--brand)",letterSpacing:0.2,lineHeight:1.3}}>{branding.fullName}</div>
+        <div style={{fontSize:13,color:"var(--text-muted)",marginTop:5,fontWeight:500}}>{branding.motto}</div>
+      </div>
+      <div style={{marginTop:4}}><Spinner /></div>
+    </div>
+  );
   if (recovery) return <SetPasswordScreen onDone={handlePasswordSet} onCancel={logout} />;
   if (!session) return (
     <>
@@ -367,42 +388,76 @@ export default function App() {
   ].map(t => ({ ...t, label: TAB_LABELS[t.key] }));
   const TABS = ALL_TABS.filter(t => allowedTabs.includes(t.key));
 
+  // Vertical nav item list, shared by the desktop sidebar and the mobile drawer.
+  const navList = (drawer) => {
+    const showLabels = drawer || !navCollapsed;
+    return TABS.map(t => {
+      const active = tab === t.key;
+      return (
+        <a key={t.key} href={`#${t.key}`} title={t.label}
+          onClick={e=>{e.preventDefault();setTab(t.key);setNavOpen(false);}}
+          onMouseEnter={e=>{ if(!active) e.currentTarget.style.background="var(--surface-alt)"; }}
+          onMouseLeave={e=>{ if(!active) e.currentTarget.style.background="transparent"; }}
+          style={{display:"flex",alignItems:"center",gap:12,padding:"10px 12px",borderRadius:10,textDecoration:"none",
+            color:active?"#fff":"var(--text-2)",background:active?"var(--brand)":"transparent",
+            fontSize:13,fontWeight:600,marginBottom:2,whiteSpace:"nowrap",overflow:"hidden",
+            justifyContent: showLabels ? "flex-start" : "center"}}>
+          <span style={{position:"relative",display:"flex",flexShrink:0}}>
+            <t.Icon size={17} strokeWidth={2} />
+            {t.badge && !showLabels ? <span style={{position:"absolute",top:-4,right:-6,minWidth:8,height:8,borderRadius:8,background:"#e15700"}} /> : null}
+          </span>
+          {showLabels && <span style={{flex:1,minWidth:0,overflow:"hidden",textOverflow:"ellipsis"}}>{t.label}</span>}
+          {t.badge && showLabels ? <span style={{background:"#e15700",color:"#fff",fontSize:10,fontWeight:700,borderRadius:10,padding:"1px 6px"}}>{t.badge}</span> : null}
+        </a>
+      );
+    });
+  };
+
   return (
     <PhotoLightbox>
     <div style={{minHeight:"100vh",background:"var(--surface-alt)"}}>
       {/* Header */}
       <div className="header-bar" style={{borderBottom:"1.5px solid var(--border-navy)",padding:"0 24px",position:"sticky",top:0,background:"var(--brand)",zIndex:50,boxShadow:"0 2px 8px #00000030"}}>
-        <div style={{maxWidth:1200,margin:"0 auto"}}>
-          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",paddingTop:12,paddingBottom:6,gap:10}}>
-            <div className="header-brand" style={{display:"flex",alignItems:"center",gap:12,minWidth:0}}>
-              <img src={branding.logo.mark} alt={branding.shortName} style={{height:40,width:"auto",display:"block",flexShrink:0}} />
-              <div style={{minWidth:0}}>
-                <div className="brand-name" style={{fontFamily:"'Space Grotesk','Inter',sans-serif",fontSize:14,letterSpacing:0.2,color:"#ffffff",fontWeight:600}}>{branding.fullName}</div>
-                <div style={{fontSize:11,color:"var(--brand-accent)",letterSpacing:0.3,fontWeight:500}}>{branding.motto}</div>
+        <div style={{width:"100%"}}>
+          {(() => {
+            const navToggle = (
+              <button onClick={()=> isMobile ? setNavOpen(true) : setNavCollapsed(c=>!c)} title="Toggle navigation" aria-label="Toggle navigation" style={{display:"inline-flex",alignItems:"center",justifyContent:"center",background:"none",border:"1.5px solid #5edcd155",color:"var(--brand-accent)",padding:"7px 9px",borderRadius:8,cursor:"pointer",flexShrink:0}}>{isMobile ? <Menu size={17}/> : (navCollapsed ? <PanelLeftOpen size={17}/> : <PanelLeftClose size={17}/>)}</button>
+            );
+            const brand = (
+              <div className="header-brand" style={{display:"flex",alignItems:"center",gap:12,minWidth:0}}>
+                <img src={branding.logo.mark} alt={branding.shortName} style={{height:40,width:"auto",display:"block",flexShrink:0}} />
+                <div style={{minWidth:0}}>
+                  <div className="brand-name" style={{fontFamily:"'Space Grotesk','Inter',sans-serif",fontSize:14,letterSpacing:0.2,color:"#ffffff",fontWeight:600,lineHeight:1.25}}>{branding.fullName}</div>
+                  <div style={{fontSize:11,color:"var(--brand-accent)",letterSpacing:0.3,fontWeight:500,marginTop:2}}>{branding.motto}</div>
+                </div>
               </div>
-            </div>
-            <div className="header-actions" style={{display:"flex",alignItems:"center",gap:14,flexShrink:0}}>
-              <div className="user-meta" style={{textAlign:"right"}}>
-                <div style={{fontSize:12,fontWeight:700,color:"#ffffff"}}>{profile.name}</div>
-                <div style={{fontSize:11,color:isAdmin?"#2a5357":"#4caf82",textTransform:"uppercase",letterSpacing:0.2,fontWeight:700}}>{profile.role}</div>
+            );
+            const headerActions = (
+              <div className="header-actions" style={{display:"flex",alignItems:"center",gap:14,flexShrink:0}}>
+                <div className="user-meta" style={{textAlign:"right"}}>
+                  <div style={{fontSize:12,fontWeight:700,color:"#ffffff"}}>{profile.name}</div>
+                  <div style={{fontSize:11,color:isAdmin?"#2a5357":"#4caf82",textTransform:"uppercase",letterSpacing:0.2,fontWeight:700}}>{profile.role}</div>
+                </div>
+                <button onClick={toggleDark} title={dark?"Switch to light mode":"Switch to dark mode"} aria-label={dark?"Switch to light mode":"Switch to dark mode"} style={{display:"inline-flex",alignItems:"center",justifyContent:"center",background:"none",border:"1.5px solid #5edcd155",color:"var(--brand-accent)",padding:"7px 9px",borderRadius:8,cursor:"pointer",transition:"all 0.15s"}}>{dark ? <Sun size={13} /> : <Moon size={13} />}</button>
+                <button onClick={()=>setSecurityOpen(true)} title="Account security" style={{display:"inline-flex",alignItems:"center",gap:6,fontSize:11,background:"none",border:"1.5px solid #5edcd155",color:"var(--brand-accent)",padding:"7px 12px",borderRadius:8,cursor:"pointer",fontFamily:"Inter,sans-serif",fontWeight:500,transition:"all 0.15s"}}><ShieldCheck size={13} /> <span className="btn-label">Security</span></button>
+                <button onClick={logout} title="Sign out" style={{display:"inline-flex",alignItems:"center",gap:6,fontSize:11,background:"none",border:"1.5px solid #5edcd155",color:"var(--brand-accent)",padding:"7px 14px",borderRadius:8,cursor:"pointer",fontFamily:"Inter,sans-serif",fontWeight:500,transition:"all 0.15s"}}><LogOut size={13} /> <span className="btn-label">Sign Out</span></button>
               </div>
-              <button onClick={toggleDark} title={dark?"Switch to light mode":"Switch to dark mode"} aria-label={dark?"Switch to light mode":"Switch to dark mode"} style={{display:"inline-flex",alignItems:"center",justifyContent:"center",background:"none",border:"1.5px solid #5edcd155",color:"var(--brand-accent)",padding:"7px 9px",borderRadius:8,cursor:"pointer",transition:"all 0.15s"}}>{dark ? <Sun size={13} /> : <Moon size={13} />}</button>
-              <button onClick={()=>setSecurityOpen(true)} title="Account security" style={{display:"inline-flex",alignItems:"center",gap:6,fontSize:11,background:"none",border:"1.5px solid #5edcd155",color:"var(--brand-accent)",padding:"7px 12px",borderRadius:8,cursor:"pointer",fontFamily:"Inter,sans-serif",fontWeight:500,transition:"all 0.15s"}}><ShieldCheck size={13} /> <span className="btn-label">Security</span></button>
-              <button onClick={logout} title="Sign out" style={{display:"inline-flex",alignItems:"center",gap:6,fontSize:11,background:"none",border:"1.5px solid #5edcd155",color:"var(--brand-accent)",padding:"7px 14px",borderRadius:8,cursor:"pointer",fontFamily:"Inter,sans-serif",fontWeight:500,transition:"all 0.15s"}}><LogOut size={13} /> <span className="btn-label">Sign Out</span></button>
-            </div>
-          </div>
-          <div className="tab-nav" style={{display:"flex",gap:0}}>
-            {TABS.map(t=>(
-              <a key={t.key} href={`#${t.key}`}
-                className={`tab-btn ${tab===t.key?"active":""}`}
-                onClick={e=>{e.preventDefault();setTab(t.key);}}
-                style={{textDecoration:"none"}}>
-                <t.Icon size={15} strokeWidth={2} />
-                {t.label}
-                {t.badge ? <span style={{marginLeft:2,background:"#e15700",color:"#fff",fontSize:10,fontWeight:700,borderRadius:10,padding:"1px 6px"}}>{t.badge}</span> : null}
-              </a>
-            ))}
-          </div>
+            );
+            return isMobile ? (
+              <div style={{padding:"10px 0 12px"}}>
+                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10}}>
+                  {navToggle}
+                  {headerActions}
+                </div>
+                <div style={{marginTop:12}}>{brand}</div>
+              </div>
+            ) : (
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",paddingTop:12,paddingBottom:12,gap:10}}>
+                <div style={{display:"flex",alignItems:"center",gap:10,minWidth:0}}>{navToggle}{brand}</div>
+                {headerActions}
+              </div>
+            );
+          })()}
         </div>
       </div>
 
@@ -423,7 +478,14 @@ export default function App() {
         </div>
       )}
 
-      <div className="main-content" style={{maxWidth:1100,margin:"0 auto",padding:"24px"}}>
+      <div style={{display:"flex"}}>
+        {!isMobile && (
+          <nav style={{width:navCollapsed?60:216,flexShrink:0,position:"sticky",top:headerH,alignSelf:"flex-start",height:`calc(100dvh - ${headerH}px)`,overflowY:"auto",background:"var(--surface)",borderRight:"1px solid var(--border)",padding:"12px 8px",transition:"width 0.15s"}}>
+            {navList(false)}
+          </nav>
+        )}
+        <div style={{flex:1,minWidth:0}}>
+      <div className="main-content" style={{padding:"24px"}}>
         {tab==="dashboard" && allowedTabs.includes("dashboard") && (
           <DashboardPage
             profile={profile}
@@ -482,6 +544,23 @@ export default function App() {
         {tab==="changelog" && allowedTabs.includes("changelog") && <ChangelogPage />}
         {tab==="import" && allowedTabs.includes("import") && <ImportPage profile={{...profile, id: session.user.id}} members={members} onImportComplete={loadAll.bind(null, session.user.id)} />}
       </div>
+        </div>
+      </div>
+
+      {/* Mobile nav drawer */}
+      {isMobile && navOpen && (
+        <>
+          <div onClick={()=>setNavOpen(false)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.45)",zIndex:300}} />
+          <nav className="fade-in" style={{position:"fixed",top:0,left:0,height:"100dvh",width:264,maxWidth:"85vw",background:"var(--surface)",zIndex:301,boxShadow:"4px 0 24px #00000026",overflowY:"auto",padding:"14px 10px"}}>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10,padding:"0 4px"}}>
+              <span style={{fontSize:13,fontWeight:700,color:"var(--text)"}}>Menu</span>
+              <button onClick={()=>setNavOpen(false)} aria-label="Close menu" style={{background:"none",border:"1px solid var(--border)",borderRadius:8,width:30,height:30,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",color:"var(--text-muted)"}}><X size={15}/></button>
+            </div>
+            {navList(true)}
+          </nav>
+        </>
+      )}
+
       {securityOpen && <SecurityModal onClose={()=>setSecurityOpen(false)} />}
     </div>
     </PhotoLightbox>
