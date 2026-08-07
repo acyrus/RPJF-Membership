@@ -324,13 +324,10 @@ export default function App() {
   }
 
   if (loading) return (
-    <div style={{minHeight:"100dvh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:20,background:"var(--bg-body)",padding:24,textAlign:"center"}}>
-      <img src={branding.logo.mark} alt="" style={{height:88,width:"auto",display:"block"}} />
-      <div>
-        <div style={{fontFamily:"'Space Grotesk','Inter',sans-serif",fontSize:20,fontWeight:700,color:"var(--brand)",letterSpacing:0.2,lineHeight:1.3}}>{branding.fullName}</div>
-        <div style={{fontSize:13,color:"var(--text-muted)",marginTop:5,fontWeight:500}}>{branding.motto}</div>
-      </div>
-      <div style={{marginTop:4}}><Spinner /></div>
+    <div style={{minHeight:"100dvh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:22,background:"var(--bg-body)",padding:24,textAlign:"center"}}>
+      <img src={branding.logo.full} alt={branding.fullName} style={{width:"min(340px, 82vw)",height:"auto",display:"block"}} />
+      <div style={{fontSize:13,color:"var(--text-muted)",fontWeight:500}}>{branding.motto}</div>
+      <div><Spinner /></div>
     </div>
   );
   if (recovery) return <SetPasswordScreen onDone={handlePasswordSet} onCancel={logout} />;
