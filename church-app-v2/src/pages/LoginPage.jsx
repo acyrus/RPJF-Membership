@@ -90,9 +90,14 @@ export default function LoginPage() {
       </div>
       <div style={{width:"100%",maxWidth:400}}>
         <div style={{textAlign:"center",marginBottom:36}}>
-          <div style={{width:64,height:64,borderRadius:18,margin:"0 auto 16px",background:"var(--brand)",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 4px 16px #2a535730"}}><svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="11" y="2" width="6" height="24" rx="2" fill="white"/><rect x="2" y="9" width="24" height="6" rx="2" fill="white"/></svg></div>
-          <div style={{fontFamily:"'Inter',sans-serif",fontSize:22,letterSpacing:0.2,color:"var(--text)",fontWeight:700,textTransform:"uppercase"}}>{branding.name}</div>
-          <div style={{fontSize:12,color:"var(--text-faint)",marginTop:4,letterSpacing:0.3,fontWeight:500}}>{branding.tagline}</div>
+          <div style={{width:66,height:66,borderRadius:18,margin:"0 auto 16px",background:"var(--brand)",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 4px 16px #2a535730"}}>
+            <svg width="30" height="30" viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="12.5" y="3" width="5" height="24" rx="2.5" fill="white"/>
+              <rect x="6" y="9" width="18" height="5" rx="2.5" fill="white"/>
+            </svg>
+          </div>
+          <div style={{fontFamily:"'Inter',sans-serif",fontSize:20,letterSpacing:0.2,color:"var(--text)",fontWeight:700,lineHeight:1.3}}>{branding.fullName}</div>
+          <div style={{fontSize:12,color:"var(--text-faint)",marginTop:5,letterSpacing:0.3,fontWeight:500}}>{branding.tagline}</div>
         </div>
         <div className="card" style={{padding:36,boxShadow:'0 8px 32px rgba(0,0,0,0.10)',border:'1px solid var(--border)'}}>
           <div style={{fontFamily:"'Inter',sans-serif",fontSize:14,color:"var(--brand)",letterSpacing:0.2,marginBottom:22,textAlign:"center",fontWeight:600}}>SIGN IN</div>
@@ -118,7 +123,6 @@ export default function LoginPage() {
           </form>
           <button onClick={handleForgot} style={{width:"100%",marginTop:12,background:"none",border:"none",color:"var(--brand)",fontSize:12.5,fontWeight:500,cursor:"pointer"}}>Forgot password?</button>
         </div>
-        <div style={{textAlign:"center",marginTop:16,fontSize:12,color:"var(--border)"}}>{branding.portalNote}</div>
       </div>
     </div>
   );

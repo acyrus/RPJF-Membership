@@ -15,6 +15,7 @@ import ImportPage from "./pages/ImportPage";
 import HouseholdsPage from "./pages/HouseholdsPage";
 import PhotoRequestsPage from "./pages/PhotoRequestsPage";
 import UncapturedMembersPage from "./pages/UncapturedMembersPage";
+import NotificationCenter from "./NotificationCenter";
 import { Spinner, fullName, PhotoLightbox, MfaChallenge, SecurityModal, SetPasswordScreen, OnboardingFlow, ROLES, TAB_LABELS, tabsForProfile, defaultTabForProfile, useIsMobile } from "./components";
 import { branding } from "./branding";
 import { AlertTriangle, Home, Users, ClipboardList, Camera, Tag, LayoutDashboard, PartyPopper, Zap, BarChart3, UserCog, ScrollText, Upload, ShieldCheck, LogOut, ListChecks, Moon, Sun, Menu, X, PanelLeftClose, PanelLeftOpen } from "lucide-react";
@@ -324,13 +325,9 @@ export default function App() {
   }
 
   if (loading) return (
-    <div style={{minHeight:"100dvh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:20,background:"var(--bg-body)",padding:24,textAlign:"center"}}>
-      <img src={branding.logo.mark} alt="" style={{height:88,width:"auto",display:"block"}} />
-      <div>
-        <div style={{fontFamily:"'Space Grotesk','Inter',sans-serif",fontSize:20,fontWeight:700,color:"var(--brand)",letterSpacing:0.2,lineHeight:1.3}}>{branding.fullName}</div>
-        <div style={{fontSize:13,color:"var(--text-muted)",marginTop:5,fontWeight:500}}>{branding.motto}</div>
-      </div>
-      <div style={{marginTop:4}}><Spinner /></div>
+    <div style={{position:"fixed",inset:0,zIndex:1000,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:36,background:"var(--brand)",padding:24,boxShadow:"inset 0 0 220px rgba(0,0,0,0.28)"}}>
+      <img className="splash-logo" src={branding.logo.full} alt={branding.fullName} style={{width:"min(340px, 82vw)",height:"auto",display:"block"}} />
+      <div className="splash-dots" role="status" aria-label="Loading"><span/><span/><span/></div>
     </div>
   );
   if (recovery) return <SetPasswordScreen onDone={handlePasswordSet} onCancel={logout} />;
@@ -438,6 +435,7 @@ export default function App() {
                   <div style={{fontSize:12,fontWeight:700,color:"#ffffff"}}>{profile.name}</div>
                   <div style={{fontSize:11,color:isAdmin?"#2a5357":"#4caf82",textTransform:"uppercase",letterSpacing:0.2,fontWeight:700}}>{profile.role}</div>
                 </div>
+                <NotificationCenter members={members} services={services} attendance={attendance} pendingPhotos={pendingPhotos} allowedTabs={allowedTabs} onNavigate={setTab} />
                 <button onClick={toggleDark} title={dark?"Switch to light mode":"Switch to dark mode"} aria-label={dark?"Switch to light mode":"Switch to dark mode"} style={{display:"inline-flex",alignItems:"center",justifyContent:"center",background:"none",border:"1.5px solid #5edcd155",color:"var(--brand-accent)",padding:"7px 9px",borderRadius:8,cursor:"pointer",transition:"all 0.15s"}}>{dark ? <Sun size={13} /> : <Moon size={13} />}</button>
                 <button onClick={()=>setSecurityOpen(true)} title="Account security" style={{display:"inline-flex",alignItems:"center",gap:6,fontSize:11,background:"none",border:"1.5px solid #5edcd155",color:"var(--brand-accent)",padding:"7px 12px",borderRadius:8,cursor:"pointer",fontFamily:"Inter,sans-serif",fontWeight:500,transition:"all 0.15s"}}><ShieldCheck size={13} /> <span className="btn-label">Security</span></button>
                 <button onClick={logout} title="Sign out" style={{display:"inline-flex",alignItems:"center",gap:6,fontSize:11,background:"none",border:"1.5px solid #5edcd155",color:"var(--brand-accent)",padding:"7px 14px",borderRadius:8,cursor:"pointer",fontFamily:"Inter,sans-serif",fontWeight:500,transition:"all 0.15s"}}><LogOut size={13} /> <span className="btn-label">Sign Out</span></button>

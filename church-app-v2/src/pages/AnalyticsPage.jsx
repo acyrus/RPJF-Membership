@@ -1,7 +1,7 @@
 import { useMemo, useState, useEffect } from "react";
 import {
   LineChart, Line, AreaChart, Area, ReferenceLine, BarChart, Bar, PieChart, Pie, Cell,
-  XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LabelList
+  XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LabelList, Customized
 } from "recharts";
 import { ROLES, TRINIDAD_CITIES, calcAge, fullName, Avatar } from "../components";
 import { supabase } from "../supabase";
@@ -1137,14 +1137,13 @@ export default function AnalyticsPage({ members, services, attendance, household
       ["Skills", m => !!(m.skill1 || m.skill2 || m.skill3)],
       ["Attends (In person / Online)", m => !!m.interaction_type],
       ["Home address", m => !!m.address],
-      ["Ministry", m => (m.roles || []).length > 0],
       ["Date of birth", m => !!m.dob],
       ["Marital status", m => !!m.marital_status],
       ["Email", m => !!m.email],
       ["Phone", m => !!m.phone],
       ["City", m => !!m.city],
       ["Join date", m => !!m.join_date],
-      ["Sex", m => !!m.sex],
+      ["Gender", m => !!m.sex],
     ];
     const rows = fields.map(([label, fn]) => {
       const filled = filteredMembers.filter(fn).length;
@@ -1539,6 +1538,34 @@ export default function AnalyticsPage({ members, services, attendance, household
           {attByTypeMonthly.length === 0 || attByType.length === 0
             ? <div style={{textAlign:"center",padding:40,color:"var(--text-faint)",fontSize:13}}>No attendance data for this period</div>
             : <ChartCard title="Attendance by Month & Service Type" subtitle="Darker cell = higher turnout. Each row is shaded against its own busiest month, so a pale cell is a soft spot for that service.">
+                {isMobile ? (
+                  <div style={{display:"flex",flexDirection:"column",gap:14}}>
+                    {attByType.map(t => {
+                      const color = svcColor(t.name);
+                      const vals = attByTypeMonthly.map(d => ({ m:(d.label||"").split(" ")[0], v:d[t.name]||0 }));
+                      const rowMax = Math.max(1, ...vals.map(x=>x.v));
+                      return (
+                        <div key={t.name}>
+                          <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:6}}>
+                            <span style={{width:9,height:9,borderRadius:2,background:color,flexShrink:0}} />
+                            <span style={{fontSize:12.5,fontWeight:600,color:"var(--text-2)"}}>{t.name}</span>
+                          </div>
+                          <div style={{display:"flex",gap:3}}>
+                            {vals.map((mv,ci)=>{
+                              const norm = mv.v/rowMax;
+                              return (
+                                <div key={ci} style={{flex:1,minWidth:0}}>
+                                  <div style={{height:32,borderRadius:5,background:mv.v===0?"var(--border-divider)":color,opacity:mv.v===0?0.5:0.2+norm*0.8,display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:700,color:norm>0.55?"#fff":"var(--text-2)"}}>{mv.v||""}</div>
+                                  <div style={{fontSize:8.5,textAlign:"center",color:"var(--text-faint)",marginTop:2,whiteSpace:"nowrap",overflow:"hidden"}}>{mv.m}</div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
                 <div style={{overflowX:"auto"}}>
                   <div style={{display:"flex",flexDirection:"column",gap:4,minWidth:186+attByTypeMonthly.length*46}}>
                     <div style={{display:"flex",gap:4}}>
@@ -1567,6 +1594,7 @@ export default function AnalyticsPage({ members, services, attendance, household
                     })}
                   </div>
                 </div>
+                )}
               </ChartCard>
           }
 
@@ -1914,12 +1942,28 @@ export default function AnalyticsPage({ members, services, attendance, household
                           <YAxis type="category" dataKey="band" tick={{fontSize:11,fill:"var(--text-2)"}} width={110} />
                           <Tooltip formatter={(v,n)=>[Math.abs(v), n]} />
                           <Legend wrapperStyle={{fontSize:12}} />
-                          <Bar dataKey="male" name="Male" fill={TEAL} stackId="pyr" radius={[4,0,0,4]}>
-                            <LabelList dataKey="male" position="insideLeft" formatter={v=>v?Math.abs(v):""} style={{fontSize:10,fontWeight:700,fill:"#fff"}} />
-                          </Bar>
-                          <Bar dataKey="female" name="Female" fill={PINK} stackId="pyr" radius={[0,4,4,0]}>
-                            <LabelList dataKey="female" position="insideRight" formatter={v=>v||""} style={{fontSize:10,fontWeight:700,fill:"#fff"}} />
-                          </Bar>
+                          <Bar dataKey="male" name="Male" fill={TEAL} stackId="pyr" radius={[4,0,0,4]} />
+                          <Bar dataKey="female" name="Female" fill={PINK} stackId="pyr" radius={[0,4,4,0]} />
+                          <Customized component={(props)=>{
+                            const xa = props.xAxisMap && props.xAxisMap[Object.keys(props.xAxisMap)[0]];
+                            const ya = props.yAxisMap && props.yAxisMap[Object.keys(props.yAxisMap)[0]];
+                            if (!xa || !ya) return null;
+                            const xs = xa.scale, ys = ya.scale;
+                            const bw = ys.bandwidth ? ys.bandwidth() : 0;
+                            return (
+                              <g>
+                                {agePyramid.map((d,i)=>{
+                                  const y = ys(d.band) + bw/2;
+                                  return (
+                                    <g key={i}>
+                                      {d.male ? <text x={xs(d.male)-6} y={y} textAnchor="end" dominantBaseline="central" fontSize={11} fontWeight={700} fill={TEAL}>{Math.abs(d.male)}</text> : null}
+                                      {d.female ? <text x={xs(d.female)+6} y={y} textAnchor="start" dominantBaseline="central" fontSize={11} fontWeight={700} fill={PINK}>{d.female}</text> : null}
+                                    </g>
+                                  );
+                                })}
+                              </g>
+                            );
+                          }} />
                         </BarChart>
                       </ResponsiveContainer>
                       <div style={{display:"flex",gap:16,flexWrap:"wrap",marginTop:8,fontSize:12,color:"var(--text-muted)"}}>
@@ -2265,7 +2309,6 @@ export default function AnalyticsPage({ members, services, attendance, household
             <IconStat icon={<Users size={18}/>} value={dataCompleteness.total} label="Members in view" sub="current filter" color="#2a5357" />
             <IconStat icon={<Check size={18}/>} value={`${dataCompleteness.avg}%`} label="Avg completeness" sub="across all fields" color={dataCompleteness.avg>=80?"#2a8a50":dataCompleteness.avg>=50?"#c07a1e":"#dc2626"} />
             <IconStat icon={<X size={18}/>} value={dataCompleteness.noPhoto} label="Missing a photo" sub="not yet captured" color="#7c3aed" />
-            <IconStat icon={<UserMinus size={18}/>} value={dataCompleteness.noMinistry} label="No ministry" sub="not serving" color="#c06010" />
           </div>
 
           <SectionTitle>Field Completeness</SectionTitle>
