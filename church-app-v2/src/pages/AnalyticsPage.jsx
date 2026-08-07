@@ -1538,6 +1538,34 @@ export default function AnalyticsPage({ members, services, attendance, household
           {attByTypeMonthly.length === 0 || attByType.length === 0
             ? <div style={{textAlign:"center",padding:40,color:"var(--text-faint)",fontSize:13}}>No attendance data for this period</div>
             : <ChartCard title="Attendance by Month & Service Type" subtitle="Darker cell = higher turnout. Each row is shaded against its own busiest month, so a pale cell is a soft spot for that service.">
+                {isMobile ? (
+                  <div style={{display:"flex",flexDirection:"column",gap:14}}>
+                    {attByType.map(t => {
+                      const color = svcColor(t.name);
+                      const vals = attByTypeMonthly.map(d => ({ m:(d.label||"").split(" ")[0], v:d[t.name]||0 }));
+                      const rowMax = Math.max(1, ...vals.map(x=>x.v));
+                      return (
+                        <div key={t.name}>
+                          <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:6}}>
+                            <span style={{width:9,height:9,borderRadius:2,background:color,flexShrink:0}} />
+                            <span style={{fontSize:12.5,fontWeight:600,color:"var(--text-2)"}}>{t.name}</span>
+                          </div>
+                          <div style={{display:"flex",gap:3}}>
+                            {vals.map((mv,ci)=>{
+                              const norm = mv.v/rowMax;
+                              return (
+                                <div key={ci} style={{flex:1,minWidth:0}}>
+                                  <div style={{height:32,borderRadius:5,background:mv.v===0?"var(--border-divider)":color,opacity:mv.v===0?0.5:0.2+norm*0.8,display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:700,color:norm>0.55?"#fff":"var(--text-2)"}}>{mv.v||""}</div>
+                                  <div style={{fontSize:8.5,textAlign:"center",color:"var(--text-faint)",marginTop:2,whiteSpace:"nowrap",overflow:"hidden"}}>{mv.m}</div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
                 <div style={{overflowX:"auto"}}>
                   <div style={{display:"flex",flexDirection:"column",gap:4,minWidth:186+attByTypeMonthly.length*46}}>
                     <div style={{display:"flex",gap:4}}>
@@ -1566,6 +1594,7 @@ export default function AnalyticsPage({ members, services, attendance, household
                     })}
                   </div>
                 </div>
+                )}
               </ChartCard>
           }
 
