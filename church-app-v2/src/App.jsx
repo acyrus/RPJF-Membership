@@ -418,28 +418,46 @@ export default function App() {
     <div style={{minHeight:"100vh",background:"var(--surface-alt)"}}>
       {/* Header */}
       <div className="header-bar" style={{borderBottom:"1.5px solid var(--border-navy)",padding:"0 24px",position:"sticky",top:0,background:"var(--brand)",zIndex:50,boxShadow:"0 2px 8px #00000030"}}>
-        <div style={{maxWidth:1200,margin:"0 auto"}}>
-          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",paddingTop:12,paddingBottom:12,gap:10}}>
-            <div style={{display:"flex",alignItems:"center",gap:10,minWidth:0}}>
+        <div style={{width:"100%"}}>
+          {(() => {
+            const navToggle = (
               <button onClick={()=> isMobile ? setNavOpen(true) : setNavCollapsed(c=>!c)} title="Toggle navigation" aria-label="Toggle navigation" style={{display:"inline-flex",alignItems:"center",justifyContent:"center",background:"none",border:"1.5px solid #5edcd155",color:"var(--brand-accent)",padding:"7px 9px",borderRadius:8,cursor:"pointer",flexShrink:0}}>{isMobile ? <Menu size={17}/> : (navCollapsed ? <PanelLeftOpen size={17}/> : <PanelLeftClose size={17}/>)}</button>
+            );
+            const brand = (
               <div className="header-brand" style={{display:"flex",alignItems:"center",gap:12,minWidth:0}}>
                 <img src={branding.logo.mark} alt={branding.shortName} style={{height:40,width:"auto",display:"block",flexShrink:0}} />
                 <div style={{minWidth:0}}>
-                  <div className="brand-name" style={{fontFamily:"'Space Grotesk','Inter',sans-serif",fontSize:14,letterSpacing:0.2,color:"#ffffff",fontWeight:600}}>{branding.fullName}</div>
-                  <div style={{fontSize:11,color:"var(--brand-accent)",letterSpacing:0.3,fontWeight:500}}>{branding.motto}</div>
+                  <div className="brand-name" style={{fontFamily:"'Space Grotesk','Inter',sans-serif",fontSize:14,letterSpacing:0.2,color:"#ffffff",fontWeight:600,lineHeight:1.25}}>{branding.fullName}</div>
+                  <div style={{fontSize:11,color:"var(--brand-accent)",letterSpacing:0.3,fontWeight:500,marginTop:2}}>{branding.motto}</div>
                 </div>
               </div>
-            </div>
-            <div className="header-actions" style={{display:"flex",alignItems:"center",gap:14,flexShrink:0}}>
-              <div className="user-meta" style={{textAlign:"right"}}>
-                <div style={{fontSize:12,fontWeight:700,color:"#ffffff"}}>{profile.name}</div>
-                <div style={{fontSize:11,color:isAdmin?"#2a5357":"#4caf82",textTransform:"uppercase",letterSpacing:0.2,fontWeight:700}}>{profile.role}</div>
+            );
+            const headerActions = (
+              <div className="header-actions" style={{display:"flex",alignItems:"center",gap:14,flexShrink:0}}>
+                <div className="user-meta" style={{textAlign:"right"}}>
+                  <div style={{fontSize:12,fontWeight:700,color:"#ffffff"}}>{profile.name}</div>
+                  <div style={{fontSize:11,color:isAdmin?"#2a5357":"#4caf82",textTransform:"uppercase",letterSpacing:0.2,fontWeight:700}}>{profile.role}</div>
+                </div>
+                <button onClick={toggleDark} title={dark?"Switch to light mode":"Switch to dark mode"} aria-label={dark?"Switch to light mode":"Switch to dark mode"} style={{display:"inline-flex",alignItems:"center",justifyContent:"center",background:"none",border:"1.5px solid #5edcd155",color:"var(--brand-accent)",padding:"7px 9px",borderRadius:8,cursor:"pointer",transition:"all 0.15s"}}>{dark ? <Sun size={13} /> : <Moon size={13} />}</button>
+                <button onClick={()=>setSecurityOpen(true)} title="Account security" style={{display:"inline-flex",alignItems:"center",gap:6,fontSize:11,background:"none",border:"1.5px solid #5edcd155",color:"var(--brand-accent)",padding:"7px 12px",borderRadius:8,cursor:"pointer",fontFamily:"Inter,sans-serif",fontWeight:500,transition:"all 0.15s"}}><ShieldCheck size={13} /> <span className="btn-label">Security</span></button>
+                <button onClick={logout} title="Sign out" style={{display:"inline-flex",alignItems:"center",gap:6,fontSize:11,background:"none",border:"1.5px solid #5edcd155",color:"var(--brand-accent)",padding:"7px 14px",borderRadius:8,cursor:"pointer",fontFamily:"Inter,sans-serif",fontWeight:500,transition:"all 0.15s"}}><LogOut size={13} /> <span className="btn-label">Sign Out</span></button>
               </div>
-              <button onClick={toggleDark} title={dark?"Switch to light mode":"Switch to dark mode"} aria-label={dark?"Switch to light mode":"Switch to dark mode"} style={{display:"inline-flex",alignItems:"center",justifyContent:"center",background:"none",border:"1.5px solid #5edcd155",color:"var(--brand-accent)",padding:"7px 9px",borderRadius:8,cursor:"pointer",transition:"all 0.15s"}}>{dark ? <Sun size={13} /> : <Moon size={13} />}</button>
-              <button onClick={()=>setSecurityOpen(true)} title="Account security" style={{display:"inline-flex",alignItems:"center",gap:6,fontSize:11,background:"none",border:"1.5px solid #5edcd155",color:"var(--brand-accent)",padding:"7px 12px",borderRadius:8,cursor:"pointer",fontFamily:"Inter,sans-serif",fontWeight:500,transition:"all 0.15s"}}><ShieldCheck size={13} /> <span className="btn-label">Security</span></button>
-              <button onClick={logout} title="Sign out" style={{display:"inline-flex",alignItems:"center",gap:6,fontSize:11,background:"none",border:"1.5px solid #5edcd155",color:"var(--brand-accent)",padding:"7px 14px",borderRadius:8,cursor:"pointer",fontFamily:"Inter,sans-serif",fontWeight:500,transition:"all 0.15s"}}><LogOut size={13} /> <span className="btn-label">Sign Out</span></button>
-            </div>
-          </div>
+            );
+            return isMobile ? (
+              <div style={{padding:"10px 0 12px"}}>
+                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10}}>
+                  {navToggle}
+                  {headerActions}
+                </div>
+                <div style={{marginTop:12}}>{brand}</div>
+              </div>
+            ) : (
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",paddingTop:12,paddingBottom:12,gap:10}}>
+                <div style={{display:"flex",alignItems:"center",gap:10,minWidth:0}}>{navToggle}{brand}</div>
+                {headerActions}
+              </div>
+            );
+          })()}
         </div>
       </div>
 
@@ -460,14 +478,14 @@ export default function App() {
         </div>
       )}
 
-      <div style={{display:"flex",maxWidth:1240,margin:"0 auto"}}>
+      <div style={{display:"flex"}}>
         {!isMobile && (
           <nav style={{width:navCollapsed?60:216,flexShrink:0,position:"sticky",top:headerH,alignSelf:"flex-start",height:`calc(100dvh - ${headerH}px)`,overflowY:"auto",background:"var(--surface)",borderRight:"1px solid var(--border)",padding:"12px 8px",transition:"width 0.15s"}}>
             {navList(false)}
           </nav>
         )}
         <div style={{flex:1,minWidth:0}}>
-      <div className="main-content" style={{maxWidth:1100,margin:"0 auto",padding:"24px"}}>
+      <div className="main-content" style={{padding:"24px"}}>
         {tab==="dashboard" && allowedTabs.includes("dashboard") && (
           <DashboardPage
             profile={profile}
