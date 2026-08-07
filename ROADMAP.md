@@ -78,8 +78,10 @@ most complex left for last. Overlapping requests have been folded together
     clickable family members + spouse, and switching between them resets the popout scroll.
     (Tap-to-call / tap-to-email on the phone and email rows was deferred to the communication
     work, #20.) (was #27)
-18. **App shell & branding polish.** A title / splash screen, and collapsible / expandable
-    navigation (drawer). (was #17, #19)
+18. **App shell & branding polish.** ✅ Done — a branded splash screen replaces the bare boot
+    spinner (logo, church name, tagline, loader); the horizontal tab bar is replaced by a
+    collapsible left sidebar (expanded / icons-only toggle on desktop, hamburger slide-out
+    drawer on mobile) driven by the same TAB_ACCESS list. (was #17, #19)
 
 ### Larger builds — later
 
@@ -107,7 +109,7 @@ most complex left for last. Overlapping requests have been folded together
 
 - "Slipping Away" already exists in Analytics; #13 is a refinement of it plus the inactive flag.
 - Analytics (#16) is complete: the original "improve analytics" (old #10) plus the polish pass.
-- The next unstarted item is **#18 (app shell & branding: splash screen + collapsible nav
-  drawer)**; #19–22 are the larger later builds.
+- The next unstarted item is **#19 (private meetings tracking)**; #20–22 are the larger later
+  builds (communication + notification centre, letter template, offline).
 - The plan docs `ITEM8-THEMING-PLAN.md` and `ITEM9-FAMILY-VIEW-PLAN.md` cover completed work
   and can be archived.
