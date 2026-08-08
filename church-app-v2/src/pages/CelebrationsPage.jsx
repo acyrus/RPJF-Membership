@@ -220,7 +220,7 @@ export default function CelebrationsPage({ members, households = [], onMemberCli
           <button key={t.key} onClick={()=>setSubtab(t.key)} style={{
             background:"none", border:"none", cursor:"pointer",
             fontFamily:"'Inter',sans-serif", fontSize:14, fontWeight:600,
-            padding:"10px 18px", color: subtab===t.key?"#2a5357":"#8a96b8",
+            padding:"10px 18px", color: subtab===t.key?"#2a5357":"var(--text-muted-navy)",
             borderBottom: subtab===t.key?"2px solid var(--brand)":"2px solid transparent",
             display:"flex", alignItems:"center", gap:6, transition:"all 0.15s",
           }}>
@@ -228,7 +228,7 @@ export default function CelebrationsPage({ members, households = [], onMemberCli
             <span style={{
               background: subtab===t.key?"#2a535718":"var(--panel)",
               border: subtab===t.key?"1.5px solid #2a535744":"1.5px solid var(--border-navy)",
-              color: subtab===t.key?"#2a5357":"#8a96b8",
+              color: subtab===t.key?"#2a5357":"var(--text-muted-navy)",
               borderRadius:20, padding:"1px 8px", fontSize:12, fontWeight:700,
             }}>{t.count}</span>
           </button>
@@ -243,8 +243,8 @@ export default function CelebrationsPage({ members, households = [], onMemberCli
             border: viewMode===key?"1.5px solid var(--border-navy)":"1.5px solid transparent",
             borderRadius:8, padding:"6px 16px", cursor:"pointer",
             fontFamily:"'Inter',sans-serif", fontSize:12, fontWeight:600,
-            color: viewMode===key?"#2a3560":"#8a96b8",
-            boxShadow: viewMode===key?"0 1px 3px #0000000a":"none",
+            color: viewMode===key?"var(--text-navy)":"var(--text-muted-navy)",
+            boxShadow: viewMode===key?"0 1px 3px var(--shadow-card)":"none",
             transition:"all 0.15s",
           }}>{label}</button>
         ))}
@@ -255,7 +255,7 @@ export default function CelebrationsPage({ members, households = [], onMemberCli
         <div>
           {upcomingTotal === 0 ? (
             <div style={{textAlign:"center",padding:"48px 20px",color:"var(--border-strong)"}}>
-              <div style={{fontSize:36,marginBottom:12}}>{subtab==="birthdays"?<Cake size={36} color="#8a96b8" />:<Gem size={36} color="#8a96b8" />}</div>
+              <div style={{fontSize:36,marginBottom:12}}>{subtab==="birthdays"?<Cake size={36} color="var(--text-muted-navy)" />:<Gem size={36} color="var(--text-muted-navy)" />}</div>
               <div style={{fontWeight:600,color:"var(--text-muted)",marginBottom:6}}>No upcoming {subtab} for the rest of this year</div>
             </div>
           ) : (
@@ -289,13 +289,13 @@ export default function CelebrationsPage({ members, households = [], onMemberCli
         <div>
           {currentMonth === 0 ? (
             <div style={{textAlign:"center",padding:"48px 20px",color:"var(--border-strong)"}}>
-              <div style={{marginBottom:12,display:"flex",justifyContent:"center"}}><CalendarDays size={36} color="#8a96b8" /></div>
+              <div style={{marginBottom:12,display:"flex",justifyContent:"center"}}><CalendarDays size={36} color="var(--text-muted-navy)" /></div>
               <div style={{fontWeight:600,color:"var(--text-muted)",marginBottom:6}}>No past {subtab}, it's January!</div>
               <div style={{fontSize:12}}>Past {subtab} will appear here as the year progresses.</div>
             </div>
           ) : pastTotal === 0 ? (
             <div style={{textAlign:"center",padding:"48px 20px",color:"var(--border-strong)"}}>
-              <div style={{marginBottom:12,display:"flex",justifyContent:"center"}}><CalendarDays size={36} color="#8a96b8" /></div>
+              <div style={{marginBottom:12,display:"flex",justifyContent:"center"}}><CalendarDays size={36} color="var(--text-muted-navy)" /></div>
               <div style={{fontWeight:600,color:"var(--text-muted)",marginBottom:6}}>No past {subtab} recorded</div>
               <div style={{fontSize:12}}>Make sure members have their {type === "birthday" ? "date of birth" : "anniversary date"} entered.</div>
             </div>

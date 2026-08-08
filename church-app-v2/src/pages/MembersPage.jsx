@@ -403,21 +403,21 @@ export default function MembersPage({ profile, members, setMembers, households =
           <hr className="section-divider" />
 
           {/* Personal Info */}
-          {selected.dob && <InfoRow icon={<Cake size={15} color="#9ca3af" />} label="Date of Birth" value={formatDob(selected.dob)} />}
-          {calcAge(selected.dob)!=null && <InfoRow icon={<Hourglass size={15} color="#9ca3af" />} label="Age" value={`${calcAge(selected.dob)} years old`} />}
-          {selected.city && <InfoRow icon={<MapPin size={15} color="#9ca3af" />} label="City" value={selected.city} />}
-          {selected.interaction_type && <InfoRow icon={<Users size={15} color="#9ca3af" />} label="Attends" value={selected.interaction_type} />}
-            {selected.phone && <InfoRow icon={<Phone size={15} color="#9ca3af" />} label="Phone" value={selected.phone} />}
-          {selected.email && <InfoRow icon={<Mail size={15} color="#9ca3af" />} label="Email" value={selected.email} />}
-          {selected.address && <InfoRow icon={<MapPin size={15} color="#9ca3af" />} label="Home Address" value={selected.address} />}
-          {selected.anniversary && <InfoRow icon={<Heart size={15} color="#9ca3af" />} label="Wedding Anniversary" value={formatShortDate(selected.anniversary)} />}
+          {selected.dob && <InfoRow icon={<Cake size={15} color="var(--text-faint)" />} label="Date of Birth" value={formatDob(selected.dob)} />}
+          {calcAge(selected.dob)!=null && <InfoRow icon={<Hourglass size={15} color="var(--text-faint)" />} label="Age" value={`${calcAge(selected.dob)} years old`} />}
+          {selected.city && <InfoRow icon={<MapPin size={15} color="var(--text-faint)" />} label="City" value={selected.city} />}
+          {selected.interaction_type && <InfoRow icon={<Users size={15} color="var(--text-faint)" />} label="Attends" value={selected.interaction_type} />}
+            {selected.phone && <InfoRow icon={<Phone size={15} color="var(--text-faint)" />} label="Phone" value={selected.phone} />}
+          {selected.email && <InfoRow icon={<Mail size={15} color="var(--text-faint)" />} label="Email" value={selected.email} />}
+          {selected.address && <InfoRow icon={<MapPin size={15} color="var(--text-faint)" />} label="Home Address" value={selected.address} />}
+          {selected.anniversary && <InfoRow icon={<Heart size={15} color="var(--text-faint)" />} label="Wedding Anniversary" value={formatShortDate(selected.anniversary)} />}
           {selected.spouse_id && (() => {
             const sp = members.find(m => m.id === selected.spouse_id);
             if (!sp) return null;
             return (
               <div onClick={()=>setSelected(sp)} style={{cursor:"pointer",borderRadius:8,transition:"background 0.15s"}}
                 onMouseEnter={e=>e.currentTarget.style.background="var(--panel)"} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
-                <InfoRow icon={<Users size={15} color="#9ca3af" />} label="Spouse" value={<span style={{color:"var(--brand)",fontWeight:600}}>{fullName(sp)} ›</span>} />
+                <InfoRow icon={<Users size={15} color="var(--text-faint)" />} label="Spouse" value={<span style={{color:"var(--brand)",fontWeight:600}}>{fullName(sp)} ›</span>} />
               </div>
             );
           })()}
@@ -427,7 +427,7 @@ export default function MembersPage({ profile, members, setMembers, households =
             if (!hh) return null;
             return (
               <div style={{marginBottom:10}}>
-                <InfoRow icon={<HomeIcon size={15} color="#9ca3af" />} label="Household" value={hh.name} />
+                <InfoRow icon={<HomeIcon size={15} color="var(--text-faint)" />} label="Household" value={hh.name} />
                 {fam.length > 0 && (
                   <div style={{marginLeft:22,marginTop:-4,display:"flex",flexWrap:"wrap",gap:6}}>
                     {fam.map(m => (
@@ -440,10 +440,10 @@ export default function MembersPage({ profile, members, setMembers, households =
               </div>
             );
           })()}
-          {(selected.skill1||selected.skill2||selected.skill3) && <InfoRow icon={<Zap size={15} color="#9ca3af" />} label="Skills" value={[selected.skill1,selected.skill2,selected.skill3].filter(Boolean).join(" · ")} />}
-            {selected.other_skills && <InfoRow icon={<Lightbulb size={15} color="#9ca3af" />} label="Other Skills" value={selected.other_skills} />}
-            {selected.instruments && <InfoRow icon={<Music size={15} color="#9ca3af" />} label="Instruments" value={selected.instruments} />}
-          {selected.notes && <InfoRow icon={<FileText size={15} color="#9ca3af" />} label="Notes" value={selected.notes} />}
+          {(selected.skill1||selected.skill2||selected.skill3) && <InfoRow icon={<Zap size={15} color="var(--text-faint)" />} label="Skills" value={[selected.skill1,selected.skill2,selected.skill3].filter(Boolean).join(" · ")} />}
+            {selected.other_skills && <InfoRow icon={<Lightbulb size={15} color="var(--text-faint)" />} label="Other Skills" value={selected.other_skills} />}
+            {selected.instruments && <InfoRow icon={<Music size={15} color="var(--text-faint)" />} label="Instruments" value={selected.instruments} />}
+          {selected.notes && <InfoRow icon={<FileText size={15} color="var(--text-faint)" />} label="Notes" value={selected.notes} />}
 
           <hr className="section-divider" />
 

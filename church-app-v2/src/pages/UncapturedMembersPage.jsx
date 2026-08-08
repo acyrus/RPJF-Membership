@@ -309,7 +309,7 @@ export default function UncapturedMembersPage({ members = [] }) {
       <div className="fade-in">
         <div style={{fontFamily:"'Inter',sans-serif", color:"var(--text)", fontSize:14, letterSpacing:0.5, fontWeight:700, marginBottom:20}}>UNCAPTURED MEMBERS</div>
         <div className="card" style={{padding:28, textAlign:"center"}}>
-          <ClipboardList size={28} color="#c0c8d8" />
+          <ClipboardList size={28} color="var(--border-navy-strong)" />
           <div style={{fontWeight:700, fontSize:14, color:"var(--text)", marginTop:10}}>No list published yet</div>
           <div style={{fontSize:12, color:"var(--text-faint)", marginTop:4, lineHeight:1.7}}>
             An admin needs to upload the attendance list from the Import page. Once they do, it will appear here.
@@ -406,7 +406,7 @@ export default function UncapturedMembersPage({ members = [] }) {
                 <span style={{fontSize:13, fontWeight:600, color:"var(--text-navy)", lineHeight:1.25, wordBreak:"break-word"}}>{u.name}</span>
                 <span style={{textAlign:"right", fontSize:13, fontWeight:700, color:"var(--text-navy)"}}>{u.assigned}</span>
                 <span style={{textAlign:"right", fontSize:13, fontWeight:700, color:"#2a8a50"}}>{u.complete}<span style={{fontSize:10, color:"var(--text-faint)", fontWeight:600}}> · {u.pct}%</span></span>
-                <span style={{textAlign:"right", fontSize:13, fontWeight:700, color: u.remaining ? "#c06010" : "#c0c8d8"}}>{u.remaining}</span>
+                <span style={{textAlign:"right", fontSize:13, fontWeight:700, color: u.remaining ? "#c06010" : "var(--border-navy-strong)"}}>{u.remaining}</span>
               </div>
             ))}
 
@@ -427,7 +427,7 @@ export default function UncapturedMembersPage({ members = [] }) {
 
       {/* Search */}
       <div className="card" style={{padding:"10px 14px", marginBottom:12, display:"flex", alignItems:"center", gap:8}}>
-        <Search size={16} color="#9ca3af" />
+        <Search size={16} color="var(--text-faint)" />
         <input placeholder="Search by name…" value={q} onChange={e=>setQ(e.target.value)}
           style={{border:"none", outline:"none", flex:1, fontSize:13, background:"transparent"}} />
       </div>
@@ -492,7 +492,7 @@ export default function UncapturedMembersPage({ members = [] }) {
                       together. Someone not in the app has no photo either, so this is No. */}
                   <Chip label="Pic"><YesNo yes={n.hasPic} /></Chip>
                   <Chip label="Usher">
-                    <span style={{fontSize:12, fontWeight:600, color: n.assigned_usher_id ? "#2a5357" : "#c0c8d8"}}>
+                    <span style={{fontSize:12, fontWeight:600, color: n.assigned_usher_id ? "#2a5357" : "var(--border-navy-strong)"}}>
                       {n.assigned_usher_id ? (usherLabel(n.assigned_usher_id) || "unknown") : "-"}
                     </span>
                   </Chip>
@@ -524,8 +524,8 @@ export default function UncapturedMembersPage({ members = [] }) {
               fontSize:10, fontWeight:700, color:"var(--text-muted)", textTransform:"uppercase", letterSpacing:0.5,
             }}>
               <span>#</span>
-              <span style={{display:"flex", alignItems:"center", gap:4, cursor:"pointer"}} onClick={()=>setSort("first")}>First <ArrowUpDown size={11} color="#c0c8d8" /></span>
-              <span style={{display:"flex", alignItems:"center", gap:4, cursor:"pointer"}} onClick={()=>setSort("last")}>Last <ArrowUpDown size={11} color="#c0c8d8" /></span>
+              <span style={{display:"flex", alignItems:"center", gap:4, cursor:"pointer"}} onClick={()=>setSort("first")}>First <ArrowUpDown size={11} color="var(--border-navy-strong)" /></span>
+              <span style={{display:"flex", alignItems:"center", gap:4, cursor:"pointer"}} onClick={()=>setSort("last")}>Last <ArrowUpDown size={11} color="var(--border-navy-strong)" /></span>
               <span>In App?</span>
               <span>Pic?</span>
               <span>Assigned</span>
@@ -552,12 +552,12 @@ export default function UncapturedMembersPage({ members = [] }) {
                 {/* Pic always shows (matches the mobile cards): someone not in the app has
                     no photo either, so it reads No rather than a blank dash. */}
                 <span><YesNo yes={n.hasPic} /></span>
-                <span style={{fontSize:12, color: n.assigned_usher_id ? "#2a5357" : "#c0c8d8", fontWeight:600, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap"}}>
+                <span style={{fontSize:12, color: n.assigned_usher_id ? "#2a5357" : "var(--border-navy-strong)", fontWeight:600, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap"}}>
                   {n.assigned_usher_id
                     ? (usherLabel(n.assigned_usher_id) || <span style={{color:"#c06010"}}>unknown</span>)
                     : "-"}
                 </span>
-                <span title={n.note || ""} style={{display:"flex", alignItems:"center", gap:5, minWidth:0, fontSize:12, color: n.note ? "#5a6a7a" : "#c0c8d8"}}>
+                <span title={n.note || ""} style={{display:"flex", alignItems:"center", gap:5, minWidth:0, fontSize:12, color: n.note ? "#5a6a7a" : "var(--border-navy-strong)"}}>
                   {n.note
                     ? <><StickyNote size={12} color="#c9a227" style={{flexShrink:0}} /><span style={{overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap"}}>{n.note}</span></>
                     : "-"}

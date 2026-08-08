@@ -114,7 +114,7 @@ export default function PhotoRequestsPage({ profile, members, setMembers, setPen
 
       {!loading && subs.length === 0 ? (
         <div style={{ textAlign: "center", padding: "48px 20px", color: "var(--border-strong)" }}>
-          <div style={{ marginBottom: 12, display:"flex", justifyContent:"center" }}><Inbox size={36} color="#8a96b8" /></div>
+          <div style={{ marginBottom: 12, display:"flex", justifyContent:"center" }}><Inbox size={36} color="var(--text-muted-navy)" /></div>
           <div style={{ fontWeight: 600, color: "var(--text-muted)", marginBottom: 6 }}>No photos waiting</div>
           <div style={{ fontSize: 12 }}>Submissions from the public photo page will appear here.</div>
         </div>

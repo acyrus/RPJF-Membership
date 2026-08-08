@@ -48,8 +48,8 @@
   --text-navy: #2a3560;
   --text-navy-muted: #5a6a8a;
   --text-muted: #6b7280;
-  --text-muted-navy: #8a96b8;
-  --text-faint: #9ca3af;
+  --text-muted-navy: #64708a;  /* darkened from #8a96b8 to meet WCAG AA on white */
+  --text-faint: #6e7581;       /* darkened from #9ca3af (2.5:1) to ~4.6:1 for AA */
 
   /* Status */
   --danger: #dc2626;
@@ -57,6 +57,20 @@
   --danger-border-strong: #f87171;
   --danger-bg: #fef2f2;
   --success: #059669;
+
+  /* Categorical accents (solid). Each has a lifted dark value below so
+     stat values, icons, and chart-adjacent UI read well in both modes.
+     Use these instead of raw hex for standalone (non-alpha) fills. */
+  --accent-green: #2a8a50;
+  --accent-green-strong: #4caf82;
+  --accent-blue: #3a8fd0;
+  --accent-orange: #e07830;
+  --accent-orange-deep: #c06010;
+  --accent-purple: #a040c0;
+  --accent-pink: #d060a0;
+  --accent-red: #e05050;
+  /* Neutral grey used for inactive avatars / disabled marks */
+  --neutral-mute: #b0b8c8;
   /* Leadership (Leader / Co-Leader) badge */
   --pos-badge-fg: #7a4bd0;
   --pos-badge-bg: #f0eaff;
@@ -138,8 +152,8 @@ html.dark {
   --text-navy: #d6def0;
   --text-navy-muted: #97a2a9;
   --text-muted: #97a2a9;
-  --text-muted-navy: #97a2a9;
-  --text-faint: #6a757c;
+  --text-muted-navy: #9aa6ad;  /* lifted slightly for contrast on dark surfaces */
+  --text-faint: #8b959d;       /* lifted from #6a757c for AA on dark surfaces */
 
   /* Status */
   --danger: #f26a6a;
@@ -147,6 +161,17 @@ html.dark {
   --danger-border-strong: #9a4a4a;
   --danger-bg: #2a1a1a;
   --success: #34c88a;
+
+  /* Categorical accents — lifted for contrast on dark surfaces */
+  --accent-green: #4fc98a;
+  --accent-green-strong: #5ad19a;
+  --accent-blue: #5aa9e0;
+  --accent-orange: #f0925a;
+  --accent-orange-deep: #e6a862;
+  --accent-purple: #c07ad8;
+  --accent-pink: #e58ac0;
+  --accent-red: #f26a6a;
+  --neutral-mute: #5c6670;
   /* Leadership (Leader / Co-Leader) badge */
   --pos-badge-fg: #c3aef2;
   --pos-badge-bg: #2c2444;
@@ -285,12 +310,16 @@ option { background: var(--surface); }
 }
 .btn-danger:hover { background: var(--danger-bg); border-color: var(--danger-border-strong); }
 
-/* ── Cards ───────────────────────────────────────────────── */
+/* ── Cards ───────────────────────────────────────────────────
+   Canonical card. One look everywhere: surface fill, a light 1px
+   token border, radius 14, and the mode-aware card shadow. Inline
+   cards across pages should use className="card" and only set padding,
+   so light/dark and any re-brand stay consistent in ONE place. */
 .card {
   background: var(--surface);
   border: 1px solid var(--border-card);
-  border-radius: 10px;
-  box-shadow: 0 1px 2px var(--shadow-card);
+  border-radius: 14px;
+  box-shadow: 0 1px 4px var(--shadow-card);
 }
 
 /* Modern-minimal: distinctive display face for headings, kept restrained */
@@ -611,27 +640,15 @@ h1, h2, h3, h4, .heading {
   .main-content { padding: 18px !important; }
 }
 
-/* Analytics page mobile fixes */
+/* ── Responsive grid utilities ────────────────────────────────
+   Two-column grid that stacks on phones. Replaces a set of brittle
+   div[style*="grid-template-columns: 1fr 1fr"] attribute selectors that
+   matched inline styles by string and broke if the spacing changed. Set
+   gap and any other properties inline; this class owns the columns only. */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; }
+
 @media (max-width: 768px) {
-  /* Stack all 2-column grids.
-     NOTE: React writes inline styles into the DOM as real CSS, so the attribute
-     reads style="grid-template-columns: 1fr 1fr" — NOT the camelCase JSX key.
-     Selectors must use the kebab-case property name to match anything. */
-  div[style*="grid-template-columns: 1fr 1fr"] {
-    grid-template-columns: 1fr !important;
-  }
-
-  /* Stack 4-column stat pills to 2x2 */
-  div[style*="repeat(4,1fr)"],
-  div[style*="repeat(4, 1fr)"] {
-    grid-template-columns: 1fr 1fr !important;
-  }
-
-  /* Stack 3-column stat pills */
-  div[style*="repeat(3,1fr)"],
-  div[style*="repeat(3, 1fr)"] {
-    grid-template-columns: 1fr 1fr !important;
-  }
+  .grid-2 { grid-template-columns: 1fr !important; }
 
   /* Make slicer buttons wrap better */
   .slicer-row { flex-wrap: wrap !important; }

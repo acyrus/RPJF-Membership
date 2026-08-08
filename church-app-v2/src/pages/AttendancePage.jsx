@@ -504,7 +504,7 @@ export default function AttendancePage({ profile, members, households = [], serv
           </div>
         ) : (
           <div className="card" style={{display:"flex",alignItems:"center",justifyContent:"center",color:"var(--border-strong)",fontSize:14,minHeight:200,flexDirection:"column",gap:8}}>
-            <span style={{display:"flex"}}><ClipboardList size={28} color="#8a96b8" /></span>
+            <span style={{display:"flex"}}><ClipboardList size={28} color="var(--text-muted-navy)" /></span>
             Select a service to take attendance
           </div>
         ))}
