@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { fullName } from "./components";
 import { Bell, Camera, Cake, Heart, UserMinus, TrendingDown, ChevronRight, X } from "lucide-react";
 
@@ -17,7 +17,13 @@ function daysUntilNext(dateStr) {
 // tabs each account can reach, and routes each item to the relevant tab.
 export default function NotificationCenter({ members = [], services = [], attendance = {}, pendingPhotos = 0, allowedTabs = [], onNavigate }) {
   const [open, setOpen] = useState(false);
+  const [panelTop, setPanelTop] = useState(0); // fixed-position top, measured from the bell
+  const btnRef = useRef(null);
   const can = k => allowedTabs.includes(k);
+  const toggle = () => {
+    if (!open && btnRef.current) setPanelTop(btnRef.current.getBoundingClientRect().bottom + 6);
+    setOpen(o => !o);
+  };
 
   const items = useMemo(() => {
     const out = [];
@@ -77,7 +83,7 @@ export default function NotificationCenter({ members = [], services = [], attend
 
   return (
     <div style={{ position: "relative" }}>
-      <button onClick={() => setOpen(o => !o)} title="Notifications" aria-label="Notifications"
+      <button ref={btnRef} onClick={toggle} title="Notifications" aria-label="Notifications"
         style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", position: "relative", background: "none", border: "1.5px solid #5edcd155", color: "var(--brand-accent)", padding: "7px 9px", borderRadius: 8, cursor: "pointer" }}>
         <Bell size={14} />
         {count > 0 && <span style={{ position: "absolute", top: -6, right: -6, minWidth: 16, height: 16, padding: "0 4px", borderRadius: 10, background: "#e15700", color: "#fff", fontSize: 10, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center" }}>{count}</span>}
@@ -86,7 +92,7 @@ export default function NotificationCenter({ members = [], services = [], attend
       {open && (
         <>
           <div onClick={() => setOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 300 }} />
-          <div style={{ position: "absolute", top: "calc(100% + 8px)", right: 0, zIndex: 301, width: 300, maxWidth: "92vw", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, boxShadow: "0 10px 30px #00000026", overflow: "hidden" }}>
+          <div style={{ position: "fixed", top: panelTop, right: 10, zIndex: 301, width: "min(300px, calc(100vw - 20px))", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, boxShadow: "0 10px 30px #00000026", overflow: "hidden" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 14px", borderBottom: "1px solid var(--border)" }}>
               <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text)" }}>Needs your attention</span>
               <button onClick={() => setOpen(false)} aria-label="Close" style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)", display: "flex" }}><X size={15} /></button>

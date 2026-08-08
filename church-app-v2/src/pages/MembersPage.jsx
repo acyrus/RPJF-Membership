@@ -457,7 +457,7 @@ export default function MembersPage({ profile, members, setMembers, households =
                     return (
                       <span key={r} style={{display:"inline-flex",alignItems:"center",gap:4}}>
                         <RoleBadge role={r} />
-                        {pos && <span style={{fontSize:10,fontWeight:700,color:"#7a4bd0",background:"#f0eaff",border:"1px solid #d9c9f5",borderRadius:20,padding:"1px 7px"}}>{pos}</span>}
+                        {pos && <span style={{fontSize:10,fontWeight:700,color:"var(--pos-badge-fg)",background:"var(--pos-badge-bg)",border:"1px solid var(--pos-badge-bd)",borderRadius:20,padding:"1px 7px"}}>{pos}</span>}
                       </span>
                     );
                   })

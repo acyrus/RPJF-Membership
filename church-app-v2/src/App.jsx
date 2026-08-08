@@ -39,6 +39,8 @@ export default function App() {
     const stop = setTimeout(() => clearInterval(id), 3000);
     return () => { window.removeEventListener("resize", measure); clearInterval(id); clearTimeout(stop); };
   }, []);
+  // Remember the signed-in name so the splash can greet a returning user on the next load.
+  useEffect(() => { if (profile?.name) { try { localStorage.setItem("rpjf_name", profile.name); } catch (e) {} } }, [profile]);
   const [recovery, setRecovery] = useState(false); // arrived via password-reset link
   const [passwordSet, setPasswordSet] = useState(false); // just set a password this session (invite/reset)
   const [needs2fa, setNeeds2fa] = useState(false); // logged in but no 2FA factor enrolled
@@ -324,12 +326,17 @@ export default function App() {
     setTab("members"); setMembers([]); setServices([]); setAttendance([]);
   }
 
-  if (loading) return (
-    <div style={{position:"fixed",inset:0,zIndex:1000,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:36,background:"var(--brand)",padding:24,boxShadow:"inset 0 0 220px rgba(0,0,0,0.28)"}}>
+  if (loading) {
+    let greetName = "";
+    try { greetName = (localStorage.getItem("rpjf_name") || "").trim().split(" ")[0]; } catch (e) {}
+    return (
+    <div style={{position:"fixed",inset:0,zIndex:1000,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:28,background:"var(--brand)",padding:24,boxShadow:"inset 0 0 220px rgba(0,0,0,0.28)"}}>
       <img className="splash-logo" src={branding.logo.full} alt={branding.fullName} style={{width:"min(340px, 82vw)",height:"auto",display:"block"}} />
+      {greetName && <div className="splash-logo" style={{fontSize:16,fontWeight:600,color:"#ffffff"}}>Welcome back, <span style={{color:"var(--brand-accent)"}}>{greetName}</span></div>}
       <div className="splash-dots" role="status" aria-label="Loading"><span/><span/><span/></div>
     </div>
-  );
+    );
+  }
   if (recovery) return <SetPasswordScreen onDone={handlePasswordSet} onCancel={logout} />;
   if (!session) return (
     <>
@@ -414,7 +421,7 @@ export default function App() {
     <PhotoLightbox>
     <div style={{minHeight:"100vh",background:"var(--surface-alt)"}}>
       {/* Header */}
-      <div className="header-bar" style={{borderBottom:"1.5px solid var(--border-navy)",padding:"0 24px",position:"sticky",top:0,background:"var(--brand)",zIndex:50,boxShadow:"0 2px 8px #00000030"}}>
+      <div className="header-bar" style={{borderBottom:"1.5px solid rgba(94,220,209,0.28)",padding:"0 24px",position:"sticky",top:0,background:"linear-gradient(115deg, #31606a 0%, var(--brand) 52%, #22474b 100%)",zIndex:50,boxShadow:"0 2px 10px #00000038"}}>
         <div style={{width:"100%"}}>
           {(() => {
             const navToggle = (
@@ -432,8 +439,8 @@ export default function App() {
             const headerActions = (
               <div className="header-actions" style={{display:"flex",alignItems:"center",gap:14,flexShrink:0}}>
                 <div className="user-meta" style={{textAlign:"right"}}>
-                  <div style={{fontSize:12,fontWeight:700,color:"#ffffff"}}>{profile.name}</div>
-                  <div style={{fontSize:11,color:isAdmin?"#2a5357":"#4caf82",textTransform:"uppercase",letterSpacing:0.2,fontWeight:700}}>{profile.role}</div>
+                  <div className="user-name" style={{fontSize:12,fontWeight:700,color:"#ffffff",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",maxWidth:120}}>{profile.name}</div>
+                  <div className="user-role" style={{fontSize:11,color:isAdmin?"#2a5357":"#4caf82",textTransform:"uppercase",letterSpacing:0.2,fontWeight:700}}>{profile.role}</div>
                 </div>
                 <NotificationCenter members={members} services={services} attendance={attendance} pendingPhotos={pendingPhotos} allowedTabs={allowedTabs} onNavigate={setTab} />
                 <button onClick={toggleDark} title={dark?"Switch to light mode":"Switch to dark mode"} aria-label={dark?"Switch to light mode":"Switch to dark mode"} style={{display:"inline-flex",alignItems:"center",justifyContent:"center",background:"none",border:"1.5px solid #5edcd155",color:"var(--brand-accent)",padding:"7px 9px",borderRadius:8,cursor:"pointer",transition:"all 0.15s"}}>{dark ? <Sun size={13} /> : <Moon size={13} />}</button>
