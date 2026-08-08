@@ -332,12 +332,8 @@ export default function App() {
     try { greetName = (localStorage.getItem("rpjf_name") || "").trim().split(" ")[0]; } catch (e) {}
     return (
     <div style={{position:"fixed",inset:0,zIndex:1000,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:26,background:"var(--brand)",padding:24,textAlign:"center",boxShadow:"inset 0 0 220px rgba(0,0,0,0.28)"}}>
-      <Emblem className="splash-logo" height={132} color="#ffffff" />
-      <div className="splash-logo">
-        <div style={{fontFamily:"'Space Grotesk','Inter',sans-serif",fontSize:20,fontWeight:700,color:"#ffffff",letterSpacing:0.2,lineHeight:1.3,maxWidth:340}}>{branding.fullName}</div>
-        <div style={{fontSize:13,color:"var(--brand-accent)",marginTop:5,fontWeight:500}}>{branding.motto}</div>
-      </div>
-      {greetName && <div className="splash-logo" style={{fontSize:15,fontWeight:600,color:"#ffffff"}}>Welcome back, <span style={{color:"var(--brand-accent)"}}>{greetName}</span></div>}
+      <img className="splash-logo" src="/rpjf-logo.svg" alt={branding.fullName} style={{width:"min(360px, 86vw)",height:"auto",display:"block"}} />
+      {greetName && <div className="splash-logo" style={{fontSize:15,fontWeight:600,color:"#ffffff",marginTop:-4}}>Welcome back, <span style={{color:"var(--brand-accent)"}}>{greetName}</span></div>}
       <div className="splash-dots" role="status" aria-label="Loading"><span/><span/><span/></div>
     </div>
     );
@@ -426,7 +422,7 @@ export default function App() {
     <PhotoLightbox>
     <div style={{minHeight:"100vh",background:"var(--surface-alt)"}}>
       {/* Header */}
-      <div className="header-bar" style={{borderBottom:"1.5px solid rgba(94,220,209,0.28)",padding:"0 24px",position:"sticky",top:0,background:"linear-gradient(115deg, #31606a 0%, var(--brand) 52%, #22474b 100%)",zIndex:50,boxShadow:"0 2px 10px #00000038"}}>
+      <div className="header-bar" style={{borderBottom:"1.5px solid rgba(94,220,209,0.28)",padding:"0 24px",position:"sticky",top:0,background:"linear-gradient(122deg, transparent 58%, rgba(225,85,3,0.92) 61.5%, rgba(225,85,3,0.92) 65%, transparent 68.5%), linear-gradient(115deg, #31606a 0%, var(--brand) 52%, #22474b 100%)",zIndex:50,boxShadow:"0 2px 10px #00000038"}}>
         <div style={{width:"100%"}}>
           {(() => {
             const navToggle = (
