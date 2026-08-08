@@ -102,7 +102,6 @@ export default function SkillsPage({ members, households = [], onMemberClick }) 
                       <Avatar member={m} size={28} />
                       <div style={{minWidth:0}}>
                         <div style={{fontSize:12, color:"var(--text)", fontWeight:600}}>{fullName(m)}</div>
-                        {householdById[m.household_id] && <div style={{fontSize:10, color:"var(--text-faint)"}}>{householdById[m.household_id]}</div>}
                       </div>
                     </div>
                   ))}

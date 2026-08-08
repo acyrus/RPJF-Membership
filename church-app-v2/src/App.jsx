@@ -532,7 +532,7 @@ export default function App() {
           />
         )}
         {tab==="celebrations" && allowedTabs.includes("celebrations") && (
-          <CelebrationsPage members={members} onMemberClick={goToMember} />
+          <CelebrationsPage members={members} households={households} onMemberClick={goToMember} />
         )}
         {tab==="skills" && allowedTabs.includes("skills") && (
           <SkillsPage members={members} households={households} onMemberClick={goToMember} />

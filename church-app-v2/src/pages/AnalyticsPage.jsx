@@ -1875,7 +1875,7 @@ export default function AnalyticsPage({ members, services, attendance, household
                 <ResponsiveContainer width="100%" height={210}>
                   <BarChart data={data} margin={{top:14,right:16,bottom:4,left:0}}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" vertical={false} />
-                    <XAxis dataKey="name" tick={{fontSize:10,fill:"var(--text-faint)"}} />
+                    <XAxis dataKey="name" tickFormatter={v=>v.slice(0,3)} interval={0} tick={{fontSize:9.5,fill:"var(--text-faint)"}} />
                     <YAxis tick={{fontSize:11,fill:"var(--text-faint)"}} allowDecimals={false} />
                     <Tooltip content={<CustomTooltip />} />
                     <Bar dataKey="count" name={celebMode==="birthdays"?"Birthdays":"Anniversaries"} radius={[6,6,0,0]}>
@@ -2204,14 +2204,14 @@ export default function AnalyticsPage({ members, services, attendance, household
                   <CollapsibleCard key={g.n} title={`Serves in ${g.n} ministr${g.n!==1?"ies":"y"}`} subtitle={`${g.players.length} member${g.players.length!==1?"s":""}`}>
                     <div style={{display:"flex",flexDirection:"column",gap:8}}>
                       {g.players.map(({member,roles}) => (
-                        <div key={member.id} style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
-                          <span style={{display:"inline-flex",alignItems:"center",gap:6,minWidth:150}}>
+                        <div key={member.id} style={{display:"flex",alignItems:"flex-start",gap:10,flexWrap:"wrap"}}>
+                          <span style={{display:"inline-flex",alignItems:"center",gap:6,minWidth:140,flexShrink:0}}>
                             <Avatar member={member} size={22} />
                             <span style={{fontSize:12.5,fontWeight:600,color:"var(--text)"}}>{fullName(member)}</span>
                           </span>
-                          <span style={{display:"flex",flexWrap:"wrap",gap:5}}>
+                          <span style={{display:"flex",flexWrap:"wrap",gap:5,flex:"1 1 160px",minWidth:0,paddingTop:2}}>
                             {roles.map(r => (
-                              <span key={r} style={{fontSize:10.5,fontWeight:600,background:(ROLE_COLORS[r]||TEAL)+"22",color:ROLE_COLORS[r]||TEAL,borderRadius:12,padding:"1px 8px"}}>{r}</span>
+                              <span key={r} style={{fontSize:10.5,fontWeight:600,background:(ROLE_COLORS[r]||TEAL)+"22",color:ROLE_COLORS[r]||TEAL,borderRadius:12,padding:"1px 8px",whiteSpace:"nowrap"}}>{r}</span>
                             ))}
                           </span>
                         </div>
@@ -2312,14 +2312,14 @@ export default function AnalyticsPage({ members, services, attendance, household
                     <CollapsibleCard key={g.n} title={`Plays ${g.n} instrument${g.n!==1?"s":""}`} subtitle={`${g.players.length} musician${g.players.length!==1?"s":""}`}>
                       <div style={{display:"flex",flexDirection:"column",gap:8}}>
                         {g.players.map(({member,instruments}) => (
-                          <div key={member.id} style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
-                            <span style={{display:"inline-flex",alignItems:"center",gap:6,minWidth:150}}>
+                          <div key={member.id} style={{display:"flex",alignItems:"flex-start",gap:10,flexWrap:"wrap"}}>
+                            <span style={{display:"inline-flex",alignItems:"center",gap:6,minWidth:140,flexShrink:0}}>
                               <Avatar member={member} size={22} />
                               <span style={{fontSize:12.5,fontWeight:600,color:"var(--text)"}}>{fullName(member)}</span>
                             </span>
-                            <span style={{display:"flex",flexWrap:"wrap",gap:5}}>
+                            <span style={{display:"flex",flexWrap:"wrap",gap:5,flex:"1 1 160px",minWidth:0,paddingTop:2}}>
                               {instruments.map(inst => (
-                                <span key={inst} style={{fontSize:10.5,fontWeight:600,background:"var(--brand-tint-soft)",color:TEAL,borderRadius:12,padding:"1px 8px"}}>{inst}</span>
+                                <span key={inst} style={{fontSize:10.5,fontWeight:600,background:"var(--brand-tint-soft)",color:TEAL,borderRadius:12,padding:"1px 8px",whiteSpace:"nowrap"}}>{inst}</span>
                               ))}
                             </span>
                           </div>

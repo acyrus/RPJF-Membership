@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
-import { Avatar, fullName, daysUntilNext, formatShortDate } from "../components";
-import { Cake, Gem, CalendarDays } from "lucide-react";
+import { Avatar, fullName, daysUntilNext, formatShortDate, MultiSelect } from "../components";
+import { Cake, Gem, CalendarDays, Search } from "lucide-react";
 
 function ordinal(n) {
   const s = ["th","st","nd","rd"], v = n%100;
@@ -126,9 +126,11 @@ function MonthSection({ monthIndex, entries, type, past, onMemberClick, isCurren
   );
 }
 
-export default function CelebrationsPage({ members, onMemberClick }) {
+export default function CelebrationsPage({ members, households = [], onMemberClick }) {
   const [subtab, setSubtab] = useState("birthdays");
   const [viewMode, setViewMode] = useState("upcoming"); // "upcoming" or "past"
+  const [person, setPerson] = useState("");             // filter by name
+  const [famSelected, setFamSelected] = useState([]);   // multi-select households
 
   const today = new Date();
   const currentMonth = today.getMonth();
@@ -137,12 +139,25 @@ export default function CelebrationsPage({ members, onMemberClick }) {
 
   const dateField = subtab === "birthdays" ? "dob" : "anniversary";
 
+  const sortedHouseholds = useMemo(() => [...households].sort((a, b) => a.name.localeCompare(b.name)), [households]);
+  // Partner lookup must see everyone, so build the id map from the full list.
   const memberById = useMemo(() => Object.fromEntries(members.map(m => [m.id, m])), [members]);
+
+  // Person / family filters narrow which celebrations are shown.
+  const filterActive = !!person.trim() || famSelected.length > 0;
+  const filteredMembers = useMemo(() => {
+    const pq = person.trim().toLowerCase();
+    if (!pq && famSelected.length === 0) return members;
+    return members.filter(m =>
+      (!pq || fullName(m).toLowerCase().includes(pq)) &&
+      (famSelected.length === 0 || famSelected.includes(m.household_id))
+    );
+  }, [members, person, famSelected]);
 
   // Upcoming = date hasn't passed yet this year; Past = already passed. Anniversaries
   // merge spouse couples into one entry (see buildByMonth).
-  const upcomingByMonth = useMemo(() => buildByMonth(members, dateField, currentMonth, currentDay, memberById, false), [members, dateField, currentMonth, currentDay, memberById]);
-  const pastByMonth = useMemo(() => buildByMonth(members, dateField, currentMonth, currentDay, memberById, true), [members, dateField, currentMonth, currentDay, memberById]);
+  const upcomingByMonth = useMemo(() => buildByMonth(filteredMembers, dateField, currentMonth, currentDay, memberById, false), [filteredMembers, dateField, currentMonth, currentDay, memberById]);
+  const pastByMonth = useMemo(() => buildByMonth(filteredMembers, dateField, currentMonth, currentDay, memberById, true), [filteredMembers, dateField, currentMonth, currentDay, memberById]);
 
   const upcomingTotal = Object.values(upcomingByMonth).reduce((s, a) => s + a.length, 0);
   const pastTotal = Object.values(pastByMonth).reduce((s, a) => s + a.length, 0);
@@ -150,16 +165,16 @@ export default function CelebrationsPage({ members, onMemberClick }) {
   // This-month count: anniversaries are deduped by spouse so a couple counts once.
   const thisMonthCount = useMemo(() => {
     const inMonth = m => m[dateField] && m.is_active !== false && new Date(m[dateField] + "T00:00:00").getUTCMonth() === currentMonth;
-    if (subtab === "birthdays") return members.filter(inMonth).length;
+    if (subtab === "birthdays") return filteredMembers.filter(inMonth).length;
     const consumed = new Set(); let n = 0;
-    members.filter(inMonth).forEach(m => {
+    filteredMembers.filter(inMonth).forEach(m => {
       if (consumed.has(m.id)) return;
       consumed.add(m.id);
       if (m.spouse_id) { const s = memberById[m.spouse_id]; if (s && s.anniversary === m.anniversary) consumed.add(s.id); }
       n++;
     });
     return n;
-  }, [members, subtab, dateField, currentMonth, memberById]);
+  }, [filteredMembers, subtab, dateField, currentMonth, memberById]);
 
   const type = subtab === "birthdays" ? "birthday" : "anniversary";
   const monthsUpcoming = Array.from({length: 12 - currentMonth}, (_, i) => currentMonth + i);  // current month onwards
@@ -168,17 +183,31 @@ export default function CelebrationsPage({ members, onMemberClick }) {
   return (
     <div className="fade-in">
       {/* Header */}
-      <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20}}>
+      <div style={{display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:16, flexWrap:"wrap", gap:12}}>
         <div>
           <div style={{fontFamily:"'Inter',sans-serif", color:"var(--text)", fontSize:14, letterSpacing:0.5, fontWeight:700}}>CELEBRATIONS</div>
           <div style={{fontSize:12, color:"var(--text-faint)", marginTop:3}}>
             {upcomingTotal} {type === "birthday" ? "birthday" : "anniversary"}{upcomingTotal !== 1 ? (type==="birthday"?"s":"ies") : (type==="anniversary"?"":"s")} remaining · {pastTotal} already passed this year
           </div>
         </div>
-        <div style={{background:"var(--panel)",border:"1.5px solid var(--border-navy)",borderRadius:10,padding:"8px 14px",textAlign:"center"}}>
+        <div style={{background:"var(--panel)",border:"1.5px solid var(--border-navy)",borderRadius:10,padding:"8px 14px",textAlign:"center",flexShrink:0}}>
           <div style={{fontSize:12,color:"var(--text-faint)",fontWeight:600}}>This Month</div>
           <div style={{fontSize:20,fontWeight:700,color:"var(--brand)"}}>{thisMonthCount}</div>
         </div>
+      </div>
+
+      {/* Person / family filters */}
+      <div style={{display:"flex", gap:8, flexWrap:"wrap", alignItems:"center", marginBottom:18}}>
+        <div style={{position:"relative"}}>
+          <Search size={13} style={{position:"absolute", left:9, top:"50%", transform:"translateY(-50%)", color:"var(--text-faint)"}} />
+          <input placeholder="Search person…" value={person} onChange={e=>setPerson(e.target.value)} style={{width:170, paddingLeft:28, fontSize:12}} />
+        </div>
+        <MultiSelect label="All families" width={170}
+          options={sortedHouseholds.map(h => ({ value: h.id, label: h.name }))}
+          selected={famSelected} onChange={setFamSelected} />
+        {filterActive && (
+          <button onClick={()=>{setPerson("");setFamSelected([]);}} style={{background:"none", border:"1px solid var(--border-navy-strong)", borderRadius:20, color:"var(--text-faint)", cursor:"pointer", fontSize:12, padding:"4px 12px", fontWeight:500}}>Clear filters</button>
+        )}
       </div>
 
       {/* Main sub tabs: Birthdays / Anniversaries */}
@@ -186,7 +215,7 @@ export default function CelebrationsPage({ members, onMemberClick }) {
         {[
           { key:"birthdays", icon:<Cake size={15} />, label:"Birthdays", count: thisMonthCount },
           { key:"anniversaries", icon:<Gem size={15} />, label:"Anniversaries",
-            count: members.filter(m => m.anniversary && m.is_active !== false && new Date(m.anniversary+"T00:00:00").getUTCMonth() === currentMonth).length },
+            count: filteredMembers.filter(m => m.anniversary && m.is_active !== false && new Date(m.anniversary+"T00:00:00").getUTCMonth() === currentMonth).length },
         ].map(t => (
           <button key={t.key} onClick={()=>setSubtab(t.key)} style={{
             background:"none", border:"none", cursor:"pointer",

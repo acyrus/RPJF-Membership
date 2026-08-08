@@ -177,13 +177,31 @@ export default function DashboardPage({ profile, members, services, attendance, 
         </div>
       </div>
 
-      {/* Member Stats */}
+      {/* Member Stats — compact at-a-glance */}
       <SectionTitle>Membership</SectionTitle>
-      <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-        <StatCard icon={<Users size={22} />} label="Total Members" value={members.length} color="#2a5357" onClick={() => setTab("members")} />
-        <StatCard icon={<UserCheck size={22} />} label="Active Members" value={stats.active} sub={`${members.length ? Math.round((stats.active/members.length)*100) : 0}% of total`} color="#4caf82" onClick={() => setTab("members")} />
-        <StatCard icon={<PauseCircle size={22} />} label="Inactive Members" value={stats.inactive} color="#8a96b8" onClick={() => setTab("members")} />
-        <StatCard icon={<Church size={22} />} label="Services This Year" value={stats.servicesThisYear} color="#e07830" onClick={() => setTab("attendance")} />
+      <div onClick={() => setTab("members")} style={{ background: "var(--surface)", border: "1.5px solid var(--border-navy)", borderRadius: 14, padding: "16px 18px", boxShadow: "0 1px 4px #0000000a", cursor: "pointer" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, flex: 1, minWidth: 150 }}>
+            <div style={{ width: 46, height: 46, borderRadius: 12, background: "#2a535718", color: "#2a5357", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><Users size={24} /></div>
+            <div>
+              <div style={{ fontSize: 32, fontWeight: 700, color: "var(--text-heading)", lineHeight: 1, fontFamily: "'Inter',sans-serif" }}>{members.length}</div>
+              <div style={{ fontSize: 12.5, fontWeight: 600, color: "var(--text-navy)", marginTop: 3 }}>Total Members</div>
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: 22 }}>
+            <div>
+              <div style={{ fontSize: 21, fontWeight: 700, color: "#4caf82", lineHeight: 1 }}>{stats.active}</div>
+              <div style={{ fontSize: 11.5, color: "var(--text-muted-navy)", marginTop: 3 }}>Active · {members.length ? Math.round((stats.active / members.length) * 100) : 0}%</div>
+            </div>
+            <div>
+              <div style={{ fontSize: 21, fontWeight: 700, color: "#8a96b8", lineHeight: 1 }}>{stats.inactive}</div>
+              <div style={{ fontSize: 11.5, color: "var(--text-muted-navy)", marginTop: 3 }}>Inactive</div>
+            </div>
+          </div>
+        </div>
+        <div style={{ marginTop: 14, height: 7, background: "var(--panel)", borderRadius: 4, overflow: "hidden", display: "flex" }}>
+          <div style={{ width: `${members.length ? (stats.active / members.length) * 100 : 0}%`, background: "#4caf82" }} />
+        </div>
       </div>
 
       {/* Attendance Stats */}
