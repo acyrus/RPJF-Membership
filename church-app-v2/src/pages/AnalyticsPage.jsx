@@ -3,9 +3,9 @@ import {
   LineChart, Line, AreaChart, Area, ReferenceLine, BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LabelList, Customized
 } from "recharts";
-import { ROLES, ROLE_COLORS, TRINIDAD_CITIES, calcAge, fullName, Avatar } from "../components";
+import { ROLES, ROLE_COLORS, TRINIDAD_CITIES, calcAge, fullName, Avatar, clickable } from "../components";
 import { supabase } from "../supabase";
-import { Search, Home, Check, X, ChevronDown, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown, UserMinus, SlidersHorizontal, Users, TrendingUp, Calendar, Clock, Baby, Music, Layers, UserCheck, Heart, User } from "lucide-react";
+import { Search, Home, Check, X, ChevronDown, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown, UserMinus, SlidersHorizontal, Users, TrendingUp, Calendar, Clock, Baby, Music, Layers, UserCheck, Heart, User, AlertTriangle } from "lucide-react";
 
 const TEAL      = "#2a5357";
 const TURQUOISE = "#5edcd1";
@@ -92,7 +92,7 @@ function SectionTitle({ children }) {
 
 function ChartCard({ title, subtitle, children }) {
   return (
-    <div style={{background:"var(--surface)",border:"1px solid #edf0f4",borderRadius:10,padding:"18px 20px",boxShadow:"0 1px 2px #0b13210a",marginBottom:4}}>
+    <div className="card" style={{padding:"18px 20px",marginBottom:4}}>
       <div style={{marginBottom:16}}>
         <div className="card-title">{title}</div>
         {subtitle && <div style={{fontSize:12,color:"var(--text-muted-navy)",marginTop:2}}>{subtitle}</div>}
@@ -106,8 +106,8 @@ function ChartCard({ title, subtitle, children }) {
 function CollapsibleCard({ title, subtitle, defaultOpen = false, children }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <div style={{ background: "var(--surface)", border: "1px solid #edf0f4", borderRadius: 10, boxShadow: "0 1px 2px #0b13210a", overflow: "hidden" }}>
-      <div onClick={() => setOpen(o => !o)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "14px 18px", cursor: "pointer" }}>
+    <div className="card" style={{ overflow: "hidden" }}>
+      <div {...clickable(() => setOpen(o => !o), title)} aria-expanded={open} style={{ display: "flex", alignItems: "center", gap: 10, padding: "14px 18px", cursor: "pointer" }}>
         {open ? <ChevronDown size={16} color="var(--text-muted-navy)" /> : <ChevronRight size={16} color="var(--text-muted-navy)" />}
         <div style={{ flex: 1, minWidth: 0 }}>
           <div className="card-title">{title}</div>
@@ -203,7 +203,7 @@ function StatTile({ label, value, color="#2a5357", delta=null, sub, spark, spark
 function DonutCard({ title, subtitle, data }) {
   const sum = data.reduce((a,b)=>a+(b.value||0),0);
   return (
-    <div style={{background:"var(--surface)",border:"1px solid #edf0f4",borderRadius:10,padding:"18px 20px",boxShadow:"0 1px 2px #0b13210a",marginBottom:4}}>
+    <div className="card" style={{padding:"18px 20px",marginBottom:4}}>
       <div style={{marginBottom:16}}>
         <div className="card-title">{title}</div>
         {subtitle && <div style={{fontSize:12,color:"var(--text-muted-navy)",marginTop:2}}>{subtitle}</div>}
@@ -296,7 +296,7 @@ function MultiSelect({ label, options, selected, onChange }) {
   const on = selected.length > 0;
   return (
     <div style={{position:"relative"}}>
-      <button onClick={()=>setOpen(o=>!o)} style={{...chipBase, background:on?TEAL_C:"var(--surface-alt)", color:on?"#fff":"#374151", border:`1.5px solid ${on?TEAL_C:"var(--border)"}`}}>
+      <button onClick={()=>setOpen(o=>!o)} style={{...chipBase, background:on?TEAL_C:"var(--surface-alt)", color:on?"#fff":"var(--text-2)", border:`1.5px solid ${on?TEAL_C:"var(--border)"}`}}>
         {summary} ▾
       </button>
       {open && (
@@ -332,7 +332,7 @@ function MemberPicker({ members, selectedIds, onChange }) {
   const label = on ? `${selectedIds.length} member${selectedIds.length===1?"":"s"}` : "Specific members";
   return (
     <div style={{position:"relative"}}>
-      <button onClick={()=>setOpen(o=>!o)} style={{...chipBase, background:on?PURPLE:"var(--surface-alt)", color:on?"#fff":"#374151", border:`1.5px solid ${on?PURPLE:"var(--border)"}`}}>
+      <button onClick={()=>setOpen(o=>!o)} style={{...chipBase, background:on?PURPLE:"var(--surface-alt)", color:on?"#fff":"var(--text-2)", border:`1.5px solid ${on?PURPLE:"var(--border)"}`}}>
         <Search size={12} /> {label} ▾
       </button>
       {open && (
@@ -340,7 +340,7 @@ function MemberPicker({ members, selectedIds, onChange }) {
           <div onClick={()=>setOpen(false)} style={{position:"fixed",inset:0,zIndex:50}} />
           <div style={{position:"absolute",top:"calc(100% + 4px)",left:0,zIndex:51,background:"var(--surface)",border:"1px solid var(--border)",borderRadius:10,boxShadow:"0 8px 24px #00000018",padding:8,width:260,maxHeight:320,overflowY:"auto"}}>
             <input autoFocus value={q} onChange={e=>setQ(e.target.value)} placeholder="Search members…"
-              style={{width:"100%",padding:"7px 9px",border:"1.5px solid #d6dde3",borderRadius:8,fontSize:12.5,marginBottom:6}} />
+              style={{width:"100%",padding:"7px 9px",border:"1.5px solid var(--border-strong)",borderRadius:8,fontSize:12.5,marginBottom:6}} />
             {selectedIds.length > 0 && (
               <button onClick={()=>onChange([])} style={{width:"100%",marginBottom:6,padding:"5px",fontSize:11.5,background:"var(--danger-bg)",border:"1px solid var(--danger-border)",borderRadius:6,color:"var(--danger)",cursor:"pointer"}}>Clear {selectedIds.length} selected</button>
             )}
@@ -489,7 +489,7 @@ function HouseholdAttendance({ households, members, services, attendance }) {
         const open = openId === h.id;
         return (
           <div key={h.id} style={{ border: "1px solid var(--border)", borderRadius: 10, overflow: "hidden" }}>
-            <div onClick={() => setOpenId(open ? null : h.id)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", cursor: "pointer", background: "var(--surface)" }}>
+            <div {...clickable(() => setOpenId(open ? null : h.id), h.name)} aria-expanded={open} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", cursor: "pointer", background: "var(--surface)" }}>
               {open ? <ChevronDown size={15} color="var(--text-muted-navy)" /> : <ChevronRight size={15} color="var(--text-muted-navy)" />}
               <Home size={15} color="var(--brand)" />
               <div style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 600, color: "var(--text)" }}>{h.name}</div>
@@ -508,6 +508,8 @@ function HouseholdAttendance({ households, members, services, attendance }) {
                           <div style={{ fontSize: 9, fontWeight: 500, color: "var(--text-faint)", lineHeight: 1.2, marginTop: 3, maxWidth: 88, whiteSpace: "normal" }}>{s.name}</div>
                         </th>
                       ))}
+                      <th style={{ padding: "8px 10px", color: "var(--text-faint)", fontWeight: 700, textAlign: "right", minWidth: 64 }}>Attended</th>
+                      <th style={{ padding: "8px 10px", color: "var(--text-faint)", fontWeight: 700, textAlign: "right", minWidth: 56 }}>Absent</th>
                       <th style={{ padding: "8px 10px", color: "var(--text-faint)", fontWeight: 700, textAlign: "right" }}>Rate</th>
                     </tr>
                   </thead>
@@ -518,6 +520,8 @@ function HouseholdAttendance({ households, members, services, attendance }) {
                         <tr key={m.id} style={{ borderTop: "1px solid var(--border-divider)" }}>
                           <td style={{ position: "sticky", left: 0, zIndex: 1, background: "var(--surface)", padding: "6px 10px", fontWeight: 600, color: "var(--text)", whiteSpace: "nowrap" }}>{fullName(m)}</td>
                           {cols.map(s => { const p = (attendance[s.id] || []).includes(m.id); return <td key={s.id} style={{ textAlign: "center", padding: "6px 5px" }}>{p ? <Check size={13} color="#2a8a50" /> : <X size={12} color="#d05050" />}</td>; })}
+                          <td style={{ textAlign: "right", padding: "6px 10px", fontWeight: 700, color: "#2a8a50" }}>{att}</td>
+                          <td style={{ textAlign: "right", padding: "6px 10px", fontWeight: 700, color: "#d05050" }}>{total - att}</td>
                           <td style={{ textAlign: "right", padding: "6px 10px", fontWeight: 700, color: "var(--brand)" }}>{total ? Math.round(att / total * 100) : 0}%</td>
                         </tr>
                       );
@@ -950,6 +954,35 @@ export default function AnalyticsPage({ members, services, attendance, household
       .map(n => ({ n, players: groups[n].sort((x, y) => fullName(x.member).localeCompare(fullName(y.member))) }));
   }, [filteredMembers]);
 
+  // 16c. Serving map by household — roll ministry roles up to the family. Surfaces
+  // over-committed families (burnout risk, BURNOUT_ROLES+ combined roles) and families
+  // with zero involvement (assimilation gap). Uses filteredMembers so it respects the
+  // active/status filter like the rest of the Ministries tab.
+  const BURNOUT_ROLES = 4;
+  const servingByHousehold = useMemo(() => {
+    const byHh = {};
+    filteredMembers.forEach(m => { if (m.household_id) (byHh[m.household_id] = byHh[m.household_id] || []).push(m); });
+    const rows = Object.entries(byHh).map(([id, mem]) => {
+      const hh = households.find(h => h.id === id);
+      let totalRoles = 0, serving = 0, leaders = 0;
+      const ministries = new Set();
+      mem.forEach(m => {
+        const roles = [...new Set((m.roles || []).filter(Boolean))];
+        totalRoles += roles.length;
+        if (roles.length) serving++;
+        roles.forEach(r => ministries.add(r));
+        Object.values(m.rolePositions || {}).forEach(p => { if (p === "Leader" || p === "Co-Leader") leaders++; });
+      });
+      return { id, name: hh?.name || "Household", size: mem.length, totalRoles, serving, leaders, ministries: [...ministries].sort() };
+    });
+    rows.sort((a, b) => b.totalRoles - a.totalRoles || a.name.localeCompare(b.name));
+    return {
+      rows,
+      overCommitted: rows.filter(r => r.totalRoles >= BURNOUT_ROLES).length,
+      notServing: rows.filter(r => r.totalRoles === 0).length,
+    };
+  }, [filteredMembers, households]);
+
   // 17. Distinct with role
   const distinctWithRole = useMemo(() =>
     filteredMembers.filter(m => (m.roles||[]).length > 0).length
@@ -1320,7 +1353,7 @@ export default function AnalyticsPage({ members, services, attendance, household
                     <button key={key} onClick={()=>{setQuickRange(key);setCustomFrom("");setCustomTo("");}} style={{
                       padding:"5px 12px",borderRadius:20,fontSize:12,fontWeight:500,cursor:"pointer",
                       background:quickRange===key&&!customFrom?TEAL:"var(--surface-alt)",
-                      color:quickRange===key&&!customFrom?"#fff":"#374151",
+                      color:quickRange===key&&!customFrom?"#fff":"var(--text-2)",
                       border:`1.5px solid ${quickRange===key&&!customFrom?TEAL:"var(--border)"}`,
                     }}>{label}</button>
                   ))}
@@ -1339,14 +1372,14 @@ export default function AnalyticsPage({ members, services, attendance, household
                   <button onClick={()=>setSvcTypeFilter([])} style={{
                     padding:"5px 12px",borderRadius:20,fontSize:12,fontWeight:500,cursor:"pointer",
                     background:svcTypeFilter.length===0?TEAL:"var(--surface-alt)",
-                    color:svcTypeFilter.length===0?"#fff":"#374151",
+                    color:svcTypeFilter.length===0?"#fff":"var(--text-2)",
                     border:`1.5px solid ${svcTypeFilter.length===0?TEAL:"var(--border)"}`,
                   }}>All</button>
                   {allSvcTypes.map(t => (
                     <button key={t} onClick={()=>toggleSvcType(t)} style={{
                       padding:"5px 12px",borderRadius:20,fontSize:12,fontWeight:500,cursor:"pointer",
                       background:svcTypeFilter.includes(t)?TEAL:"var(--surface-alt)",
-                      color:svcTypeFilter.includes(t)?"#fff":"#374151",
+                      color:svcTypeFilter.includes(t)?"#fff":"var(--text-2)",
                       border:`1.5px solid ${svcTypeFilter.includes(t)?TEAL:"var(--border)"}`,
                     }}>{t}</button>
                   ))}
@@ -1447,7 +1480,7 @@ export default function AnalyticsPage({ members, services, attendance, household
                           <stop offset="100%" stopColor={TEAL} stopOpacity={0.02} />
                         </linearGradient>
                       </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" vertical={false} />
+                      <CartesianGrid strokeDasharray="3 3" stroke="var(--border-divider)" vertical={false} />
                       <XAxis dataKey="label" tick={{fontSize:11,fill:"var(--text-faint)"}} />
                       <YAxis tick={{fontSize:11,fill:"var(--text-faint)"}} />
                       <Tooltip content={<CustomTooltip />} />
@@ -1465,7 +1498,7 @@ export default function AnalyticsPage({ members, services, attendance, household
                           <stop offset="100%" stopColor={TURQUOISE} stopOpacity={0.03} />
                         </linearGradient>
                       </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" vertical={false} />
+                      <CartesianGrid strokeDasharray="3 3" stroke="var(--border-divider)" vertical={false} />
                       <XAxis dataKey="label" tick={{fontSize:11,fill:"var(--text-faint)"}} />
                       <YAxis tick={{fontSize:11,fill:"var(--text-faint)"}} />
                       <Tooltip content={<CustomTooltip />} />
@@ -1503,7 +1536,7 @@ export default function AnalyticsPage({ members, services, attendance, household
               : <ChartCard title={svcTypeAxis==="date"?"Attendance by Service Type (by date)":"Monthly Attendance by Service Type"} subtitle={svcTypeAxis==="date"?"Members present at each service, by date":"Distinct members per service type each month"}>
                 <ResponsiveContainer width="100%" height={280}>
                   <LineChart data={svcTypeData} margin={{top:4,right:16,bottom:svcTypeAxis==="date"?44:4,left:0}}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border-divider)" />
                     <XAxis dataKey="label" tick={{fontSize:svcTypeAxis==="date"?9:11,fill:"var(--text-faint)"}} angle={svcTypeAxis==="date"?-40:0} textAnchor={svcTypeAxis==="date"?"end":"middle"} interval={svcTypeAxis==="date"?"preserveStartEnd":0} height={svcTypeAxis==="date"?54:30} />
                     <YAxis tick={{fontSize:11,fill:"var(--text-faint)"}} allowDecimals={false} />
                     <Tooltip content={<CustomTooltip />} />
@@ -1533,7 +1566,7 @@ export default function AnalyticsPage({ members, services, attendance, household
               : <ChartCard title="Monthly Attendance by Age Group" subtitle="Distinct members per age band each month">
                 <ResponsiveContainer width="100%" height={260}>
                   <LineChart data={attByAgeMonthly} margin={{top:4,right:16,bottom:4,left:0}}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border-divider)" />
                     <XAxis dataKey="label" tick={{fontSize:11,fill:"var(--text-faint)"}} />
                     <YAxis tick={{fontSize:11,fill:"var(--text-faint)"}} allowDecimals={false} />
                     <Tooltip content={<CustomTooltip />} />
@@ -1616,7 +1649,7 @@ export default function AnalyticsPage({ members, services, attendance, household
               {attByType.length === 0 ? <div style={{textAlign:"center",padding:30,color:"var(--text-faint)",fontSize:12}}>No data</div>
                 : <ResponsiveContainer width="100%" height={220}>
                     <BarChart data={attByType} margin={{top:4,right:8,bottom:40,left:0}}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" vertical={false} />
+                      <CartesianGrid strokeDasharray="3 3" stroke="var(--border-divider)" vertical={false} />
                       <XAxis dataKey="name" tick={{fontSize:10,fill:"var(--text-faint)"}} angle={-25} textAnchor="end" interval={0} />
                       <YAxis tick={{fontSize:11,fill:"var(--text-faint)"}} />
                       <Tooltip content={<CustomTooltip />} />
@@ -1632,7 +1665,7 @@ export default function AnalyticsPage({ members, services, attendance, household
           <SectionTitle>Member Attendance Rates</SectionTitle>
           <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:14}}>
             <ChartCard title="Attendance Consistency" subtitle="How regularly members attend">
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+              <div className="grid-2" style={{gap:10}}>
                 {[
                   {label:"Regular (75%+)", value:memberAttRates.high, color:GREEN},
                   {label:"Occasional (40-74%)", value:memberAttRates.medium, color:GOLD},
@@ -1829,7 +1862,7 @@ export default function AnalyticsPage({ members, services, attendance, household
             {cityBreakdown.length === 0 ? <div style={{textAlign:"center",padding:30,color:"var(--text-faint)",fontSize:12}}>No city data recorded</div>
               : <ResponsiveContainer width="100%" height={Math.max(160, cityBreakdown.length*30)}>
                   <BarChart data={cityBreakdown} layout="vertical" margin={{top:4,right:44,bottom:4,left:100}}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" horizontal={false} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border-divider)" horizontal={false} />
                     <XAxis type="number" tick={{fontSize:11,fill:"var(--text-faint)"}} />
                     <YAxis type="category" dataKey="name" tick={{fontSize:11,fill:"var(--text-2)"}} width={95} />
                     <Tooltip content={<CustomTooltip />} />
@@ -1846,7 +1879,7 @@ export default function AnalyticsPage({ members, services, attendance, household
             {joinTrend.length === 0 ? <div style={{textAlign:"center",padding:30,color:"var(--text-faint)",fontSize:12}}>No join dates in this period</div>
               : <ResponsiveContainer width="100%" height={200}>
                   <BarChart data={joinTrend} margin={{top:4,right:16,bottom:4,left:0}}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" vertical={false} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border-divider)" vertical={false} />
                     <XAxis dataKey="label" tick={{fontSize:11,fill:"var(--text-faint)"}} />
                     <YAxis tick={{fontSize:11,fill:"var(--text-faint)"}} allowDecimals={false} />
                     <Tooltip content={<CustomTooltip />} />
@@ -1874,8 +1907,8 @@ export default function AnalyticsPage({ members, services, attendance, household
                 : `${total} anniversar${total!==1?"ies":"y"} · linked spouses counted once · current month highlighted`}>
                 <ResponsiveContainer width="100%" height={210}>
                   <BarChart data={data} margin={{top:14,right:16,bottom:4,left:0}}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" vertical={false} />
-                    <XAxis dataKey="name" tick={{fontSize:10,fill:"var(--text-faint)"}} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border-divider)" vertical={false} />
+                    <XAxis dataKey="name" tickFormatter={v=>v.slice(0,3)} interval={0} tick={{fontSize:9.5,fill:"var(--text-faint)"}} />
                     <YAxis tick={{fontSize:11,fill:"var(--text-faint)"}} allowDecimals={false} />
                     <Tooltip content={<CustomTooltip />} />
                     <Bar dataKey="count" name={celebMode==="birthdays"?"Birthdays":"Anniversaries"} radius={[6,6,0,0]}>
@@ -1907,7 +1940,7 @@ export default function AnalyticsPage({ members, services, attendance, household
                                 <stop offset="100%" stopColor={TEAL} stopOpacity={0.02} />
                               </linearGradient>
                             </defs>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" vertical={false} />
+                            <CartesianGrid strokeDasharray="3 3" stroke="var(--border-divider)" vertical={false} />
                             <XAxis dataKey="label" tick={{fontSize:11,fill:"var(--text-faint)"}} />
                             <YAxis tick={{fontSize:11,fill:"var(--text-faint)"}} allowDecimals={false} />
                             <Tooltip content={<CustomTooltip />} />
@@ -1949,7 +1982,7 @@ export default function AnalyticsPage({ members, services, attendance, household
                     <>
                       <ResponsiveContainer width="100%" height={300}>
                         <BarChart data={agePyramid} layout="vertical" stackOffset="sign" margin={{top:4,right:34,bottom:4,left:30}}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" horizontal={false} />
+                          <CartesianGrid strokeDasharray="3 3" stroke="var(--border-divider)" horizontal={false} />
                           <XAxis type="number" tick={{fontSize:11,fill:"var(--text-faint)"}} tickFormatter={v=>Math.abs(v)} allowDecimals={false} />
                           <YAxis type="category" dataKey="band" tick={{fontSize:11,fill:"var(--text-2)"}} width={110} />
                           <Tooltip formatter={(v,n)=>[Math.abs(v), n]} />
@@ -2014,7 +2047,7 @@ export default function AnalyticsPage({ members, services, attendance, household
                 <ChartCard title="Household Size Distribution" subtitle="How many households of each size">
                   <ResponsiveContainer width="100%" height={200}>
                     <BarChart data={householdView.sizeChart} margin={{top:4,right:8,bottom:4,left:0}}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" vertical={false} />
+                      <CartesianGrid strokeDasharray="3 3" stroke="var(--border-divider)" vertical={false} />
                       <XAxis dataKey="name" tick={{fontSize:11,fill:"var(--text-faint)"}} />
                       <YAxis tick={{fontSize:11,fill:"var(--text-faint)"}} allowDecimals={false} />
                       <Tooltip content={<CustomTooltip />} />
@@ -2025,7 +2058,7 @@ export default function AnalyticsPage({ members, services, attendance, household
                   </ResponsiveContainer>
                 </ChartCard>
                 <ChartCard title="Family Composition" subtitle="Households with children vs adults only">
-                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+                  <div className="grid-2" style={{gap:10}}>
                     {[
                       {label:"With children (under 18)", value:householdView.withChildren, color:ORANGE},
                       {label:"Adults only", value:householdView.adultsOnly, color:TEAL},
@@ -2095,7 +2128,7 @@ export default function AnalyticsPage({ members, services, attendance, household
             {ministrySize.length === 0 ? <div style={{textAlign:"center",padding:30,color:"var(--text-faint)",fontSize:12}}>No ministry data</div>
               : <ResponsiveContainer width="100%" height={260}>
                   <BarChart data={ministrySize} margin={{top:4,right:16,bottom:50,left:0}}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" vertical={false} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border-divider)" vertical={false} />
                     <XAxis dataKey="name" tick={{fontSize:10,fill:"var(--text-faint)"}} angle={-30} textAnchor="end" interval={0} />
                     <YAxis tick={{fontSize:11,fill:"var(--text-faint)"}} allowDecimals={false} />
                     <Tooltip content={<CustomTooltip />} />
@@ -2113,7 +2146,7 @@ export default function AnalyticsPage({ members, services, attendance, household
             {ministryCoverage.length === 0 ? <div style={{textAlign:"center",padding:30,color:"var(--text-faint)",fontSize:12}}>No ministry data</div>
               : <ResponsiveContainer width="100%" height={Math.max(200, ministryCoverage.length*38)}>
                   <BarChart data={ministryCoverage} layout="vertical" margin={{top:4,right:24,bottom:4,left:30}}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" horizontal={false} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border-divider)" horizontal={false} />
                     <XAxis type="number" tick={{fontSize:11,fill:"var(--text-faint)"}} allowDecimals={false} />
                     <YAxis type="category" dataKey="name" tick={{fontSize:11,fill:"var(--text-2)"}} width={120} />
                     <Tooltip content={<CustomTooltip />} />
@@ -2124,7 +2157,7 @@ export default function AnalyticsPage({ members, services, attendance, household
                     <Bar dataKey="female" name="Female" stackId="g" fill={PINK}>
                       <LabelList dataKey="female" position="center" formatter={v=>v||""} style={{fontSize:9,fontWeight:700,fill:"#fff"}} />
                     </Bar>
-                    <Bar dataKey="unknownSex" name="Unknown" stackId="g" fill="#e5e7eb" />
+                    <Bar dataKey="unknownSex" name="Unknown" stackId="g" fill="var(--border)" />
                   </BarChart>
                 </ResponsiveContainer>
             }
@@ -2196,6 +2229,46 @@ export default function AnalyticsPage({ members, services, attendance, household
             }
           </ChartCard>
 
+          <SectionTitle>Serving Map by Household</SectionTitle>
+          <div className="grid-2" style={{gap:12, marginBottom:12}}>
+            <IconStat icon={<AlertTriangle size={18}/>} value={servingByHousehold.overCommitted} label="Over-committed families" sub={`${BURNOUT_ROLES}+ ministry roles across the family`} color={ORANGE} />
+            <IconStat icon={<UserMinus size={18}/>} value={servingByHousehold.notServing} label="Families not serving" sub="no ministry involvement (assimilation gap)" color={RED} />
+          </div>
+          <ChartCard title="Ministry Load by Household" subtitle={`Ministry roles rolled up across each family. Families carrying ${BURNOUT_ROLES}+ roles are flagged as burnout risk at the top; families with none sit at the bottom as an assimilation gap.`}>
+            {servingByHousehold.rows.length === 0
+              ? <div style={{textAlign:"center",padding:24,color:"var(--text-faint)",fontSize:12}}>No households with members in this view</div>
+              : <div style={{display:"flex",flexDirection:"column"}}>
+                  {servingByHousehold.rows.map((r,i) => {
+                    const burnout = r.totalRoles >= BURNOUT_ROLES;
+                    const zero = r.totalRoles === 0;
+                    return (
+                      <div key={r.id} style={{display:"flex",alignItems:"flex-start",gap:12,padding:"11px 0",borderTop:i>0?"1px solid var(--border-divider)":"none"}}>
+                        <Home size={15} color="var(--text-muted-navy)" style={{marginTop:2,flexShrink:0}} />
+                        <div style={{flex:1,minWidth:0}}>
+                          <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+                            <span style={{fontSize:13.5,fontWeight:700,color:"var(--text)"}}>{r.name}</span>
+                            {burnout && <span style={{fontSize:10,fontWeight:700,background:ORANGE+"1f",color:ORANGE,borderRadius:12,padding:"1px 8px"}}>Burnout risk</span>}
+                            {zero && <span style={{fontSize:10,fontWeight:700,background:RED+"1f",color:RED,borderRadius:12,padding:"1px 8px"}}>Not serving</span>}
+                            {r.leaders > 0 && <span style={{fontSize:10,fontWeight:700,background:"var(--pos-badge-bg)",color:"var(--pos-badge-fg)",border:"1px solid var(--pos-badge-bd)",borderRadius:12,padding:"1px 8px"}}>{r.leaders} leader{r.leaders!==1?"s":""}</span>}
+                          </div>
+                          {r.ministries.length > 0
+                            ? <div style={{display:"flex",flexWrap:"wrap",gap:5,marginTop:5}}>
+                                {r.ministries.map(m => <span key={m} style={{fontSize:10.5,fontWeight:600,background:(ROLE_COLORS[m]||TEAL)+"22",color:ROLE_COLORS[m]||TEAL,borderRadius:12,padding:"1px 8px",whiteSpace:"nowrap"}}>{m}</span>)}
+                              </div>
+                            : <div style={{fontSize:11.5,color:"var(--text-faint)",fontStyle:"italic",marginTop:4}}>No ministry involvement</div>}
+                        </div>
+                        <div style={{textAlign:"right",flexShrink:0,minWidth:64}}>
+                          <div style={{fontSize:18,fontWeight:700,color:burnout?ORANGE:zero?"var(--text-faint)":"var(--text)",lineHeight:1}}>{r.totalRoles}</div>
+                          <div style={{fontSize:10,color:"var(--text-faint)",marginTop:2}}>role{r.totalRoles!==1?"s":""}</div>
+                          <div style={{fontSize:10.5,color:"var(--text-muted-navy)",marginTop:3}}>{r.serving}/{r.size} serving</div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+            }
+          </ChartCard>
+
           <SectionTitle>Members by Ministry Count</SectionTitle>
           {ministryByCount.length === 0
             ? <ChartCard title="Members by Ministry Count" subtitle="Nobody is serving in a ministry yet in this view"><div style={{textAlign:"center",padding:20,color:"var(--text-faint)",fontSize:12}}>No data</div></ChartCard>
@@ -2204,14 +2277,14 @@ export default function AnalyticsPage({ members, services, attendance, household
                   <CollapsibleCard key={g.n} title={`Serves in ${g.n} ministr${g.n!==1?"ies":"y"}`} subtitle={`${g.players.length} member${g.players.length!==1?"s":""}`}>
                     <div style={{display:"flex",flexDirection:"column",gap:8}}>
                       {g.players.map(({member,roles}) => (
-                        <div key={member.id} style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
-                          <span style={{display:"inline-flex",alignItems:"center",gap:6,minWidth:150}}>
+                        <div key={member.id} style={{display:"flex",alignItems:"flex-start",gap:10,flexWrap:"wrap"}}>
+                          <span style={{display:"inline-flex",alignItems:"center",gap:6,minWidth:140,flexShrink:0}}>
                             <Avatar member={member} size={22} />
                             <span style={{fontSize:12.5,fontWeight:600,color:"var(--text)"}}>{fullName(member)}</span>
                           </span>
-                          <span style={{display:"flex",flexWrap:"wrap",gap:5}}>
+                          <span style={{display:"flex",flexWrap:"wrap",gap:5,flex:"1 1 160px",minWidth:0,paddingTop:2}}>
                             {roles.map(r => (
-                              <span key={r} style={{fontSize:10.5,fontWeight:600,background:(ROLE_COLORS[r]||TEAL)+"22",color:ROLE_COLORS[r]||TEAL,borderRadius:12,padding:"1px 8px"}}>{r}</span>
+                              <span key={r} style={{fontSize:10.5,fontWeight:600,background:(ROLE_COLORS[r]||TEAL)+"22",color:ROLE_COLORS[r]||TEAL,borderRadius:12,padding:"1px 8px",whiteSpace:"nowrap"}}>{r}</span>
                             ))}
                           </span>
                         </div>
@@ -2250,7 +2323,7 @@ export default function AnalyticsPage({ members, services, attendance, household
                 <ChartCard title="Players per Instrument" subtitle="How many musicians play each instrument">
                   <ResponsiveContainer width="100%" height={Math.max(180, instrumentData.instrumentList.length*34)}>
                     <BarChart data={instrumentData.instrumentList} layout="vertical" margin={{top:4,right:44,bottom:4,left:90}}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" horizontal={false} />
+                      <CartesianGrid strokeDasharray="3 3" stroke="var(--border-divider)" horizontal={false} />
                       <XAxis type="number" tick={{fontSize:11,fill:"var(--text-faint)"}} allowDecimals={false} />
                       <YAxis type="category" dataKey="instrument" tick={{fontSize:11,fill:"var(--text-2)"}} width={85} />
                       <Tooltip content={<CustomTooltip />} />
@@ -2295,7 +2368,7 @@ export default function AnalyticsPage({ members, services, attendance, household
                 <ChartCard title="How Many Instruments Each Musician Plays" subtitle="Count of musicians by number of instruments">
                   <ResponsiveContainer width="100%" height={210}>
                     <BarChart data={instrumentData.distList} margin={{top:16,right:16,bottom:4,left:0}}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" vertical={false} />
+                      <CartesianGrid strokeDasharray="3 3" stroke="var(--border-divider)" vertical={false} />
                       <XAxis dataKey="name" tick={{fontSize:11,fill:"var(--text-faint)"}} />
                       <YAxis tick={{fontSize:11,fill:"var(--text-faint)"}} allowDecimals={false} />
                       <Tooltip content={<CustomTooltip />} />
@@ -2312,14 +2385,14 @@ export default function AnalyticsPage({ members, services, attendance, household
                     <CollapsibleCard key={g.n} title={`Plays ${g.n} instrument${g.n!==1?"s":""}`} subtitle={`${g.players.length} musician${g.players.length!==1?"s":""}`}>
                       <div style={{display:"flex",flexDirection:"column",gap:8}}>
                         {g.players.map(({member,instruments}) => (
-                          <div key={member.id} style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
-                            <span style={{display:"inline-flex",alignItems:"center",gap:6,minWidth:150}}>
+                          <div key={member.id} style={{display:"flex",alignItems:"flex-start",gap:10,flexWrap:"wrap"}}>
+                            <span style={{display:"inline-flex",alignItems:"center",gap:6,minWidth:140,flexShrink:0}}>
                               <Avatar member={member} size={22} />
                               <span style={{fontSize:12.5,fontWeight:600,color:"var(--text)"}}>{fullName(member)}</span>
                             </span>
-                            <span style={{display:"flex",flexWrap:"wrap",gap:5}}>
+                            <span style={{display:"flex",flexWrap:"wrap",gap:5,flex:"1 1 160px",minWidth:0,paddingTop:2}}>
                               {instruments.map(inst => (
-                                <span key={inst} style={{fontSize:10.5,fontWeight:600,background:"var(--brand-tint-soft)",color:TEAL,borderRadius:12,padding:"1px 8px"}}>{inst}</span>
+                                <span key={inst} style={{fontSize:10.5,fontWeight:600,background:"var(--brand-tint-soft)",color:TEAL,borderRadius:12,padding:"1px 8px",whiteSpace:"nowrap"}}>{inst}</span>
                               ))}
                             </span>
                           </div>

@@ -115,7 +115,7 @@ export default function LoginPage() {
               </div>
             )}
             {resetMsg && <div style={{background:"var(--brand-tint-soft)",border:"1px solid #b0e8c8",color:"#2a7a50",fontSize:12,padding:"9px 11px",borderRadius:8,marginTop:10,lineHeight:1.5}}>{resetMsg}</div>}
-            <button type="submit" disabled={loading || locked} style={{width:"100%",marginTop:18,padding:13,fontSize:14,background:(loading||locked)?"#9ca3af":"#2a5357",color:"#fff",border:"none",borderRadius:8,fontFamily:"Inter,sans-serif",fontWeight:500,cursor:(loading||locked)?"not-allowed":"pointer",transition:"background 0.15s"}}>
+            <button type="submit" disabled={loading || locked} style={{width:"100%",marginTop:18,padding:13,fontSize:14,background:(loading||locked)?"var(--text-faint)":"#2a5357",color:"#fff",border:"none",borderRadius:8,fontFamily:"Inter,sans-serif",fontWeight:500,cursor:(loading||locked)?"not-allowed":"pointer",transition:"background 0.15s"}}>
               {locked ? `Try again in ${remaining}s` : loading ? "Signing in…" : "Sign In"}
             </button>
           </form>

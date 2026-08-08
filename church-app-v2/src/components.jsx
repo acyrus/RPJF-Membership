@@ -137,7 +137,7 @@ function PasswordInput({ value, onChange, placeholder, onEnter, autoFocus, small
         placeholder={placeholder}
         autoFocus={autoFocus}
         onKeyDown={e => { if (e.key === "Enter" && onEnter) onEnter(); }}
-        style={{ width: "100%", padding: small ? "9px 58px 9px 11px" : "10px 58px 10px 12px", border: "1.5px solid #d6dde3", borderRadius: small ? 9 : 10, fontSize: small ? 13.5 : 14 }}
+        style={{ width: "100%", padding: small ? "9px 58px 9px 11px" : "10px 58px 10px 12px", border: "1.5px solid var(--border-strong)", borderRadius: small ? 9 : 10, fontSize: small ? 13.5 : 14 }}
       />
       <button type="button" onClick={() => setShow(s => !s)}
         style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", color: "var(--brand)", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
@@ -190,7 +190,7 @@ export function MfaChallenge({ onVerified, onCancel }) {
           onChange={e => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
           onKeyDown={e => e.key === "Enter" && submit()}
           inputMode="numeric" autoFocus placeholder="000000"
-          style={{ width: "100%", textAlign: "center", letterSpacing: 8, fontSize: 22, fontWeight: 700, padding: "10px 12px", border: "1.5px solid #d6dde3", borderRadius: 10, fontFamily: "monospace" }}
+          style={{ width: "100%", textAlign: "center", letterSpacing: 8, fontSize: 22, fontWeight: 700, padding: "10px 12px", border: "1.5px solid var(--border-strong)", borderRadius: 10, fontFamily: "monospace" }}
         />
         {error && <div style={{ color: "#d05050", fontSize: 12, marginTop: 10 }}>{error}</div>}
         <button onClick={submit} disabled={busy}
@@ -377,7 +377,7 @@ export function OnboardingFlow({ onComplete, onCancel, onPasswordSet, requirePas
                 {enrolling.secret && <div style={{ fontSize: 11, color: "var(--text-faint)", marginBottom: 10 }}>Can't scan? Key: <code style={{ fontSize: 12, color: "var(--text-2)", wordBreak: "break-all" }}>{enrolling.secret}</code></div>}
                 <input value={code} onChange={e => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))} onKeyDown={e => e.key === "Enter" && finish()}
                   inputMode="numeric" autoFocus placeholder="000000"
-                  style={{ width: 160, textAlign: "center", letterSpacing: 6, fontSize: 20, fontWeight: 700, padding: "9px 10px", border: "1.5px solid #d6dde3", borderRadius: 10, fontFamily: "monospace" }} />
+                  style={{ width: 160, textAlign: "center", letterSpacing: 6, fontSize: 20, fontWeight: 700, padding: "9px 10px", border: "1.5px solid var(--border-strong)", borderRadius: 10, fontFamily: "monospace" }} />
               </div>
             )}
             {mfaErr && <div style={{ color: "#d05050", fontSize: 12, marginTop: 10, textAlign: "center" }}>{mfaErr}</div>}
@@ -551,7 +551,7 @@ export function SecurityModal({ onClose }) {
                 <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text)" }}>Password</div>
                 <div style={{ fontSize: 12, color: "var(--text-muted)" }}>Change the password you use to sign in</div>
               </div>
-              <ChevronRight size={18} color="#c0c8d8" />
+              <ChevronRight size={18} color="var(--border-navy-strong)" />
             </button>
 
             <button onClick={() => setView("2fa")}
@@ -561,8 +561,8 @@ export function SecurityModal({ onClose }) {
                 <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text)" }}>Two-step verification</div>
                 <div style={{ fontSize: 12, color: "var(--text-muted)" }}>An extra code at sign-in from your authenticator app</div>
               </div>
-              <span style={{ fontSize: 11, fontWeight: 700, color: factor ? "#2a7a50" : "#9ca3af", background: factor ? "var(--brand-tint-soft)" : "var(--panel)", borderRadius: 20, padding: "3px 10px" }}>{twoFaStatus}</span>
-              <ChevronRight size={18} color="#c0c8d8" />
+              <span style={{ fontSize: 11, fontWeight: 700, color: factor ? "#2a7a50" : "var(--text-faint)", background: factor ? "var(--brand-tint-soft)" : "var(--panel)", borderRadius: 20, padding: "3px 10px" }}>{twoFaStatus}</span>
+              <ChevronRight size={18} color="var(--border-navy-strong)" />
             </button>
           </div>
         )}
@@ -652,7 +652,7 @@ export function SecurityModal({ onClose }) {
                   onChange={e => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
                   onKeyDown={e => e.key === "Enter" && confirmEnroll()}
                   inputMode="numeric" autoFocus placeholder="000000"
-                  style={{ width: 160, textAlign: "center", letterSpacing: 6, fontSize: 20, fontWeight: 700, padding: "9px 10px", border: "1.5px solid #d6dde3", borderRadius: 10, fontFamily: "monospace" }}
+                  style={{ width: 160, textAlign: "center", letterSpacing: 6, fontSize: 20, fontWeight: 700, padding: "9px 10px", border: "1.5px solid var(--border-strong)", borderRadius: 10, fontFamily: "monospace" }}
                 />
                 <div>
                   <button onClick={confirmEnroll} disabled={busy}
@@ -702,7 +702,7 @@ export function PhotoUploader({ value, onChange }) {
   return (
     <div style={{display:"flex",alignItems:"center",gap:14}}>
       <div style={{width:64,height:64,borderRadius:"50%",background:"var(--panel)",border:"1.5px solid var(--border-navy)",display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden",flexShrink:0}}>
-        {value ? <img src={value} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}} /> : <span style={{display:"flex",color:"#c0c8e0"}}><Camera size={24} /></span>}
+        {value ? <img src={value} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}} /> : <span style={{display:"flex",color:"var(--border-navy-strong)"}}><Camera size={24} /></span>}
       </div>
       <div style={{display:"flex",flexDirection:"column",gap:6}}>
         <label className="btn-ghost" style={{cursor:"pointer",fontSize:12,display:"inline-block"}}>
@@ -922,6 +922,21 @@ export function ValidationMsg({ errors, field }) {
   return <div style={{color:"#e05050",fontSize:12,marginTop:3,fontWeight:500}}>{errors[field]}</div>;
 }
 
+// Make a non-<button> element behave like a button for keyboard + screen-reader
+// users: spread onto a clickable div/row. Keeps the same click handler and adds
+// role, focusability, and Enter/Space activation. Use for list rows and cards.
+export function clickable(handler, label) {
+  return {
+    role: "button",
+    tabIndex: 0,
+    "aria-label": label,
+    onClick: handler,
+    onKeyDown: e => {
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); handler(e); }
+    },
+  };
+}
+
 export function Avatar({ member, size=40 }) {
   const { open } = useContext(PhotoLightboxContext);
   const name = fullName(member);
@@ -939,7 +954,7 @@ export function Avatar({ member, size=40 }) {
     );
   }
   return (
-    <div style={{width:size,height:size,borderRadius:"50%",background:member.is_active===false?"#b0b8c8":color,display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontWeight:700,fontSize:size*0.36,fontFamily:"'Inter',sans-serif",flexShrink:0,opacity:member.is_active===false?0.7:1}}>
+    <div style={{width:size,height:size,borderRadius:"50%",background:member.is_active===false?"var(--neutral-mute)":color,display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontWeight:700,fontSize:size*0.36,fontFamily:"'Inter',sans-serif",flexShrink:0,opacity:member.is_active===false?0.7:1}}>
       {initials(member)}
     </div>
   );
@@ -960,7 +975,7 @@ export function SexBadge({ sex }) {
 }
 export function StatusBadge({ active }) {
   return active === false
-    ? <span style={{background:"var(--panel)",border:"1.5px solid #c0c8e0",color:"var(--text-faint)",borderRadius:20,padding:"3px 10px",fontSize:12,fontWeight:700,display:"inline-block"}}>Inactive</span>
+    ? <span style={{background:"var(--panel)",border:"1.5px solid var(--border-navy-strong)",color:"var(--text-faint)",borderRadius:20,padding:"3px 10px",fontSize:12,fontWeight:700,display:"inline-block"}}>Inactive</span>
     : <span style={{background:"var(--brand-tint-soft)",border:"1.5px solid #a0dfc0",color:"#2a8a50",borderRadius:20,padding:"3px 10px",fontSize:12,fontWeight:700,display:"inline-block"}}>Active</span>;
 }
 export function InfoRow({ icon, label, value }) {
@@ -1154,7 +1169,7 @@ export function MemberForm({ value, onChange, onSubmit, onCancel, submitLabel="S
             const sel = (value.instruments||"").split(",").map(s=>s.trim()).filter(Boolean);
             const on = sel.includes(inst);
             return (
-              <label key={inst} style={{display:"inline-flex",alignItems:"center",gap:6,fontSize:12,color:"var(--text-2)",background:on?"#2a535712":"var(--panel)",border:`1px solid ${on?"#2a535744":"#e4e9f5"}`,borderRadius:8,padding:"5px 10px",cursor:"pointer"}}>
+              <label key={inst} style={{display:"inline-flex",alignItems:"center",gap:6,fontSize:12,color:"var(--text-2)",background:on?"#2a535712":"var(--panel)",border:`1px solid ${on?"#2a535744":"var(--border-navy)"}`,borderRadius:8,padding:"5px 10px",cursor:"pointer"}}>
                 <input type="checkbox" checked={on} onChange={e=>{
                   const next = sel.filter(x=>x!==inst);
                   if (e.target.checked) next.push(inst);

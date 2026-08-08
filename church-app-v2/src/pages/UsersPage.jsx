@@ -61,7 +61,7 @@ function TabAccessModal({ user, onSave, onReset, onClose, saving }) {
               <label key={key} style={{
                 display:"flex", alignItems:"center", gap:7, fontSize:12, cursor:"pointer",
                 background: on ? "#2a535712" : "var(--panel)",
-                border:`1px solid ${on ? "#2a535744" : "#e4e9f5"}`,
+                border:`1px solid ${on ? "#2a535744" : "var(--border-navy)"}`,
                 borderRadius:8, padding:"7px 10px", color:"var(--text-2)",
               }}>
                 <input type="checkbox" checked={on} onChange={()=>toggle(key)} />

@@ -77,7 +77,7 @@ export default function SkillsPage({ members, households = [], onMemberClick }) 
 
       {visibleSkills.length === 0 ? (
         <div style={{textAlign:"center", padding:"48px 20px", color:"var(--border-strong)"}}>
-          <div style={{marginBottom:12, display:"flex", justifyContent:"center"}}><Zap size={36} color="#8a96b8" /></div>
+          <div style={{marginBottom:12, display:"flex", justifyContent:"center"}}><Zap size={36} color="var(--text-muted-navy)" /></div>
           <div style={{fontWeight:600, color:"var(--text-muted)", marginBottom:6}}>
             {memberFilterActive || selectedSkills.length > 0 ? "No skills match those filters" : "No skills recorded yet"}
           </div>
@@ -102,7 +102,6 @@ export default function SkillsPage({ members, households = [], onMemberClick }) 
                       <Avatar member={m} size={28} />
                       <div style={{minWidth:0}}>
                         <div style={{fontSize:12, color:"var(--text)", fontWeight:600}}>{fullName(m)}</div>
-                        {householdById[m.household_id] && <div style={{fontSize:10, color:"var(--text-faint)"}}>{householdById[m.household_id]}</div>}
                       </div>
                     </div>
                   ))}

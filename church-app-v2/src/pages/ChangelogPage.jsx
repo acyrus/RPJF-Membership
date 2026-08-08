@@ -126,7 +126,7 @@ export default function ChangelogPage() {
         <div style={{textAlign:"center",padding:40,color:"var(--text-faint)"}}>Loading logs…</div>
       ) : grouped.length === 0 ? (
         <div style={{textAlign:"center",padding:"48px 20px",color:"var(--border-strong)"}}>
-          <div style={{marginBottom:12,display:"flex",justifyContent:"center"}}><ClipboardList size={36} color="#8a96b8" /></div>
+          <div style={{marginBottom:12,display:"flex",justifyContent:"center"}}><ClipboardList size={36} color="var(--text-muted-navy)" /></div>
           <div style={{fontWeight:600,color:"var(--text-muted)",marginBottom:6}}>No activity found</div>
           <div style={{fontSize:12}}>Activity will appear here as changes are made.</div>
         </div>
@@ -138,7 +138,7 @@ export default function ChangelogPage() {
             </div>
             <div className="card" style={{padding:6}}>
               {entries.map((entry, i) => {
-                const color = ACTION_COLORS[entry.action_type] || "#8a96b8";
+                const color = ACTION_COLORS[entry.action_type] || "var(--text-muted-navy)";
                 const icon = ACTION_ICONS[entry.action_type] || <FileText size={16} />;
                 return (
                   <div key={entry.id} style={{

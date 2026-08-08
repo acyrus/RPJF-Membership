@@ -858,7 +858,7 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
           <button key={key} onClick={()=>setActiveTab(key)} style={{
             background:"none", border:"none", cursor:"pointer", fontFamily:"'Inter',sans-serif",
             fontSize:14, fontWeight:600, padding:"10px 18px",
-            color:activeTab===key?"#2a5357":"#8a96b8",
+            color:activeTab===key?"#2a5357":"var(--text-muted-navy)",
             borderBottom:activeTab===key?"2px solid var(--brand)":"2px solid transparent",
             transition:"all 0.15s",
           }}>{label}</button>
@@ -923,7 +923,7 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
             <div className="card" style={{padding:20, marginBottom:16}}>
               <div style={{fontWeight:700, fontSize:14, color:"var(--text)", marginBottom:4}}>Map Columns</div>
               <div style={{fontSize:12, color:"var(--text-faint)", marginBottom:12}}>{memberRows.length} rows found. Match your spreadsheet columns to the app fields.</div>
-              <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:10}}>
+              <div className="grid-2" style={{gap:10}}>
                 {MEMBER_COLUMNS.map(col => (
                   <div key={col}>
                     <label className="field-label">{col.replace(/_/g," ")}{["first_name","last_name"].includes(col)?" *":""}</label>
@@ -1190,8 +1190,8 @@ export default function ImportPage({ profile, members = [], onImportComplete }) 
           {rosterCheck && (
             <div style={{display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))", gap:12, marginBottom:16}}>
               {[
-                ["On the roster", rosterCheck.rosterCount, "#2a3560"],
-                ["In the app", rosterCheck.appCount, "#2a3560"],
+                ["On the roster", rosterCheck.rosterCount, "var(--text-navy)"],
+                ["In the app", rosterCheck.appCount, "var(--text-navy)"],
                 ["Matched", rosterCheck.matched, "#2a8a50"],
                 ["Missing from app", rosterCheck.missingFromApp.length, "var(--warn-amber-text)"],
                 ["Not on roster", rosterCheck.notOnRoster.length, "#8a5a10"],

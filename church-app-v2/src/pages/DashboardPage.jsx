@@ -6,14 +6,14 @@ import { Users, UserCheck, PauseCircle, Church, BarChart3, Calendar, TrendingUp,
 function StatCard({ icon, label, value, sub, color = "#2a5357", onClick }) {
   return (
     <div onClick={onClick} style={{
-      background: "var(--surface)", border: "1.5px solid var(--border-navy)", borderRadius: 14,
+      background: "var(--surface)", border: "1px solid var(--border-card)", borderRadius: 14,
       padding: "18px 20px", flex: 1, minWidth: 140,
       cursor: onClick ? "pointer" : "default",
       transition: "box-shadow 0.15s, border-color 0.15s",
-      boxShadow: "0 1px 4px #0000000a",
+      boxShadow: "0 1px 4px var(--shadow-card)",
     }}
     onMouseEnter={e => { if (onClick) { e.currentTarget.style.borderColor = color; e.currentTarget.style.boxShadow = `0 2px 12px ${color}18`; }}}
-    onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border-navy)"; e.currentTarget.style.boxShadow = "0 1px 4px #0000000a"; }}>
+    onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border-card)"; e.currentTarget.style.boxShadow = "0 1px 4px var(--shadow-card)"; }}>
       <div style={{ fontSize: 22, marginBottom: 8 }}>{icon}</div>
       <div style={{ fontSize: 28, fontWeight: 700, color, fontFamily: "'Inter',sans-serif", lineHeight: 1 }}>{value}</div>
       <div style={{ fontSize: 12, fontWeight: 600, color: "var(--text-navy)", marginTop: 4 }}>{label}</div>
@@ -33,7 +33,7 @@ function DonutBlock({ data, total, totalLabel }) {
     <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
       <div style={{ position: "relative", width: size, height: size, flexShrink: 0 }}>
         <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ transform: "rotate(-90deg)" }}>
-          <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="#f0f2f8" strokeWidth={thickness} />
+          <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="var(--panel)" strokeWidth={thickness} />
           {data.map((d, i) => {
             const dash = (d.value / sum) * circ;
             const el = <circle key={i} cx={size/2} cy={size/2} r={r} fill="none" stroke={d.color} strokeWidth={thickness} strokeDasharray={`${dash} ${circ - dash}`} strokeDashoffset={-off} />;
@@ -177,13 +177,31 @@ export default function DashboardPage({ profile, members, services, attendance, 
         </div>
       </div>
 
-      {/* Member Stats */}
+      {/* Member Stats — compact at-a-glance */}
       <SectionTitle>Membership</SectionTitle>
-      <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-        <StatCard icon={<Users size={22} />} label="Total Members" value={members.length} color="#2a5357" onClick={() => setTab("members")} />
-        <StatCard icon={<UserCheck size={22} />} label="Active Members" value={stats.active} sub={`${members.length ? Math.round((stats.active/members.length)*100) : 0}% of total`} color="#4caf82" onClick={() => setTab("members")} />
-        <StatCard icon={<PauseCircle size={22} />} label="Inactive Members" value={stats.inactive} color="#8a96b8" onClick={() => setTab("members")} />
-        <StatCard icon={<Church size={22} />} label="Services This Year" value={stats.servicesThisYear} color="#e07830" onClick={() => setTab("attendance")} />
+      <div onClick={() => setTab("members")} style={{ background: "var(--surface)", border: "1px solid var(--border-card)", borderRadius: 14, padding: "16px 18px", boxShadow: "0 1px 4px var(--shadow-card)", cursor: "pointer" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, flex: 1, minWidth: 150 }}>
+            <div style={{ width: 46, height: 46, borderRadius: 12, background: "#2a535718", color: "#2a5357", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><Users size={24} /></div>
+            <div>
+              <div style={{ fontSize: 32, fontWeight: 700, color: "var(--text-heading)", lineHeight: 1, fontFamily: "'Inter',sans-serif" }}>{members.length.toLocaleString()}</div>
+              <div style={{ fontSize: 12.5, fontWeight: 600, color: "var(--text-navy)", marginTop: 3 }}>Total Members</div>
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: 22 }}>
+            <div>
+              <div style={{ fontSize: 21, fontWeight: 700, color: "var(--accent-green-strong)", lineHeight: 1 }}>{stats.active.toLocaleString()}</div>
+              <div style={{ fontSize: 11.5, color: "var(--text-muted-navy)", marginTop: 3 }}>Active · {members.length ? Math.round((stats.active / members.length) * 100) : 0}%</div>
+            </div>
+            <div>
+              <div style={{ fontSize: 21, fontWeight: 700, color: "var(--text-muted-navy)", lineHeight: 1 }}>{stats.inactive.toLocaleString()}</div>
+              <div style={{ fontSize: 11.5, color: "var(--text-muted-navy)", marginTop: 3 }}>Inactive</div>
+            </div>
+          </div>
+        </div>
+        <div style={{ marginTop: 14, height: 7, background: "var(--panel)", borderRadius: 4, overflow: "hidden", display: "flex" }}>
+          <div style={{ width: `${members.length ? (stats.active / members.length) * 100 : 0}%`, background: "var(--accent-green-strong)" }} />
+        </div>
       </div>
 
       {/* Attendance Stats */}
@@ -220,9 +238,9 @@ export default function DashboardPage({ profile, members, services, attendance, 
       {stats.trendsByType && stats.trendsByType.length > 0 && (
         <>
           <SectionTitle>Attendance Trend by Service Type</SectionTitle>
-          <div className="card" style={{padding:"16px 18px", boxShadow:"0 1px 4px #0000000a"}}>
+          <div className="card" style={{padding:"16px 18px", boxShadow:"0 1px 4px var(--shadow-card)"}}>
             {stats.trendsByType.map(t => {
-              const color = t.direction === "up" ? "#4caf82" : t.direction === "down" ? "#e05050" : "#8a96b8";
+              const color = t.direction === "up" ? "#4caf82" : t.direction === "down" ? "#e05050" : "var(--text-muted-navy)";
               const icon = t.direction === "up" ? <TrendingUp size={20} /> : t.direction === "down" ? <TrendingDown size={20} /> : <ArrowRight size={20} />;
               const label = t.direction === "up" ? "Growing" : t.direction === "down" ? "Declining" : t.direction === null ? "Not enough data" : "Steady";
               return (
@@ -256,12 +274,12 @@ export default function DashboardPage({ profile, members, services, attendance, 
       )}
 
       {/* Member Breakdown + Celebrations side by side */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginTop: 28 }}>
+      <div className="grid-2" style={{ gap: 16, marginTop: 28 }}>
 
         {/* Member Breakdown */}
         <div>
           <div className="section-title flush">Member Breakdown</div>
-          <div style={{ background: "var(--surface)", border: "1.5px solid var(--border-navy)", borderRadius: 14, padding: "16px 18px", boxShadow: "0 1px 4px #0000000a" }}>
+          <div style={{ background: "var(--surface)", border: "1px solid var(--border-card)", borderRadius: 14, padding: "16px 18px", boxShadow: "0 1px 4px var(--shadow-card)" }}>
             {/* Sex */}
             <div style={{ marginBottom: 14 }}>
               <DonutBlock
@@ -286,10 +304,10 @@ export default function DashboardPage({ profile, members, services, attendance, 
         {/* Celebrations this week */}
         <div>
           <div className="section-title flush">Celebrations This Week</div>
-          <div style={{ background: "var(--surface)", border: "1.5px solid var(--border-navy)", borderRadius: 14, padding: "16px 18px", boxShadow: "0 1px 4px #0000000a", minHeight: 140 }}>
+          <div style={{ background: "var(--surface)", border: "1px solid var(--border-card)", borderRadius: 14, padding: "16px 18px", boxShadow: "0 1px 4px var(--shadow-card)", minHeight: 140 }}>
             {stats.birthdaysThisWeek.length === 0 && stats.anniversariesThisWeek.length === 0 ? (
               <div style={{ textAlign: "center", padding: "24px 0", color: "var(--border-navy-strong)", fontSize: 12 }}>
-                <div style={{ marginBottom: 8 }}><PartyPopper size={28} color="#b0b8d0" /></div>
+                <div style={{ marginBottom: 8 }}><PartyPopper size={28} color="var(--neutral-mute)" /></div>
                 No celebrations this week
               </div>
             ) : (
@@ -335,7 +353,7 @@ export default function DashboardPage({ profile, members, services, attendance, 
 
       {/* Age Category Breakdown */}
       <SectionTitle>Members by Age Group</SectionTitle>
-      <div style={{ background:"var(--surface)", border:"1.5px solid var(--border-navy)", borderRadius:14, padding:"16px 18px", boxShadow:"0 1px 4px #0000000a", marginBottom:4 }}>
+      <div style={{ background:"var(--surface)", border:"1px solid var(--border-card)", borderRadius:14, padding:"16px 18px", boxShadow:"0 1px 4px var(--shadow-card)", marginBottom:4 }}>
         {stats.ageCats.map(cat => {
           const pct = stats.active ? Math.round((cat.count / stats.active) * 100) : 0;
           return (
@@ -370,21 +388,21 @@ export default function DashboardPage({ profile, members, services, attendance, 
       {/* Households at a glance */}
       <SectionTitle>Households at a Glance</SectionTitle>
       {stats.household.count === 0 ? (
-        <div onClick={() => setTab("households")} style={{ background:"var(--surface)", border:"1.5px solid var(--border-navy)", borderRadius:14, padding:"18px 20px", boxShadow:"0 1px 4px #0000000a", cursor:"pointer", display:"flex", alignItems:"center", gap:14 }}>
-          <span style={{ display:"flex" }}><Home size={28} color="#8a96b8" /></span>
+        <div onClick={() => setTab("households")} style={{ background:"var(--surface)", border:"1px solid var(--border-card)", borderRadius:14, padding:"18px 20px", boxShadow:"0 1px 4px var(--shadow-card)", cursor:"pointer", display:"flex", alignItems:"center", gap:14 }}>
+          <span style={{ display:"flex" }}><Home size={28} color="var(--text-muted-navy)" /></span>
           <div>
             <div style={{ fontSize:14, fontWeight:700, color:"var(--text-navy)" }}>No households yet</div>
             <div style={{ fontSize:12, color:"var(--text-muted-navy)", marginTop:2 }}>Group families together in the Households tab →</div>
           </div>
         </div>
       ) : (
-        <div style={{ background:"var(--surface)", border:"1.5px solid var(--border-navy)", borderRadius:14, padding:"18px 20px", boxShadow:"0 1px 4px #0000000a" }}>
+        <div style={{ background:"var(--surface)", border:"1px solid var(--border-card)", borderRadius:14, padding:"18px 20px", boxShadow:"0 1px 4px var(--shadow-card)" }}>
           <div style={{ display:"flex", gap:12, flexWrap:"wrap" }}>
             {[
               { icon:<Home size={18} color="#2a5357" />, label:"Households", value:stats.household.count, color:"var(--brand)" },
               { icon:<Users size={18} color="#4caf82" />, label:"Avg Family Size", value:stats.household.avg ? stats.household.avg.toFixed(1) : "0", color:"#4caf82" },
               { icon:<Link2 size={18} color="#3a8fd0" />, label:"Members Linked", value:stats.household.inHousehold, color:"#3a8fd0", sub:`${members.length ? Math.round((stats.household.inHousehold/members.length)*100) : 0}% of members` },
-              { icon:<Circle size={18} color="#8a96b8" />, label:"Not Linked", value:stats.household.without, color:"var(--text-muted-navy)" },
+              { icon:<Circle size={18} color="var(--text-muted-navy)" />, label:"Not Linked", value:stats.household.without, color:"var(--text-muted-navy)" },
             ].map(s => (
               <div key={s.label} onClick={() => setTab("households")} style={{ flex:1, minWidth:120, cursor:"pointer" }}>
                 <div style={{ fontSize:18, marginBottom:4 }}>{s.icon}</div>
@@ -401,7 +419,7 @@ export default function DashboardPage({ profile, members, services, attendance, 
       {topRoles.length > 0 && (
         <>
           <SectionTitle>Ministry Distribution</SectionTitle>
-          <div style={{ background: "var(--surface)", border: "1.5px solid var(--border-navy)", borderRadius: 14, padding: "16px 18px", boxShadow: "0 1px 4px #0000000a" }}>
+          <div style={{ background: "var(--surface)", border: "1px solid var(--border-card)", borderRadius: 14, padding: "16px 18px", boxShadow: "0 1px 4px var(--shadow-card)" }}>
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               {topRoles.map(([role, count]) => {
                 const color = ROLE_COLORS[role] || "#2a5357";
@@ -427,7 +445,7 @@ export default function DashboardPage({ profile, members, services, attendance, 
       {isAdmin && recentLog.length > 0 && (
         <>
           <SectionTitle>Recent Activity</SectionTitle>
-          <div style={{ background: "var(--surface)", border: "1.5px solid var(--border-navy)", borderRadius: 14, padding: "6px", boxShadow: "0 1px 4px #0000000a" }}>
+          <div style={{ background: "var(--surface)", border: "1px solid var(--border-card)", borderRadius: 14, padding: "6px", boxShadow: "0 1px 4px var(--shadow-card)" }}>
             {recentLog.map((entry, i) => (
               <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: "10px 14px", borderBottom: i < recentLog.length-1 ? "1px solid var(--panel)" : "none" }}>
                 <span style={{ fontSize: 16, flexShrink: 0 }}>{entry.icon || <FileText size={16} />}</span>
@@ -443,8 +461,8 @@ export default function DashboardPage({ profile, members, services, attendance, 
 
       {/* Empty state for new installs */}
       {members.length === 0 && (
-        <div style={{ textAlign: "center", padding: "40px 20px", marginTop: 20, background: "var(--surface)", border: "1.5px solid var(--border-navy)", borderRadius: 14 }}>
-          <div style={{ marginBottom: 12 }}><Church size={36} color="#8a96b8" /></div>
+        <div style={{ textAlign: "center", padding: "40px 20px", marginTop: 20, background: "var(--surface)", border: "1px solid var(--border-card)", borderRadius: 14 }}>
+          <div style={{ marginBottom: 12 }}><Church size={36} color="var(--text-muted-navy)" /></div>
           <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text-navy)", marginBottom: 6 }}>Welcome to {branding.name}</div>
           <div style={{ fontSize: 13, color: "var(--text-muted-navy)", maxWidth: 320, margin: "0 auto 20px" }}>Get started by adding your first member or importing existing members.</div>
           <button className="btn-primary" onClick={() => setTab("members")}>+ Add First Member</button>

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "../supabase";
-import { Avatar, RoleBadge, SERVICE_NAMES, fullName, useHeaderOffset } from "../components";
-import { Check, ClipboardList, X, Search, ChevronLeft, FileText, Pencil } from "lucide-react";
+import { Avatar, RoleBadge, SERVICE_NAMES, fullName, useHeaderOffset, clickable } from "../components";
+import { Check, ClipboardList, X, Search, ChevronLeft, ChevronDown, FileText, Pencil } from "lucide-react";
 
 // Render list OR detail on mobile (master-detail), both side-by-side on desktop.
 function useIsMobile(bp = 768) {
@@ -14,6 +14,49 @@ function useIsMobile(bp = 768) {
     return () => { mq.removeEventListener ? mq.removeEventListener("change", on) : mq.removeListener(on); };
   }, [q]);
   return m;
+}
+
+// Multi-selectable family filter: a button that opens a checkbox panel of households.
+// `selected` is a Set of household ids; empty Set means "all families".
+function FamilyMultiSelect({ households, selected, setSelected }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+  useEffect(() => {
+    const onDoc = e => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, []);
+  const toggle = id => setSelected(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  const label = selected.size === 0 ? "All families" : `${selected.size} famil${selected.size > 1 ? "ies" : "y"} selected`;
+  return (
+    <div ref={ref} style={{ position: "relative" }}>
+      <button type="button" onClick={() => setOpen(o => !o)} title="Filter by family"
+        style={{ display: "inline-flex", alignItems: "center", gap: 6, width: 170, justifyContent: "space-between", fontSize: 12, padding: "6px 10px", borderRadius: 8, border: `1px solid ${selected.size ? "var(--brand)" : "var(--border)"}`, background: "var(--surface)", color: selected.size ? "var(--brand)" : "var(--text-2)", cursor: "pointer", fontWeight: 500 }}>
+        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{label}</span>
+        <ChevronDown size={14} style={{ flexShrink: 0 }} />
+      </button>
+      {open && (
+        <div style={{ position: "absolute", top: "calc(100% + 4px)", right: 0, zIndex: 60, width: 240, maxWidth: "calc(100vw - 24px)", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, boxShadow: "0 10px 30px #00000026", overflow: "hidden" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 12px", borderBottom: "1px solid var(--border-divider)" }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: "var(--text-faint)", textTransform: "uppercase", letterSpacing: 0.5 }}>Families</span>
+            <button type="button" onClick={() => setSelected(new Set())} disabled={selected.size === 0}
+              style={{ background: "none", border: "none", color: selected.size ? "var(--brand)" : "var(--text-faint)", cursor: selected.size ? "pointer" : "default", fontSize: 11.5, fontWeight: 600, padding: 0 }}>Clear</button>
+          </div>
+          <div style={{ maxHeight: 260, overflowY: "auto", padding: "4px 0" }}>
+            {households.length === 0 && <div style={{ padding: "12px", fontSize: 12, color: "var(--text-faint)", textAlign: "center" }}>No families yet</div>}
+            {households.map(h => (
+              <label key={h.id} style={{ display: "flex", alignItems: "center", gap: 9, padding: "7px 12px", cursor: "pointer", fontSize: 12.5, color: "var(--text-2)" }}
+                onMouseEnter={e => e.currentTarget.style.background = "var(--surface-alt)"}
+                onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                <input type="checkbox" checked={selected.has(h.id)} onChange={() => toggle(h.id)} style={{ width: 15, height: 15, flexShrink: 0, accentColor: "var(--brand)" }} />
+                <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{h.name}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
 
 async function logActivity(supabaseClient, action_type, description, user_id, user_name) {
@@ -48,7 +91,7 @@ export default function AttendancePage({ profile, members, households = [], serv
   const [yearFilter, setYearFilter] = useState("All");
   const [dateFilter, setDateFilter] = useState("");        // exact service date
   const [attSearch, setAttSearch] = useState("");          // search members within a service by name
-  const [famFilter, setFamFilter] = useState("all");       // filter members by household/family
+  const [famFilter, setFamFilter] = useState(() => new Set()); // filter members by household/family (empty = all)
   const [serviceTypes, setServiceTypes] = useState(() => SERVICE_NAMES.map(n => ({ id: n, name: n })));
   const [typesReady, setTypesReady] = useState(false);     // service_types table present + loaded
   const [showTypes, setShowTypes] = useState(false);
@@ -335,7 +378,10 @@ export default function AttendancePage({ profile, members, households = [], serv
               <option key={name} value={String(i+1)}>{name}</option>
             ))}
           </select>
-          <input type="date" value={dateFilter} onChange={e=>{setDateFilter(e.target.value);setActiveId(null);}} title="Filter by exact date" style={{width:150,fontSize:12}} />
+          <div style={{position:"relative",display:"inline-flex",alignItems:"center"}}>
+            <input type="date" value={dateFilter} onChange={e=>{setDateFilter(e.target.value);setActiveId(null);}} title="Filter by exact date" style={{width:150,fontSize:12,paddingRight:dateFilter?26:undefined}} />
+            {dateFilter && <button type="button" onClick={()=>{setDateFilter("");setActiveId(null);}} title="Clear date" aria-label="Clear date" style={{position:"absolute",right:6,top:"50%",transform:"translateY(-50%)",display:"flex",alignItems:"center",justifyContent:"center",background:"var(--panel)",border:"none",borderRadius:"50%",width:18,height:18,color:"var(--text-faint)",cursor:"pointer",padding:0}}><X size={12} /></button>}
+          </div>
           <button className="btn-ghost" onClick={()=>setShowExport(true)}>Export</button>
           {isAdmin && typesReady && <button className="btn-ghost" onClick={()=>{setShowTypes(true);setError("");}}>Service types</button>}
           {canCreateService && <button className="btn-primary" onClick={()=>{setShowAdd(true);setError("");setAddingType(false);setNewSvc(s=>({...s,name:serviceTypes[0]?.name||""}));}}>+ New Service</button>}
@@ -360,7 +406,7 @@ export default function AttendancePage({ profile, members, households = [], serv
           {filteredServices.map(s => {
             const d = new Date(s.service_date+"T12:00:00");
             return (
-              <div key={s.id} ref={(activeId===s.id||lastViewedId===s.id)?lastCardRef:null} className={`service-card ${(activeId===s.id||lastViewedId===s.id)?"active":""}`} onClick={()=>selectService(s.id)}>
+              <div key={s.id} ref={(activeId===s.id||lastViewedId===s.id)?lastCardRef:null} className={`service-card ${(activeId===s.id||lastViewedId===s.id)?"active":""}`} {...clickable(()=>selectService(s.id), `${s.name} ${s.service_date}`)}>
                 <div style={{width:48,minHeight:48,borderRadius:10,background:(activeId===s.id||lastViewedId===s.id)?"#2a535720":"var(--panel)",border:"1.5px solid var(--border-navy)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",flexShrink:0,padding:"4px 0"}}>
                   <div style={{fontFamily:"'Inter',sans-serif",fontSize:17,color:"var(--brand)",fontWeight:600,lineHeight:1.05}}>{d.getDate()}</div>
                   <div style={{fontSize:10,color:"var(--text-faint)",letterSpacing:0.2}}>{d.toLocaleString("default",{month:"short"}).toUpperCase()}</div>
@@ -432,17 +478,14 @@ export default function AttendancePage({ profile, members, households = [], serv
                       <Search size={13} style={{position:"absolute",left:9,top:"50%",transform:"translateY(-50%)",color:"var(--text-faint)"}} />
                       <input placeholder="Search name…" value={attSearch} onChange={e=>setAttSearch(e.target.value)} style={{width:150,paddingLeft:28,fontSize:12}} />
                     </div>
-                    <select value={famFilter} onChange={e=>setFamFilter(e.target.value)} title="Filter by family" style={{width:160,fontSize:12}}>
-                      <option value="all">All families</option>
-                      {sortedHouseholds.map(h=><option key={h.id} value={h.id}>{h.name}</option>)}
-                    </select>
+                    <FamilyMultiSelect households={sortedHouseholds} selected={famFilter} setSelected={setFamFilter} />
                   </div>
                 </div>
                 <div style={{display:"flex",flexDirection:"column",gap:2,maxHeight:isMobile?"max(220px, calc(100dvh - 380px))":"56vh",overflowY:"auto",paddingRight:2}}>
-                  {[...members].filter(m => { const q=attSearch.trim().toLowerCase(); const nameOk=!q||fullName(m).toLowerCase().includes(q); const famOk=famFilter==="all"||m.household_id===famFilter; return nameOk && famOk; }).sort((a,b) => { const ln = a.last_name.localeCompare(b.last_name); return ln !== 0 ? ln : a.first_name.localeCompare(b.first_name); }).map(m => {
+                  {[...members].filter(m => { const q=attSearch.trim().toLowerCase(); const nameOk=!q||fullName(m).toLowerCase().includes(q); const famOk=famFilter.size===0||famFilter.has(m.household_id); return nameOk && famOk; }).sort((a,b) => { const ln = a.last_name.localeCompare(b.last_name); return ln !== 0 ? ln : a.first_name.localeCompare(b.first_name); }).map(m => {
                     const isPresent = presentIds.has(m.id);
                     return (
-                      <div key={m.id} className="att-row" style={{flexShrink:0}} onClick={()=>toggle(m.id)}>
+                      <div key={m.id} className="att-row" style={{flexShrink:0}} {...clickable(()=>toggle(m.id), `Toggle attendance for ${fullName(m)}`)}>
                         <div className={`check-circle ${isPresent?"checked":""}`}>{isPresent && <Check size={14} color="#fff" />}</div>
                         <Avatar member={m} size={36} />
                         <div style={{flex:1}}>
@@ -461,7 +504,7 @@ export default function AttendancePage({ profile, members, households = [], serv
           </div>
         ) : (
           <div className="card" style={{display:"flex",alignItems:"center",justifyContent:"center",color:"var(--border-strong)",fontSize:14,minHeight:200,flexDirection:"column",gap:8}}>
-            <span style={{display:"flex"}}><ClipboardList size={28} color="#8a96b8" /></span>
+            <span style={{display:"flex"}}><ClipboardList size={28} color="var(--text-muted-navy)" /></span>
             Select a service to take attendance
           </div>
         ))}

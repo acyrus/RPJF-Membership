@@ -136,9 +136,15 @@ export default function App() {
       // weren't already signed in as. supabase-js also re-fires SIGNED_IN on tab focus and
       // token refresh (same uid), and a reload fires INITIAL_SESSION — none of those should
       // re-claim, or an older device would keep stealing the slot back from the newest login.
-      if (event === "SIGNED_IN" && uid && uid !== prevUserId.current) claimSession();
+      const genuineLogin = event === "SIGNED_IN" && uid && uid !== prevUserId.current;
+      if (genuineLogin) claimSession();
       prevUserId.current = uid;
       if (event === "PASSWORD_RECOVERY") { setRecovery(true); setLoading(false); return; }
+      // Show the splash while a genuine new login loads its data. Without this, accounts
+      // that skip the 2FA challenge (2FA-exempt) went straight to loadAll with loading
+      // still false, so the splash never appeared. Gated on genuineLogin (uid changed) so
+      // token refreshes and tab-focus SIGNED_IN re-fires don't flash the splash.
+      if (genuineLogin) setLoading(true);
       // A password change (updateUser) fires USER_UPDATED for the SAME account. Re-running
       // the full post-auth load here flips `loading` on and remounts the onboarding flow
       // mid-step, bouncing a just-created user back to the password screen. Nothing about
@@ -532,7 +538,7 @@ export default function App() {
           />
         )}
         {tab==="celebrations" && allowedTabs.includes("celebrations") && (
-          <CelebrationsPage members={members} onMemberClick={goToMember} />
+          <CelebrationsPage members={members} households={households} onMemberClick={goToMember} />
         )}
         {tab==="skills" && allowedTabs.includes("skills") && (
           <SkillsPage members={members} households={households} onMemberClick={goToMember} />

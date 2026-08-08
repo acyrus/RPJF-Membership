@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
-import { Avatar, fullName, daysUntilNext, formatShortDate } from "../components";
-import { Cake, Gem, CalendarDays } from "lucide-react";
+import { Avatar, fullName, daysUntilNext, formatShortDate, MultiSelect } from "../components";
+import { Cake, Gem, CalendarDays, Search } from "lucide-react";
 
 function ordinal(n) {
   const s = ["th","st","nd","rd"], v = n%100;
@@ -126,9 +126,11 @@ function MonthSection({ monthIndex, entries, type, past, onMemberClick, isCurren
   );
 }
 
-export default function CelebrationsPage({ members, onMemberClick }) {
+export default function CelebrationsPage({ members, households = [], onMemberClick }) {
   const [subtab, setSubtab] = useState("birthdays");
   const [viewMode, setViewMode] = useState("upcoming"); // "upcoming" or "past"
+  const [person, setPerson] = useState("");             // filter by name
+  const [famSelected, setFamSelected] = useState([]);   // multi-select households
 
   const today = new Date();
   const currentMonth = today.getMonth();
@@ -137,12 +139,25 @@ export default function CelebrationsPage({ members, onMemberClick }) {
 
   const dateField = subtab === "birthdays" ? "dob" : "anniversary";
 
+  const sortedHouseholds = useMemo(() => [...households].sort((a, b) => a.name.localeCompare(b.name)), [households]);
+  // Partner lookup must see everyone, so build the id map from the full list.
   const memberById = useMemo(() => Object.fromEntries(members.map(m => [m.id, m])), [members]);
+
+  // Person / family filters narrow which celebrations are shown.
+  const filterActive = !!person.trim() || famSelected.length > 0;
+  const filteredMembers = useMemo(() => {
+    const pq = person.trim().toLowerCase();
+    if (!pq && famSelected.length === 0) return members;
+    return members.filter(m =>
+      (!pq || fullName(m).toLowerCase().includes(pq)) &&
+      (famSelected.length === 0 || famSelected.includes(m.household_id))
+    );
+  }, [members, person, famSelected]);
 
   // Upcoming = date hasn't passed yet this year; Past = already passed. Anniversaries
   // merge spouse couples into one entry (see buildByMonth).
-  const upcomingByMonth = useMemo(() => buildByMonth(members, dateField, currentMonth, currentDay, memberById, false), [members, dateField, currentMonth, currentDay, memberById]);
-  const pastByMonth = useMemo(() => buildByMonth(members, dateField, currentMonth, currentDay, memberById, true), [members, dateField, currentMonth, currentDay, memberById]);
+  const upcomingByMonth = useMemo(() => buildByMonth(filteredMembers, dateField, currentMonth, currentDay, memberById, false), [filteredMembers, dateField, currentMonth, currentDay, memberById]);
+  const pastByMonth = useMemo(() => buildByMonth(filteredMembers, dateField, currentMonth, currentDay, memberById, true), [filteredMembers, dateField, currentMonth, currentDay, memberById]);
 
   const upcomingTotal = Object.values(upcomingByMonth).reduce((s, a) => s + a.length, 0);
   const pastTotal = Object.values(pastByMonth).reduce((s, a) => s + a.length, 0);
@@ -150,16 +165,16 @@ export default function CelebrationsPage({ members, onMemberClick }) {
   // This-month count: anniversaries are deduped by spouse so a couple counts once.
   const thisMonthCount = useMemo(() => {
     const inMonth = m => m[dateField] && m.is_active !== false && new Date(m[dateField] + "T00:00:00").getUTCMonth() === currentMonth;
-    if (subtab === "birthdays") return members.filter(inMonth).length;
+    if (subtab === "birthdays") return filteredMembers.filter(inMonth).length;
     const consumed = new Set(); let n = 0;
-    members.filter(inMonth).forEach(m => {
+    filteredMembers.filter(inMonth).forEach(m => {
       if (consumed.has(m.id)) return;
       consumed.add(m.id);
       if (m.spouse_id) { const s = memberById[m.spouse_id]; if (s && s.anniversary === m.anniversary) consumed.add(s.id); }
       n++;
     });
     return n;
-  }, [members, subtab, dateField, currentMonth, memberById]);
+  }, [filteredMembers, subtab, dateField, currentMonth, memberById]);
 
   const type = subtab === "birthdays" ? "birthday" : "anniversary";
   const monthsUpcoming = Array.from({length: 12 - currentMonth}, (_, i) => currentMonth + i);  // current month onwards
@@ -168,17 +183,31 @@ export default function CelebrationsPage({ members, onMemberClick }) {
   return (
     <div className="fade-in">
       {/* Header */}
-      <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20}}>
+      <div style={{display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:16, flexWrap:"wrap", gap:12}}>
         <div>
           <div style={{fontFamily:"'Inter',sans-serif", color:"var(--text)", fontSize:14, letterSpacing:0.5, fontWeight:700}}>CELEBRATIONS</div>
           <div style={{fontSize:12, color:"var(--text-faint)", marginTop:3}}>
             {upcomingTotal} {type === "birthday" ? "birthday" : "anniversary"}{upcomingTotal !== 1 ? (type==="birthday"?"s":"ies") : (type==="anniversary"?"":"s")} remaining · {pastTotal} already passed this year
           </div>
         </div>
-        <div style={{background:"var(--panel)",border:"1.5px solid var(--border-navy)",borderRadius:10,padding:"8px 14px",textAlign:"center"}}>
+        <div style={{background:"var(--panel)",border:"1.5px solid var(--border-navy)",borderRadius:10,padding:"8px 14px",textAlign:"center",flexShrink:0}}>
           <div style={{fontSize:12,color:"var(--text-faint)",fontWeight:600}}>This Month</div>
           <div style={{fontSize:20,fontWeight:700,color:"var(--brand)"}}>{thisMonthCount}</div>
         </div>
+      </div>
+
+      {/* Person / family filters */}
+      <div style={{display:"flex", gap:8, flexWrap:"wrap", alignItems:"center", marginBottom:18}}>
+        <div style={{position:"relative"}}>
+          <Search size={13} style={{position:"absolute", left:9, top:"50%", transform:"translateY(-50%)", color:"var(--text-faint)"}} />
+          <input placeholder="Search person…" value={person} onChange={e=>setPerson(e.target.value)} style={{width:170, paddingLeft:28, fontSize:12}} />
+        </div>
+        <MultiSelect label="All families" width={170}
+          options={sortedHouseholds.map(h => ({ value: h.id, label: h.name }))}
+          selected={famSelected} onChange={setFamSelected} />
+        {filterActive && (
+          <button onClick={()=>{setPerson("");setFamSelected([]);}} style={{background:"none", border:"1px solid var(--border-navy-strong)", borderRadius:20, color:"var(--text-faint)", cursor:"pointer", fontSize:12, padding:"4px 12px", fontWeight:500}}>Clear filters</button>
+        )}
       </div>
 
       {/* Main sub tabs: Birthdays / Anniversaries */}
@@ -186,12 +215,12 @@ export default function CelebrationsPage({ members, onMemberClick }) {
         {[
           { key:"birthdays", icon:<Cake size={15} />, label:"Birthdays", count: thisMonthCount },
           { key:"anniversaries", icon:<Gem size={15} />, label:"Anniversaries",
-            count: members.filter(m => m.anniversary && m.is_active !== false && new Date(m.anniversary+"T00:00:00").getUTCMonth() === currentMonth).length },
+            count: filteredMembers.filter(m => m.anniversary && m.is_active !== false && new Date(m.anniversary+"T00:00:00").getUTCMonth() === currentMonth).length },
         ].map(t => (
           <button key={t.key} onClick={()=>setSubtab(t.key)} style={{
             background:"none", border:"none", cursor:"pointer",
             fontFamily:"'Inter',sans-serif", fontSize:14, fontWeight:600,
-            padding:"10px 18px", color: subtab===t.key?"#2a5357":"#8a96b8",
+            padding:"10px 18px", color: subtab===t.key?"#2a5357":"var(--text-muted-navy)",
             borderBottom: subtab===t.key?"2px solid var(--brand)":"2px solid transparent",
             display:"flex", alignItems:"center", gap:6, transition:"all 0.15s",
           }}>
@@ -199,7 +228,7 @@ export default function CelebrationsPage({ members, onMemberClick }) {
             <span style={{
               background: subtab===t.key?"#2a535718":"var(--panel)",
               border: subtab===t.key?"1.5px solid #2a535744":"1.5px solid var(--border-navy)",
-              color: subtab===t.key?"#2a5357":"#8a96b8",
+              color: subtab===t.key?"#2a5357":"var(--text-muted-navy)",
               borderRadius:20, padding:"1px 8px", fontSize:12, fontWeight:700,
             }}>{t.count}</span>
           </button>
@@ -214,8 +243,8 @@ export default function CelebrationsPage({ members, onMemberClick }) {
             border: viewMode===key?"1.5px solid var(--border-navy)":"1.5px solid transparent",
             borderRadius:8, padding:"6px 16px", cursor:"pointer",
             fontFamily:"'Inter',sans-serif", fontSize:12, fontWeight:600,
-            color: viewMode===key?"#2a3560":"#8a96b8",
-            boxShadow: viewMode===key?"0 1px 3px #0000000a":"none",
+            color: viewMode===key?"var(--text-navy)":"var(--text-muted-navy)",
+            boxShadow: viewMode===key?"0 1px 3px var(--shadow-card)":"none",
             transition:"all 0.15s",
           }}>{label}</button>
         ))}
@@ -226,7 +255,7 @@ export default function CelebrationsPage({ members, onMemberClick }) {
         <div>
           {upcomingTotal === 0 ? (
             <div style={{textAlign:"center",padding:"48px 20px",color:"var(--border-strong)"}}>
-              <div style={{fontSize:36,marginBottom:12}}>{subtab==="birthdays"?<Cake size={36} color="#8a96b8" />:<Gem size={36} color="#8a96b8" />}</div>
+              <div style={{fontSize:36,marginBottom:12}}>{subtab==="birthdays"?<Cake size={36} color="var(--text-muted-navy)" />:<Gem size={36} color="var(--text-muted-navy)" />}</div>
               <div style={{fontWeight:600,color:"var(--text-muted)",marginBottom:6}}>No upcoming {subtab} for the rest of this year</div>
             </div>
           ) : (
@@ -260,13 +289,13 @@ export default function CelebrationsPage({ members, onMemberClick }) {
         <div>
           {currentMonth === 0 ? (
             <div style={{textAlign:"center",padding:"48px 20px",color:"var(--border-strong)"}}>
-              <div style={{marginBottom:12,display:"flex",justifyContent:"center"}}><CalendarDays size={36} color="#8a96b8" /></div>
+              <div style={{marginBottom:12,display:"flex",justifyContent:"center"}}><CalendarDays size={36} color="var(--text-muted-navy)" /></div>
               <div style={{fontWeight:600,color:"var(--text-muted)",marginBottom:6}}>No past {subtab}, it's January!</div>
               <div style={{fontSize:12}}>Past {subtab} will appear here as the year progresses.</div>
             </div>
           ) : pastTotal === 0 ? (
             <div style={{textAlign:"center",padding:"48px 20px",color:"var(--border-strong)"}}>
-              <div style={{marginBottom:12,display:"flex",justifyContent:"center"}}><CalendarDays size={36} color="#8a96b8" /></div>
+              <div style={{marginBottom:12,display:"flex",justifyContent:"center"}}><CalendarDays size={36} color="var(--text-muted-navy)" /></div>
               <div style={{fontWeight:600,color:"var(--text-muted)",marginBottom:6}}>No past {subtab} recorded</div>
               <div style={{fontSize:12}}>Make sure members have their {type === "birthday" ? "date of birth" : "anniversary date"} entered.</div>
             </div>

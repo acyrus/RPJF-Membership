@@ -132,7 +132,7 @@ export default function SubmitPhotoPage() {
             <div style={{ width: 96, height: 96, borderRadius: "50%", background: photoUrl ? "transparent" : "var(--panel)", border: "1px solid var(--border-navy)", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", margin: "0 auto 14px" }}>
               {photoUrl
                 ? <img src={photoUrl} alt="Your preview" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                : <span style={{ display:"flex", color: "#c0c8e0" }}><User size={40} /></span>}
+                : <span style={{ display:"flex", color: "var(--border-navy-strong)" }}><User size={40} /></span>}
             </div>
             <label style={{ display: "inline-block", background: TEAL, color: "#fff", padding: "10px 18px", borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
               {uploading ? "Uploading…" : photoUrl ? "Change photo" : "Take or choose a photo"}
