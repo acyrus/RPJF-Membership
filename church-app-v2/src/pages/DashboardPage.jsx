@@ -164,6 +164,10 @@ export default function DashboardPage({ profile, members, services, attendance, 
 
   return (
     <div className="fade-in">
+      {/* Faint full-logo watermark behind the home page */}
+      <div aria-hidden="true" style={{position:"fixed",inset:0,zIndex:-1,pointerEvents:"none",display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden"}}>
+        <img src="/rpjf-logo.svg" alt="" style={{width:"min(820px, 86vw)",maxHeight:"72vh",height:"auto",opacity:0.05}} />
+      </div>
 
       {/* Welcome */}
       <div style={{ marginBottom: 24 }}>

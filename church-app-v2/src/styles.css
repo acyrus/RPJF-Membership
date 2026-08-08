@@ -57,6 +57,10 @@
   --danger-border-strong: #f87171;
   --danger-bg: #fef2f2;
   --success: #059669;
+  /* Leadership (Leader / Co-Leader) badge */
+  --pos-badge-fg: #7a4bd0;
+  --pos-badge-bg: #f0eaff;
+  --pos-badge-bd: #d9c9f5;
 
   /* Yes/No status pills (Uncaptured table) */
   --pill-yes-bg: #e8f6ee;
@@ -143,6 +147,10 @@ html.dark {
   --danger-border-strong: #9a4a4a;
   --danger-bg: #2a1a1a;
   --success: #34c88a;
+  /* Leadership (Leader / Co-Leader) badge */
+  --pos-badge-fg: #c3aef2;
+  --pos-badge-bg: #2c2444;
+  --pos-badge-bd: #4a3d6e;
 
   /* Yes/No status pills — soft dark tints */
   --pill-yes-bg: #16281e;
@@ -538,7 +546,8 @@ h1, h2, h3, h4, .heading {
   .header-bar { padding: 0 14px !important; }
   .brand-name { font-size: 13px !important; line-height: 1.25; }
   .header-actions { gap: 8px !important; }
-  .header-actions .user-meta { display: none !important; }
+  .header-actions .user-meta .user-role { display: none !important; }
+  .header-actions .user-name { font-size: 11px !important; max-width: 84px !important; }
   .header-actions .btn-label { display: none !important; }
   .header-actions button { padding: 8px 10px !important; }
 

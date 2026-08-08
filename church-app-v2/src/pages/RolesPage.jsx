@@ -131,12 +131,12 @@ export default function RolesPage({ members, households = [], profile, setMember
                               style={{display:"inline-flex",alignItems:"center",gap:3,cursor:"pointer",
                                 fontSize:9,fontWeight:700,borderRadius:20,padding:"2px 8px",
                                 ...(pos
-                                  ? {color:"#7a4bd0",background:"#f0eaff",border:"1px solid #d9c9f5"}
+                                  ? {color:"var(--pos-badge-fg)",background:"var(--pos-badge-bg)",border:"1px solid var(--pos-badge-bd)"}
                                   : {color:"var(--text-faint)",background:"none",border:"1px dashed var(--border-strong)"})}}>
                               {pos || "Set role"}<ChevronDown size={9} />
                             </button>
                           ) : pos ? (
-                            <span style={{fontSize:9,fontWeight:700,color:"#7a4bd0",background:"#f0eaff",border:"1px solid #d9c9f5",borderRadius:20,padding:"2px 8px"}}>{pos}</span>
+                            <span style={{fontSize:9,fontWeight:700,color:"var(--pos-badge-fg)",background:"var(--pos-badge-bg)",border:"1px solid var(--pos-badge-bd)",borderRadius:20,padding:"2px 8px"}}>{pos}</span>
                           ) : null}
 
                           {editing && (

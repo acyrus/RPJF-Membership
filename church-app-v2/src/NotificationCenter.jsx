@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { fullName } from "./components";
 import { Bell, Camera, Cake, Heart, UserMinus, TrendingDown, ChevronRight, X } from "lucide-react";
 
@@ -17,7 +17,13 @@ function daysUntilNext(dateStr) {
 // tabs each account can reach, and routes each item to the relevant tab.
 export default function NotificationCenter({ members = [], services = [], attendance = {}, pendingPhotos = 0, allowedTabs = [], onNavigate }) {
   const [open, setOpen] = useState(false);
+  const [panelTop, setPanelTop] = useState(0); // fixed-position top, measured from the bell
+  const btnRef = useRef(null);
   const can = k => allowedTabs.includes(k);
+  const toggle = () => {
+    if (!open && btnRef.current) setPanelTop(btnRef.current.getBoundingClientRect().bottom + 6);
+    setOpen(o => !o);
+  };
 
   const items = useMemo(() => {
     const out = [];
@@ -44,7 +50,7 @@ export default function NotificationCenter({ members = [], services = [], attend
     }
 
     // Slipping away: attended at least twice but nothing in the last 28 days
-    if (can("attendance") && services.length >= 2) {
+    if (can("analytics") && services.length >= 2) {
       const latest = services.map(s => s.service_date).reduce((a, b) => (a > b ? a : b), "");
       const cutoff = new Date(latest + "T12:00:00"); cutoff.setDate(cutoff.getDate() - 28);
       const cutoffStr = cutoff.toISOString().slice(0, 10);
@@ -60,7 +66,7 @@ export default function NotificationCenter({ members = [], services = [], attend
     }
 
     // Inactive candidates: still active but no attendance in 90+ days
-    if (can("members") || can("analytics")) {
+    if (can("analytics")) {
       const last = {};
       services.forEach(s => (attendance[s.id] || []).forEach(id => { if (!last[id] || s.service_date > last[id]) last[id] = s.service_date; }));
       const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 90);
@@ -77,18 +83,17 @@ export default function NotificationCenter({ members = [], services = [], attend
 
   return (
     <div style={{ position: "relative" }}>
-      <button onClick={() => setOpen(o => !o)} title="Notifications" aria-label="Notifications"
+      <button ref={btnRef} onClick={toggle} title="Notifications" aria-label="Notifications"
         style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", position: "relative", background: "none", border: "1.5px solid #5edcd155", color: "var(--brand-accent)", padding: "7px 9px", borderRadius: 8, cursor: "pointer" }}>
-        <Bell size={14} />
+        <Bell size={16} />
         {count > 0 && <span style={{ position: "absolute", top: -6, right: -6, minWidth: 16, height: 16, padding: "0 4px", borderRadius: 10, background: "#e15700", color: "#fff", fontSize: 10, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center" }}>{count}</span>}
       </button>
 
       {open && (
         <>
           <div onClick={() => setOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 300 }} />
-          <div style={{ position: "absolute", top: "calc(100% + 8px)", right: 0, zIndex: 301, width: 300, maxWidth: "92vw", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, boxShadow: "0 10px 30px #00000026", overflow: "hidden" }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 14px", borderBottom: "1px solid var(--border)" }}>
-              <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text)" }}>Needs your attention</span>
+          <div style={{ position: "fixed", top: panelTop, right: 10, zIndex: 301, width: "min(300px, calc(100vw - 20px))", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, boxShadow: "0 10px 30px #00000026", overflow: "hidden" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", padding: "8px 10px", borderBottom: count === 0 ? "none" : "1px solid var(--border)" }}>
               <button onClick={() => setOpen(false)} aria-label="Close" style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)", display: "flex" }}><X size={15} /></button>
             </div>
             {count === 0 ? (

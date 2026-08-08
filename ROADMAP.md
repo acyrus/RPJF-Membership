@@ -90,8 +90,10 @@ most complex left for last. Overlapping requests have been folded together
 20. **Communication.** 🔄 In progress. ✅ In-app "needs my attention" notification centre built
     (header bell with a count badge → panel of access-gated items: photos awaiting approval,
     birthdays / anniversaries this week, members slipping away, inactive candidates; each routes
-    to the relevant tab). Remaining: outbound messaging to members via **email** (segment +
-    compose + a transactional email provider), then SMS / WhatsApp only if wanted later. (was #13)
+    to the relevant tab). Remaining: outbound messaging to members via **email** — decided on
+    **Path A: a cheap church domain + Resend free tier** (best deliverability), deferred as later
+    work. App-side compose + audience-segment UI + serverless send function to be built then.
+    SMS / WhatsApp only if wanted later. (was #13)
 21. **Printable letter template.** (was #14)
 22. **Offline capabilities.** Biggest and most complex; best left until the rest is stable.
     (was #15)

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../supabase";
 import { branding } from "../branding";
+import { Emblem } from "../Emblem";
 
 // ── Failed-login lockout (per email, persisted on the device) ──
 const LOCK_PREFIX = "rpjf_lock_";
@@ -86,15 +87,12 @@ export default function LoginPage() {
   return (
     <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",padding:20,background:"var(--surface-alt)",position:"relative",overflow:"hidden"}}>
       <div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center",pointerEvents:"none",zIndex:0}}>
-        <img src={branding.logo.full} alt="" style={{width:"75%",maxWidth:700,opacity:0.06,userSelect:"none"}} />
+        <Emblem height={520} color="var(--brand)" style={{opacity:0.05,maxWidth:"78vw",height:"auto",userSelect:"none"}} />
       </div>
       <div style={{width:"100%",maxWidth:400}}>
         <div style={{textAlign:"center",marginBottom:36}}>
           <div style={{width:66,height:66,borderRadius:18,margin:"0 auto 16px",background:"var(--brand)",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 4px 16px #2a535730"}}>
-            <svg width="30" height="30" viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <rect x="12.5" y="3" width="5" height="24" rx="2.5" fill="white"/>
-              <rect x="6" y="9" width="18" height="5" rx="2.5" fill="white"/>
-            </svg>
+            <Emblem height={42} color="#ffffff" />
           </div>
           <div style={{fontFamily:"'Inter',sans-serif",fontSize:20,letterSpacing:0.2,color:"var(--text)",fontWeight:700,lineHeight:1.3}}>{branding.fullName}</div>
           <div style={{fontSize:12,color:"var(--text-faint)",marginTop:5,letterSpacing:0.3,fontWeight:500}}>{branding.tagline}</div>
