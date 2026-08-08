@@ -2247,18 +2247,33 @@ export default function AnalyticsPage({ members, services, attendance, household
                 </ChartCard>
 
                 <SectionTitle>Who Plays What</SectionTitle>
-                <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(260px,1fr))",gap:14,alignItems:"start"}}>
-                  {instrumentData.instrumentList.map(it => (
-                    <CollapsibleCard key={it.instrument} title={it.instrument} subtitle={`${it.count} musician${it.count!==1?"s":""}`}>
-                      <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
-                        {it.members.map(m => (
-                          <span key={m.id} style={{display:"inline-flex",alignItems:"center",gap:5,background:"var(--panel)",border:"1px solid var(--border)",borderRadius:16,padding:"2px 8px 2px 2px",fontSize:11,fontWeight:600,color:"var(--text-navy)"}}>
-                            <Avatar member={m} size={18} />{fullName(m)}
-                          </span>
+                <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(300px,1fr))",gap:14,alignItems:"start"}}>
+                  {instrumentData.instrumentList.map(it => {
+                    const rows = it.members.map(m => ({ m, others: [...new Set(String(m.instruments||"").split(",").map(s=>s.trim()).filter(Boolean))].filter(x => x !== it.instrument) }));
+                    const multi = rows.filter(r => r.others.length).length;
+                    return (
+                    <CollapsibleCard key={it.instrument} title={it.instrument} subtitle={`${it.count} musician${it.count!==1?"s":""} · ${multi} also play other instrument${multi!==1?"s":""}`}>
+                      <div style={{display:"flex",flexDirection:"column",gap:9}}>
+                        {rows.map(({m,others}) => (
+                          <div key={m.id} style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+                            <span style={{display:"inline-flex",alignItems:"center",gap:6,minWidth:130}}>
+                              <Avatar member={m} size={20} />
+                              <span style={{fontSize:12.5,fontWeight:600,color:"var(--text)"}}>{fullName(m)}</span>
+                            </span>
+                            {others.length ? (
+                              <span style={{display:"flex",flexWrap:"wrap",gap:5,alignItems:"center"}}>
+                                <span style={{fontSize:10.5,color:"var(--text-faint)"}}>also</span>
+                                {others.map(inst => <span key={inst} style={{fontSize:10.5,fontWeight:600,background:"var(--brand-tint-soft)",color:TEAL,borderRadius:12,padding:"1px 8px"}}>{inst}</span>)}
+                              </span>
+                            ) : (
+                              <span style={{fontSize:10.5,color:"var(--text-faint)",fontStyle:"italic"}}>only {it.instrument.toLowerCase()}</span>
+                            )}
+                          </div>
                         ))}
                       </div>
                     </CollapsibleCard>
-                  ))}
+                    );
+                  })}
                 </div>
 
                 <SectionTitle>Instruments per Musician</SectionTitle>

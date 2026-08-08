@@ -332,7 +332,7 @@ export default function App() {
     return (
     <div style={{position:"fixed",inset:0,zIndex:1000,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:26,background:"var(--brand)",padding:24,textAlign:"center",boxShadow:"inset 0 0 220px rgba(0,0,0,0.28)"}}>
       <img className="splash-logo" src="/rpjf-logo.svg" alt={branding.fullName} style={{width:"min(360px, 86vw)",height:"auto",display:"block"}} />
-      {greetName && <div className="splash-logo" style={{fontSize:15,fontWeight:600,color:"#ffffff",marginTop:-4}}>Welcome back, <span style={{color:"var(--brand-accent)"}}>{greetName}</span></div>}
+      {greetName && <div className="splash-logo" style={{fontSize:15,fontWeight:600,color:"var(--brand-accent)",marginTop:-4}}>Welcome back, {greetName}</div>}
       <div className="splash-dots" role="status" aria-label="Loading"><span/><span/><span/></div>
     </div>
     );

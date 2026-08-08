@@ -50,7 +50,7 @@ export default function NotificationCenter({ members = [], services = [], attend
     }
 
     // Slipping away: attended at least twice but nothing in the last 28 days
-    if (can("attendance") && services.length >= 2) {
+    if (can("analytics") && services.length >= 2) {
       const latest = services.map(s => s.service_date).reduce((a, b) => (a > b ? a : b), "");
       const cutoff = new Date(latest + "T12:00:00"); cutoff.setDate(cutoff.getDate() - 28);
       const cutoffStr = cutoff.toISOString().slice(0, 10);
@@ -66,7 +66,7 @@ export default function NotificationCenter({ members = [], services = [], attend
     }
 
     // Inactive candidates: still active but no attendance in 90+ days
-    if (can("members") || can("analytics")) {
+    if (can("analytics")) {
       const last = {};
       services.forEach(s => (attendance[s.id] || []).forEach(id => { if (!last[id] || s.service_date > last[id]) last[id] = s.service_date; }));
       const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 90);
@@ -93,8 +93,7 @@ export default function NotificationCenter({ members = [], services = [], attend
         <>
           <div onClick={() => setOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 300 }} />
           <div style={{ position: "fixed", top: panelTop, right: 10, zIndex: 301, width: "min(300px, calc(100vw - 20px))", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, boxShadow: "0 10px 30px #00000026", overflow: "hidden" }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 14px", borderBottom: "1px solid var(--border)" }}>
-              <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text)" }}>Needs your attention</span>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", padding: "8px 10px", borderBottom: count === 0 ? "none" : "1px solid var(--border)" }}>
               <button onClick={() => setOpen(false)} aria-label="Close" style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)", display: "flex" }}><X size={15} /></button>
             </div>
             {count === 0 ? (
