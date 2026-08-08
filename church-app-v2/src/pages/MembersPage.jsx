@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import { supabase } from "../supabase";
-import { Avatar, RoleBadge, MaritalBadge, SexBadge, StatusBadge, InfoRow, MemberForm, Spinner, ROLES, BLANK_MEMBER, TRINIDAD_CITIES, calcAge, formatDob, formatShortDate, isBirthdayThisWeek, fullName, fullNameFull, validateMember, useIsMobile, useHeaderOffset } from "../components";
+import { Avatar, RoleBadge, MaritalBadge, SexBadge, StatusBadge, InfoRow, MemberForm, Spinner, ROLES, BLANK_MEMBER, TRINIDAD_CITIES, calcAge, formatDob, formatShortDate, isBirthdayThisWeek, fullName, fullNameFull, validateMember, useIsMobile, useHeaderOffset, clickable } from "../components";
 import { Cake, Hourglass, MapPin, Phone, Mail, Heart, Users, Home as HomeIcon, Zap, Lightbulb, FileText, Music, SlidersHorizontal } from "lucide-react";
 import { X, Check } from "lucide-react";
 
@@ -341,7 +341,7 @@ export default function MembersPage({ profile, members, setMembers, households =
           {filtered.map(m => {
             const bday = isBirthdayThisWeek(m.dob);
             return (
-              <div key={m.id} ref={m.id===highlightId?highlightRef:null} className={`member-row ${selected?.id===m.id?"selected":""}`} onClick={()=>setSelected(m)}
+              <div key={m.id} ref={m.id===highlightId?highlightRef:null} className={`member-row ${selected?.id===m.id?"selected":""}`} {...clickable(()=>setSelected(m), fullName(m))}
                 style={m.id===highlightId?{outline:"2px solid var(--brand)",outlineOffset:-2,background:"var(--brand-tint)",borderRadius:10,transition:"background 0.3s"}:undefined}>
                 <div style={{position:"relative"}}>
                   <Avatar member={m} size={40} />
@@ -407,8 +407,8 @@ export default function MembersPage({ profile, members, setMembers, households =
           {calcAge(selected.dob)!=null && <InfoRow icon={<Hourglass size={15} color="var(--text-faint)" />} label="Age" value={`${calcAge(selected.dob)} years old`} />}
           {selected.city && <InfoRow icon={<MapPin size={15} color="var(--text-faint)" />} label="City" value={selected.city} />}
           {selected.interaction_type && <InfoRow icon={<Users size={15} color="var(--text-faint)" />} label="Attends" value={selected.interaction_type} />}
-            {selected.phone && <InfoRow icon={<Phone size={15} color="var(--text-faint)" />} label="Phone" value={selected.phone} />}
-          {selected.email && <InfoRow icon={<Mail size={15} color="var(--text-faint)" />} label="Email" value={selected.email} />}
+            {selected.phone && <InfoRow icon={<Phone size={15} color="var(--text-faint)" />} label="Phone" value={<a href={`tel:${selected.phone.replace(/[^0-9+]/g,"")}`} onClick={e=>e.stopPropagation()} style={{color:"var(--brand)",fontWeight:600,textDecoration:"none"}}>{selected.phone}</a>} />}
+          {selected.email && <InfoRow icon={<Mail size={15} color="var(--text-faint)" />} label="Email" value={<a href={`mailto:${selected.email}`} onClick={e=>e.stopPropagation()} style={{color:"var(--brand)",fontWeight:600,textDecoration:"none",wordBreak:"break-all"}}>{selected.email}</a>} />}
           {selected.address && <InfoRow icon={<MapPin size={15} color="var(--text-faint)" />} label="Home Address" value={selected.address} />}
           {selected.anniversary && <InfoRow icon={<Heart size={15} color="var(--text-faint)" />} label="Wedding Anniversary" value={formatShortDate(selected.anniversary)} />}
           {selected.spouse_id && (() => {

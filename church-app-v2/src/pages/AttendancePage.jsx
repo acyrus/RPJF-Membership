@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "../supabase";
-import { Avatar, RoleBadge, SERVICE_NAMES, fullName, useHeaderOffset } from "../components";
+import { Avatar, RoleBadge, SERVICE_NAMES, fullName, useHeaderOffset, clickable } from "../components";
 import { Check, ClipboardList, X, Search, ChevronLeft, ChevronDown, FileText, Pencil } from "lucide-react";
 
 // Render list OR detail on mobile (master-detail), both side-by-side on desktop.
@@ -406,7 +406,7 @@ export default function AttendancePage({ profile, members, households = [], serv
           {filteredServices.map(s => {
             const d = new Date(s.service_date+"T12:00:00");
             return (
-              <div key={s.id} ref={(activeId===s.id||lastViewedId===s.id)?lastCardRef:null} className={`service-card ${(activeId===s.id||lastViewedId===s.id)?"active":""}`} onClick={()=>selectService(s.id)}>
+              <div key={s.id} ref={(activeId===s.id||lastViewedId===s.id)?lastCardRef:null} className={`service-card ${(activeId===s.id||lastViewedId===s.id)?"active":""}`} {...clickable(()=>selectService(s.id), `${s.name} ${s.service_date}`)}>
                 <div style={{width:48,minHeight:48,borderRadius:10,background:(activeId===s.id||lastViewedId===s.id)?"#2a535720":"var(--panel)",border:"1.5px solid var(--border-navy)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",flexShrink:0,padding:"4px 0"}}>
                   <div style={{fontFamily:"'Inter',sans-serif",fontSize:17,color:"var(--brand)",fontWeight:600,lineHeight:1.05}}>{d.getDate()}</div>
                   <div style={{fontSize:10,color:"var(--text-faint)",letterSpacing:0.2}}>{d.toLocaleString("default",{month:"short"}).toUpperCase()}</div>
@@ -485,7 +485,7 @@ export default function AttendancePage({ profile, members, households = [], serv
                   {[...members].filter(m => { const q=attSearch.trim().toLowerCase(); const nameOk=!q||fullName(m).toLowerCase().includes(q); const famOk=famFilter.size===0||famFilter.has(m.household_id); return nameOk && famOk; }).sort((a,b) => { const ln = a.last_name.localeCompare(b.last_name); return ln !== 0 ? ln : a.first_name.localeCompare(b.first_name); }).map(m => {
                     const isPresent = presentIds.has(m.id);
                     return (
-                      <div key={m.id} className="att-row" style={{flexShrink:0}} onClick={()=>toggle(m.id)}>
+                      <div key={m.id} className="att-row" style={{flexShrink:0}} {...clickable(()=>toggle(m.id), `Toggle attendance for ${fullName(m)}`)}>
                         <div className={`check-circle ${isPresent?"checked":""}`}>{isPresent && <Check size={14} color="#fff" />}</div>
                         <Avatar member={m} size={36} />
                         <div style={{flex:1}}>

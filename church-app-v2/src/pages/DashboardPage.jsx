@@ -184,23 +184,23 @@ export default function DashboardPage({ profile, members, services, attendance, 
           <div style={{ display: "flex", alignItems: "center", gap: 12, flex: 1, minWidth: 150 }}>
             <div style={{ width: 46, height: 46, borderRadius: 12, background: "#2a535718", color: "#2a5357", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><Users size={24} /></div>
             <div>
-              <div style={{ fontSize: 32, fontWeight: 700, color: "var(--text-heading)", lineHeight: 1, fontFamily: "'Inter',sans-serif" }}>{members.length}</div>
+              <div style={{ fontSize: 32, fontWeight: 700, color: "var(--text-heading)", lineHeight: 1, fontFamily: "'Inter',sans-serif" }}>{members.length.toLocaleString()}</div>
               <div style={{ fontSize: 12.5, fontWeight: 600, color: "var(--text-navy)", marginTop: 3 }}>Total Members</div>
             </div>
           </div>
           <div style={{ display: "flex", gap: 22 }}>
             <div>
-              <div style={{ fontSize: 21, fontWeight: 700, color: "#4caf82", lineHeight: 1 }}>{stats.active}</div>
+              <div style={{ fontSize: 21, fontWeight: 700, color: "var(--accent-green-strong)", lineHeight: 1 }}>{stats.active.toLocaleString()}</div>
               <div style={{ fontSize: 11.5, color: "var(--text-muted-navy)", marginTop: 3 }}>Active · {members.length ? Math.round((stats.active / members.length) * 100) : 0}%</div>
             </div>
             <div>
-              <div style={{ fontSize: 21, fontWeight: 700, color: "var(--text-muted-navy)", lineHeight: 1 }}>{stats.inactive}</div>
+              <div style={{ fontSize: 21, fontWeight: 700, color: "var(--text-muted-navy)", lineHeight: 1 }}>{stats.inactive.toLocaleString()}</div>
               <div style={{ fontSize: 11.5, color: "var(--text-muted-navy)", marginTop: 3 }}>Inactive</div>
             </div>
           </div>
         </div>
         <div style={{ marginTop: 14, height: 7, background: "var(--panel)", borderRadius: 4, overflow: "hidden", display: "flex" }}>
-          <div style={{ width: `${members.length ? (stats.active / members.length) * 100 : 0}%`, background: "#4caf82" }} />
+          <div style={{ width: `${members.length ? (stats.active / members.length) * 100 : 0}%`, background: "var(--accent-green-strong)" }} />
         </div>
       </div>
 

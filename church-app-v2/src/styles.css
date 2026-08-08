@@ -210,6 +210,19 @@ html.dark {
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+/* Keyboard focus ring for clickable rows/cards that aren't native buttons
+   (they carry role="button" via the clickable() helper). Mouse users see
+   nothing extra; keyboard users get a clear brand-teal focus outline. */
+[role="button"]:focus-visible,
+.member-row:focus-visible,
+.service-card:focus-visible,
+.att-row:focus-visible,
+.card:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   background: var(--bg-body);
@@ -578,7 +591,9 @@ h1, h2, h3, h4, .heading {
   .header-actions .user-meta .user-role { display: none !important; }
   .header-actions .user-name { font-size: 11px !important; max-width: 84px !important; }
   .header-actions .btn-label { display: none !important; }
-  .header-actions button { padding: 8px 10px !important; }
+  /* Comfortable tap targets: keep header/nav icon buttons at ~40px min on touch */
+  .header-actions button,
+  .header-bar button { min-height: 40px; min-width: 40px; padding: 8px 10px !important; }
 
   .main-content { padding: 14px !important; }
 

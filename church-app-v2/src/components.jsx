@@ -922,6 +922,21 @@ export function ValidationMsg({ errors, field }) {
   return <div style={{color:"#e05050",fontSize:12,marginTop:3,fontWeight:500}}>{errors[field]}</div>;
 }
 
+// Make a non-<button> element behave like a button for keyboard + screen-reader
+// users: spread onto a clickable div/row. Keeps the same click handler and adds
+// role, focusability, and Enter/Space activation. Use for list rows and cards.
+export function clickable(handler, label) {
+  return {
+    role: "button",
+    tabIndex: 0,
+    "aria-label": label,
+    onClick: handler,
+    onKeyDown: e => {
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); handler(e); }
+    },
+  };
+}
+
 export function Avatar({ member, size=40 }) {
   const { open } = useContext(PhotoLightboxContext);
   const name = fullName(member);

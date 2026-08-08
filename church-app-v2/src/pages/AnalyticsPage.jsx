@@ -3,7 +3,7 @@ import {
   LineChart, Line, AreaChart, Area, ReferenceLine, BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LabelList, Customized
 } from "recharts";
-import { ROLES, ROLE_COLORS, TRINIDAD_CITIES, calcAge, fullName, Avatar } from "../components";
+import { ROLES, ROLE_COLORS, TRINIDAD_CITIES, calcAge, fullName, Avatar, clickable } from "../components";
 import { supabase } from "../supabase";
 import { Search, Home, Check, X, ChevronDown, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown, UserMinus, SlidersHorizontal, Users, TrendingUp, Calendar, Clock, Baby, Music, Layers, UserCheck, Heart, User } from "lucide-react";
 
@@ -107,7 +107,7 @@ function CollapsibleCard({ title, subtitle, defaultOpen = false, children }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
     <div className="card" style={{ overflow: "hidden" }}>
-      <div onClick={() => setOpen(o => !o)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "14px 18px", cursor: "pointer" }}>
+      <div {...clickable(() => setOpen(o => !o), title)} aria-expanded={open} style={{ display: "flex", alignItems: "center", gap: 10, padding: "14px 18px", cursor: "pointer" }}>
         {open ? <ChevronDown size={16} color="var(--text-muted-navy)" /> : <ChevronRight size={16} color="var(--text-muted-navy)" />}
         <div style={{ flex: 1, minWidth: 0 }}>
           <div className="card-title">{title}</div>
@@ -489,7 +489,7 @@ function HouseholdAttendance({ households, members, services, attendance }) {
         const open = openId === h.id;
         return (
           <div key={h.id} style={{ border: "1px solid var(--border)", borderRadius: 10, overflow: "hidden" }}>
-            <div onClick={() => setOpenId(open ? null : h.id)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", cursor: "pointer", background: "var(--surface)" }}>
+            <div {...clickable(() => setOpenId(open ? null : h.id), h.name)} aria-expanded={open} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", cursor: "pointer", background: "var(--surface)" }}>
               {open ? <ChevronDown size={15} color="var(--text-muted-navy)" /> : <ChevronRight size={15} color="var(--text-muted-navy)" />}
               <Home size={15} color="var(--brand)" />
               <div style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 600, color: "var(--text)" }}>{h.name}</div>
