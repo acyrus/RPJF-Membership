@@ -18,6 +18,7 @@ import UncapturedMembersPage from "./pages/UncapturedMembersPage";
 import NotificationCenter from "./NotificationCenter";
 import { Spinner, fullName, PhotoLightbox, MfaChallenge, SecurityModal, SetPasswordScreen, OnboardingFlow, ROLES, TAB_LABELS, tabsForProfile, defaultTabForProfile, useIsMobile } from "./components";
 import { branding } from "./branding";
+import { PeopleMark } from "./PeopleMark";
 import { AlertTriangle, Home, Users, ClipboardList, Camera, Tag, LayoutDashboard, PartyPopper, Zap, BarChart3, UserCog, ScrollText, Upload, ShieldCheck, LogOut, ListChecks, Moon, Sun, Menu, X, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 
 
@@ -429,6 +430,7 @@ export default function App() {
             );
             const brand = (
               <div className="header-brand" style={{display:"flex",alignItems:"center",gap:12,minWidth:0}}>
+                <PeopleMark height={30} color="#ffffff" title="RPJF" style={{flexShrink:0}} />
                 <div style={{minWidth:0}}>
                   <div className="brand-name" style={{fontFamily:"'Space Grotesk','Inter',sans-serif",fontSize:14,letterSpacing:0.2,color:"#ffffff",fontWeight:600,lineHeight:1.25}}>{branding.fullName}</div>
                   <div style={{fontSize:11.5,color:"#93ebe3",letterSpacing:0.3,fontWeight:600,marginTop:2}}>{branding.motto}</div>
