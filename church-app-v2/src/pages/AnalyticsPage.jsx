@@ -5,7 +5,7 @@ import {
 } from "recharts";
 import { ROLES, ROLE_COLORS, TRINIDAD_CITIES, calcAge, fullName, Avatar, clickable } from "../components";
 import { supabase } from "../supabase";
-import { Search, Home, Check, X, ChevronDown, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown, UserMinus, SlidersHorizontal, Users, TrendingUp, Calendar, Clock, Baby, Music, Layers, UserCheck, Heart, User } from "lucide-react";
+import { Search, Home, Check, X, ChevronDown, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown, UserMinus, SlidersHorizontal, Users, TrendingUp, Calendar, Clock, Baby, Music, Layers, UserCheck, Heart, User, AlertTriangle } from "lucide-react";
 
 const TEAL      = "#2a5357";
 const TURQUOISE = "#5edcd1";
@@ -953,6 +953,35 @@ export default function AnalyticsPage({ members, services, attendance, household
     return Object.keys(groups).map(Number).sort((a, b) => b - a)
       .map(n => ({ n, players: groups[n].sort((x, y) => fullName(x.member).localeCompare(fullName(y.member))) }));
   }, [filteredMembers]);
+
+  // 16c. Serving map by household — roll ministry roles up to the family. Surfaces
+  // over-committed families (burnout risk, BURNOUT_ROLES+ combined roles) and families
+  // with zero involvement (assimilation gap). Uses filteredMembers so it respects the
+  // active/status filter like the rest of the Ministries tab.
+  const BURNOUT_ROLES = 4;
+  const servingByHousehold = useMemo(() => {
+    const byHh = {};
+    filteredMembers.forEach(m => { if (m.household_id) (byHh[m.household_id] = byHh[m.household_id] || []).push(m); });
+    const rows = Object.entries(byHh).map(([id, mem]) => {
+      const hh = households.find(h => h.id === id);
+      let totalRoles = 0, serving = 0, leaders = 0;
+      const ministries = new Set();
+      mem.forEach(m => {
+        const roles = [...new Set((m.roles || []).filter(Boolean))];
+        totalRoles += roles.length;
+        if (roles.length) serving++;
+        roles.forEach(r => ministries.add(r));
+        Object.values(m.rolePositions || {}).forEach(p => { if (p === "Leader" || p === "Co-Leader") leaders++; });
+      });
+      return { id, name: hh?.name || "Household", size: mem.length, totalRoles, serving, leaders, ministries: [...ministries].sort() };
+    });
+    rows.sort((a, b) => b.totalRoles - a.totalRoles || a.name.localeCompare(b.name));
+    return {
+      rows,
+      overCommitted: rows.filter(r => r.totalRoles >= BURNOUT_ROLES).length,
+      notServing: rows.filter(r => r.totalRoles === 0).length,
+    };
+  }, [filteredMembers, households]);
 
   // 17. Distinct with role
   const distinctWithRole = useMemo(() =>
@@ -2196,6 +2225,46 @@ export default function AnalyticsPage({ members, services, attendance, household
                       </div>
                     </div>
                   ))}
+                </div>
+            }
+          </ChartCard>
+
+          <SectionTitle>Serving Map by Household</SectionTitle>
+          <div className="grid-2" style={{gap:12, marginBottom:12}}>
+            <IconStat icon={<AlertTriangle size={18}/>} value={servingByHousehold.overCommitted} label="Over-committed families" sub={`${BURNOUT_ROLES}+ ministry roles across the family`} color={ORANGE} />
+            <IconStat icon={<UserMinus size={18}/>} value={servingByHousehold.notServing} label="Families not serving" sub="no ministry involvement (assimilation gap)" color={RED} />
+          </div>
+          <ChartCard title="Ministry Load by Household" subtitle={`Ministry roles rolled up across each family. Families carrying ${BURNOUT_ROLES}+ roles are flagged as burnout risk at the top; families with none sit at the bottom as an assimilation gap.`}>
+            {servingByHousehold.rows.length === 0
+              ? <div style={{textAlign:"center",padding:24,color:"var(--text-faint)",fontSize:12}}>No households with members in this view</div>
+              : <div style={{display:"flex",flexDirection:"column"}}>
+                  {servingByHousehold.rows.map((r,i) => {
+                    const burnout = r.totalRoles >= BURNOUT_ROLES;
+                    const zero = r.totalRoles === 0;
+                    return (
+                      <div key={r.id} style={{display:"flex",alignItems:"flex-start",gap:12,padding:"11px 0",borderTop:i>0?"1px solid var(--border-divider)":"none"}}>
+                        <Home size={15} color="var(--text-muted-navy)" style={{marginTop:2,flexShrink:0}} />
+                        <div style={{flex:1,minWidth:0}}>
+                          <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+                            <span style={{fontSize:13.5,fontWeight:700,color:"var(--text)"}}>{r.name}</span>
+                            {burnout && <span style={{fontSize:10,fontWeight:700,background:ORANGE+"1f",color:ORANGE,borderRadius:12,padding:"1px 8px"}}>Burnout risk</span>}
+                            {zero && <span style={{fontSize:10,fontWeight:700,background:RED+"1f",color:RED,borderRadius:12,padding:"1px 8px"}}>Not serving</span>}
+                            {r.leaders > 0 && <span style={{fontSize:10,fontWeight:700,background:"var(--pos-badge-bg)",color:"var(--pos-badge-fg)",border:"1px solid var(--pos-badge-bd)",borderRadius:12,padding:"1px 8px"}}>{r.leaders} leader{r.leaders!==1?"s":""}</span>}
+                          </div>
+                          {r.ministries.length > 0
+                            ? <div style={{display:"flex",flexWrap:"wrap",gap:5,marginTop:5}}>
+                                {r.ministries.map(m => <span key={m} style={{fontSize:10.5,fontWeight:600,background:(ROLE_COLORS[m]||TEAL)+"22",color:ROLE_COLORS[m]||TEAL,borderRadius:12,padding:"1px 8px",whiteSpace:"nowrap"}}>{m}</span>)}
+                              </div>
+                            : <div style={{fontSize:11.5,color:"var(--text-faint)",fontStyle:"italic",marginTop:4}}>No ministry involvement</div>}
+                        </div>
+                        <div style={{textAlign:"right",flexShrink:0,minWidth:64}}>
+                          <div style={{fontSize:18,fontWeight:700,color:burnout?ORANGE:zero?"var(--text-faint)":"var(--text)",lineHeight:1}}>{r.totalRoles}</div>
+                          <div style={{fontSize:10,color:"var(--text-faint)",marginTop:2}}>role{r.totalRoles!==1?"s":""}</div>
+                          <div style={{fontSize:10.5,color:"var(--text-muted-navy)",marginTop:3}}>{r.serving}/{r.size} serving</div>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
             }
           </ChartCard>
