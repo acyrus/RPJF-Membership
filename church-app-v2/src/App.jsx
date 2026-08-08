@@ -16,6 +16,7 @@ import HouseholdsPage from "./pages/HouseholdsPage";
 import PhotoRequestsPage from "./pages/PhotoRequestsPage";
 import UncapturedMembersPage from "./pages/UncapturedMembersPage";
 import NotificationCenter from "./NotificationCenter";
+import { Emblem } from "./Emblem";
 import { Spinner, fullName, PhotoLightbox, MfaChallenge, SecurityModal, SetPasswordScreen, OnboardingFlow, ROLES, TAB_LABELS, tabsForProfile, defaultTabForProfile, useIsMobile } from "./components";
 import { branding } from "./branding";
 import { AlertTriangle, Home, Users, ClipboardList, Camera, Tag, LayoutDashboard, PartyPopper, Zap, BarChart3, UserCog, ScrollText, Upload, ShieldCheck, LogOut, ListChecks, Moon, Sun, Menu, X, PanelLeftClose, PanelLeftOpen } from "lucide-react";
@@ -330,9 +331,13 @@ export default function App() {
     let greetName = "";
     try { greetName = (localStorage.getItem("rpjf_name") || "").trim().split(" ")[0]; } catch (e) {}
     return (
-    <div style={{position:"fixed",inset:0,zIndex:1000,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:28,background:"var(--brand)",padding:24,boxShadow:"inset 0 0 220px rgba(0,0,0,0.28)"}}>
-      <img className="splash-logo" src={branding.logo.full} alt={branding.fullName} style={{width:"min(340px, 82vw)",height:"auto",display:"block"}} />
-      {greetName && <div className="splash-logo" style={{fontSize:16,fontWeight:600,color:"#ffffff"}}>Welcome back, <span style={{color:"var(--brand-accent)"}}>{greetName}</span></div>}
+    <div style={{position:"fixed",inset:0,zIndex:1000,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:26,background:"var(--brand)",padding:24,textAlign:"center",boxShadow:"inset 0 0 220px rgba(0,0,0,0.28)"}}>
+      <Emblem className="splash-logo" height={132} color="#ffffff" />
+      <div className="splash-logo">
+        <div style={{fontFamily:"'Space Grotesk','Inter',sans-serif",fontSize:20,fontWeight:700,color:"#ffffff",letterSpacing:0.2,lineHeight:1.3,maxWidth:340}}>{branding.fullName}</div>
+        <div style={{fontSize:13,color:"var(--brand-accent)",marginTop:5,fontWeight:500}}>{branding.motto}</div>
+      </div>
+      {greetName && <div className="splash-logo" style={{fontSize:15,fontWeight:600,color:"#ffffff"}}>Welcome back, <span style={{color:"var(--brand-accent)"}}>{greetName}</span></div>}
       <div className="splash-dots" role="status" aria-label="Loading"><span/><span/><span/></div>
     </div>
     );
@@ -429,7 +434,7 @@ export default function App() {
             );
             const brand = (
               <div className="header-brand" style={{display:"flex",alignItems:"center",gap:12,minWidth:0}}>
-                <img src={branding.logo.mark} alt={branding.shortName} style={{height:40,width:"auto",display:"block",flexShrink:0}} />
+                <Emblem height={38} color="#ffffff" title={branding.shortName} />
                 <div style={{minWidth:0}}>
                   <div className="brand-name" style={{fontFamily:"'Space Grotesk','Inter',sans-serif",fontSize:14,letterSpacing:0.2,color:"#ffffff",fontWeight:600,lineHeight:1.25}}>{branding.fullName}</div>
                   <div style={{fontSize:11,color:"var(--brand-accent)",letterSpacing:0.3,fontWeight:500,marginTop:2}}>{branding.motto}</div>
