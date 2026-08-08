@@ -16,7 +16,6 @@ import HouseholdsPage from "./pages/HouseholdsPage";
 import PhotoRequestsPage from "./pages/PhotoRequestsPage";
 import UncapturedMembersPage from "./pages/UncapturedMembersPage";
 import NotificationCenter from "./NotificationCenter";
-import { Emblem } from "./Emblem";
 import { Spinner, fullName, PhotoLightbox, MfaChallenge, SecurityModal, SetPasswordScreen, OnboardingFlow, ROLES, TAB_LABELS, tabsForProfile, defaultTabForProfile, useIsMobile } from "./components";
 import { branding } from "./branding";
 import { AlertTriangle, Home, Users, ClipboardList, Camera, Tag, LayoutDashboard, PartyPopper, Zap, BarChart3, UserCog, ScrollText, Upload, ShieldCheck, LogOut, ListChecks, Moon, Sun, Menu, X, PanelLeftClose, PanelLeftOpen } from "lucide-react";
@@ -422,7 +421,7 @@ export default function App() {
     <PhotoLightbox>
     <div style={{minHeight:"100vh",background:"var(--surface-alt)"}}>
       {/* Header */}
-      <div className="header-bar" style={{borderBottom:"1.5px solid rgba(94,220,209,0.28)",padding:"0 24px",position:"sticky",top:0,background:"linear-gradient(122deg, transparent 58%, rgba(225,85,3,0.92) 61.5%, rgba(225,85,3,0.92) 65%, transparent 68.5%), linear-gradient(115deg, #31606a 0%, var(--brand) 52%, #22474b 100%)",zIndex:50,boxShadow:"0 2px 10px #00000038"}}>
+      <div className="header-bar" style={{borderBottom:"1.5px solid rgba(94,220,209,0.28)",padding:"0 24px",position:"sticky",top:0,background:"linear-gradient(122deg, transparent 60.75%, rgba(225,85,3,0.92) 62%, rgba(225,85,3,0.92) 63.75%, transparent 65%), linear-gradient(115deg, #31606a 0%, var(--brand) 52%, #22474b 100%)",zIndex:50,boxShadow:"0 2px 10px #00000038"}}>
         <div style={{width:"100%"}}>
           {(() => {
             const navToggle = (
@@ -430,23 +429,22 @@ export default function App() {
             );
             const brand = (
               <div className="header-brand" style={{display:"flex",alignItems:"center",gap:12,minWidth:0}}>
-                <Emblem height={38} color="#ffffff" title={branding.shortName} />
                 <div style={{minWidth:0}}>
                   <div className="brand-name" style={{fontFamily:"'Space Grotesk','Inter',sans-serif",fontSize:14,letterSpacing:0.2,color:"#ffffff",fontWeight:600,lineHeight:1.25}}>{branding.fullName}</div>
-                  <div style={{fontSize:11,color:"var(--brand-accent)",letterSpacing:0.3,fontWeight:500,marginTop:2}}>{branding.motto}</div>
+                  <div style={{fontSize:11.5,color:"#93ebe3",letterSpacing:0.3,fontWeight:600,marginTop:2}}>{branding.motto}</div>
                 </div>
               </div>
             );
             const headerActions = (
               <div className="header-actions" style={{display:"flex",alignItems:"center",gap:14,flexShrink:0}}>
-                <div className="user-meta" style={{textAlign:"right"}}>
-                  <div className="user-name" style={{fontSize:12,fontWeight:700,color:"#ffffff",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",maxWidth:120}}>{profile.name}</div>
-                  <div className="user-role" style={{fontSize:11,color:isAdmin?"#2a5357":"#4caf82",textTransform:"uppercase",letterSpacing:0.2,fontWeight:700}}>{profile.role}</div>
+                <div className="user-meta" style={{display:"flex",alignItems:"center",gap:8}}>
+                  <span className="user-name" style={{fontSize:12.5,fontWeight:700,color:"#ffffff",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",maxWidth:150}}>{profile.name}</span>
+                  <span className="user-role" style={{fontSize:10,fontWeight:700,color:"#ffffff",background:"rgba(255,255,255,0.16)",border:"1px solid rgba(255,255,255,0.22)",borderRadius:20,padding:"2px 9px",textTransform:"uppercase",letterSpacing:0.3,whiteSpace:"nowrap"}}>{profile.role}</span>
                 </div>
                 <NotificationCenter members={members} services={services} attendance={attendance} pendingPhotos={pendingPhotos} allowedTabs={allowedTabs} onNavigate={setTab} />
-                <button onClick={toggleDark} title={dark?"Switch to light mode":"Switch to dark mode"} aria-label={dark?"Switch to light mode":"Switch to dark mode"} style={{display:"inline-flex",alignItems:"center",justifyContent:"center",background:"none",border:"1.5px solid #5edcd155",color:"var(--brand-accent)",padding:"7px 9px",borderRadius:8,cursor:"pointer",transition:"all 0.15s"}}>{dark ? <Sun size={13} /> : <Moon size={13} />}</button>
-                <button onClick={()=>setSecurityOpen(true)} title="Account security" style={{display:"inline-flex",alignItems:"center",gap:6,fontSize:11,background:"none",border:"1.5px solid #5edcd155",color:"var(--brand-accent)",padding:"7px 12px",borderRadius:8,cursor:"pointer",fontFamily:"Inter,sans-serif",fontWeight:500,transition:"all 0.15s"}}><ShieldCheck size={13} /> <span className="btn-label">Security</span></button>
-                <button onClick={logout} title="Sign out" style={{display:"inline-flex",alignItems:"center",gap:6,fontSize:11,background:"none",border:"1.5px solid #5edcd155",color:"var(--brand-accent)",padding:"7px 14px",borderRadius:8,cursor:"pointer",fontFamily:"Inter,sans-serif",fontWeight:500,transition:"all 0.15s"}}><LogOut size={13} /> <span className="btn-label">Sign Out</span></button>
+                <button onClick={toggleDark} title={dark?"Switch to light mode":"Switch to dark mode"} aria-label={dark?"Switch to light mode":"Switch to dark mode"} style={{display:"inline-flex",alignItems:"center",justifyContent:"center",background:"none",border:"1.5px solid #5edcd155",color:"var(--brand-accent)",padding:"7px 9px",borderRadius:8,cursor:"pointer",transition:"all 0.15s"}}>{dark ? <Sun size={16} /> : <Moon size={16} />}</button>
+                <button onClick={()=>setSecurityOpen(true)} title="Account security" style={{display:"inline-flex",alignItems:"center",gap:6,fontSize:11,background:"none",border:"1.5px solid #5edcd155",color:"var(--brand-accent)",padding:"7px 12px",borderRadius:8,cursor:"pointer",fontFamily:"Inter,sans-serif",fontWeight:500,transition:"all 0.15s"}}><ShieldCheck size={16} /> <span className="btn-label">Security</span></button>
+                <button onClick={logout} title="Sign out" style={{display:"inline-flex",alignItems:"center",gap:6,fontSize:11,background:"none",border:"1.5px solid #5edcd155",color:"var(--brand-accent)",padding:"7px 14px",borderRadius:8,cursor:"pointer",fontFamily:"Inter,sans-serif",fontWeight:500,transition:"all 0.15s"}}><LogOut size={16} /> <span className="btn-label">Sign Out</span></button>
               </div>
             );
             return isMobile ? (

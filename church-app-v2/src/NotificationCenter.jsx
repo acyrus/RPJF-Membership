@@ -85,7 +85,7 @@ export default function NotificationCenter({ members = [], services = [], attend
     <div style={{ position: "relative" }}>
       <button ref={btnRef} onClick={toggle} title="Notifications" aria-label="Notifications"
         style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", position: "relative", background: "none", border: "1.5px solid #5edcd155", color: "var(--brand-accent)", padding: "7px 9px", borderRadius: 8, cursor: "pointer" }}>
-        <Bell size={14} />
+        <Bell size={16} />
         {count > 0 && <span style={{ position: "absolute", top: -6, right: -6, minWidth: 16, height: 16, padding: "0 4px", borderRadius: 10, background: "#e15700", color: "#fff", fontSize: 10, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center" }}>{count}</span>}
       </button>
 
