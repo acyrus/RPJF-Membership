@@ -508,6 +508,8 @@ function HouseholdAttendance({ households, members, services, attendance }) {
                           <div style={{ fontSize: 9, fontWeight: 500, color: "var(--text-faint)", lineHeight: 1.2, marginTop: 3, maxWidth: 88, whiteSpace: "normal" }}>{s.name}</div>
                         </th>
                       ))}
+                      <th style={{ padding: "8px 10px", color: "var(--text-faint)", fontWeight: 700, textAlign: "right", minWidth: 64 }}>Attended</th>
+                      <th style={{ padding: "8px 10px", color: "var(--text-faint)", fontWeight: 700, textAlign: "right", minWidth: 56 }}>Absent</th>
                       <th style={{ padding: "8px 10px", color: "var(--text-faint)", fontWeight: 700, textAlign: "right" }}>Rate</th>
                     </tr>
                   </thead>
@@ -518,6 +520,8 @@ function HouseholdAttendance({ households, members, services, attendance }) {
                         <tr key={m.id} style={{ borderTop: "1px solid var(--border-divider)" }}>
                           <td style={{ position: "sticky", left: 0, zIndex: 1, background: "var(--surface)", padding: "6px 10px", fontWeight: 600, color: "var(--text)", whiteSpace: "nowrap" }}>{fullName(m)}</td>
                           {cols.map(s => { const p = (attendance[s.id] || []).includes(m.id); return <td key={s.id} style={{ textAlign: "center", padding: "6px 5px" }}>{p ? <Check size={13} color="#2a8a50" /> : <X size={12} color="#d05050" />}</td>; })}
+                          <td style={{ textAlign: "right", padding: "6px 10px", fontWeight: 700, color: "#2a8a50" }}>{att}</td>
+                          <td style={{ textAlign: "right", padding: "6px 10px", fontWeight: 700, color: "#d05050" }}>{total - att}</td>
                           <td style={{ textAlign: "right", padding: "6px 10px", fontWeight: 700, color: "var(--brand)" }}>{total ? Math.round(att / total * 100) : 0}%</td>
                         </tr>
                       );
